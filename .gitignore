@@ -1,0 +1,36 @@
+# Ignore documentation from main git push
+docs/
+*.pdf
+*.docx
+*.doc
+
+# Python & Databases
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.pytest_cache/
+*.db
+copilot.db
+
+# Node / Frontend
+node_modules/
+dist/
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+
+# Large Public Datasets & Raw Downloads
+*.zip
+*.tar.gz
+sf-loan-performance-data-sample.csv
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

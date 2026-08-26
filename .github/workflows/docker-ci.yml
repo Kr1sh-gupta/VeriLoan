@@ -1,0 +1,31 @@
+name: Docker Containers Build & Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-containers:
+    name: Build Backend & Frontend Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Docker Image
+        run: |
+          if [ -d "backend" ]; then
+            docker build -t veriloan-backend:latest ./backend
+          fi
+
+      - name: Build Frontend Docker Image
+        run: |
+          if [ -d "frontend" ]; then
+            docker build -t veriloan-frontend:latest ./frontend
+          fi

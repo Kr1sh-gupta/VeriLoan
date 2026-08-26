@@ -1,0 +1,97 @@
+name: Sync Frontend & Backend to Main Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_ref:
+        description: 'Frontend branch or tag to pull from'
+        required: true
+        default: 'frontend'
+      backend_ref:
+        description: 'Backend branch or tag to pull from'
+        required: true
+        default: 'backend'
+      commit_message:
+        description: 'Commit message for the assembled main release'
+        required: false
+        default: 'chore(release): synchronize latest code from frontend and backend branches'
+  push:
+    branches:
+      - frontend
+      - backend
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  assemble-and-validate-main:
+    name: Assemble, Test & Sync to Main
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Main Branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git Author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch and Merge Frontend Branch Code
+        run: |
+          git fetch origin ${{ github.event.inputs.frontend_ref || 'frontend' }}:temp-frontend
+          mkdir -p frontend
+          git --work-tree=frontend checkout temp-frontend -- .
+          git branch -D temp-frontend || true
+
+      - name: Fetch and Merge Backend Branch Code
+        run: |
+          git fetch origin ${{ github.event.inputs.backend_ref || 'backend' }}:temp-backend
+          mkdir -p backend
+          git --work-tree=backend checkout temp-backend -- .
+          git branch -D temp-backend || true
+
+      # Backend Test & Validation Step
+      - name: Set up Python for Backend Validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: Install Backend Dependencies & Run Pytest
+        run: |
+          cd backend
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m pytest tests/ -v
+
+      # Frontend Build & Validation Step
+      - name: Set up Node.js for Frontend Validation
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies & Build Production Bundle
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      # Commit and Push Assembled Monorepo to Main
+      - name: Commit and Push Synchronized Code to Main
+        run: |
+          git add -A
+          if git diff-index --quiet HEAD --; then
+            echo "No changes detected between branches and main. Skipping commit."
+          else
+            git commit -m "${{ github.event.inputs.commit_message || 'chore(release): auto-sync latest frontend and backend branches to main' }}"
+            git push origin main
+          fi

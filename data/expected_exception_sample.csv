@@ -1,0 +1,32 @@
+loan_id,rule,desc,severity
+ROW-15,VAL-001,Missing Loan ID,CRITICAL
+LN-10020,VAL-002,Duplicate Loan ID,CRITICAL
+LN-10045,VAL-003,Duplicate Borrower + Principal + Origination Date,HIGH
+LN-10060,VAL-004,Invalid date format in origination_date,HIGH
+ROW-75,VAL-001,Missing Loan ID,CRITICAL
+LN-10040,VAL-002,Duplicate Loan ID,CRITICAL
+LN-10095,VAL-005,Maturity date precedes origination date,CRITICAL
+LN-10110,VAL-006,Negative original principal balance,CRITICAL
+LN-10125,VAL-007,Current balance exceeds original principal,HIGH
+LN-10140,VAL-008,Interest rate exceeds max bound (48.50% > 36.00%),MEDIUM
+ROW-150,VAL-001,Missing Loan ID,CRITICAL
+LN-10165,VAL-009,Payment status is CURRENT but Days Past Due is 90,HIGH
+LN-10180,VAL-010,Mandatory mortgage note document missing,MEDIUM
+LN-10190,VAL-004,Invalid date value in maturity_date,HIGH
+LN-10210,VAL-012,Stale loan record (last updated > 180 days ago),LOW
+LN-10225,VAL-013,Invalid US state code: XX,MEDIUM
+LN-10230,VAL-005,Maturity date precedes origination date,CRITICAL
+LN-10245,VAL-014,"Loan marked PAID_OFF but current balance is $54,200.00",HIGH
+LN-10260,VAL-006,Negative current balance,CRITICAL
+LN-10310,VAL-007,Current balance exceeds original principal,HIGH
+LN-10360,VAL-008,Negative interest rate,MEDIUM
+LN-10410,VAL-009,Payment status is DELINQUENT_60 but Days Past Due is 0,HIGH
+LN-10450,VAL-010,Required title policy document expired,MEDIUM
+LN-10520,VAL-012,Stale loan record (last updated > 180 days ago),LOW
+LN-10560,VAL-013,Invalid US state code format: CAL,MEDIUM
+LN-10600,VAL-014,"Loan marked CLOSED but current balance is $12,900.50",HIGH
+LN-10050,VAL-011,"Conflict with servicer update (Tape: $351257.72, Servicer: $298569.06)",HIGH
+LN-10100,VAL-011,"Conflict with servicer update (Tape: $610947.65, Servicer: $519305.5)",HIGH
+LN-10200,VAL-011,"Conflict with servicer update (Tape: $242198.79, Servicer: $205868.97)",HIGH
+LN-10300,VAL-011,"Conflict with servicer update (Tape: $578554.97, Servicer: $491771.72)",HIGH
+LN-10350,VAL-011,"Conflict with servicer update (Tape: $173927.74, Servicer: $147838.58)",HIGH
