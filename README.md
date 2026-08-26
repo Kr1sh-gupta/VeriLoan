@@ -1,115 +1,191 @@
-# Loan Data Verification Copilot
-**Intain Campus FinTech Challenge 2026 | Full Stack Track**
+# VeriLoan — Loan Data Verification Copilot
 
-[![Full-Stack Verification](https://img.shields.io/badge/Validation-14%20Rules%20Passing-emerald)](https://github.com/Kr1sh-gupta/intain)
-[![Cryptographic Protocol](https://img.shields.io/badge/Security-SHA--256%20Canonical%20Seal-cyan)](https://github.com/Kr1sh-gupta/intain)
-[![AI Copilot](https://img.shields.io/badge/AI%20Assistant-Gemini%20%2B%20Deterministic%20Fallback-indigo)](https://github.com/Kr1sh-gupta/intain)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%7C%20Python%203.11-009688.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/Frontend-React%2018%20%7C%20TypeScript-61DAFB.svg?style=flat&logo=react)](https://reactjs.org)
+[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS%20v4-38B2AC.svg?style=flat&logo=tailwind-css)](https://tailwindcss.com)
+[![Security](https://img.shields.io/badge/Cryptography-SHA--256%20Canonical%20Seal-0ea5e9.svg?style=flat)](https://github.com/Kr1sh-gupta/VeriLoan)
 
-> Build an AI-assisted full-stack console that turns messy loan records into validated, traceable, trusted data.
-
----
-
-## 🌟 Executive Summary
-
-The **Loan Data Verification Copilot** automates financial loan tape diligence. It ingests messy multi-source loan tapes, detects data anomalies via a 14-rule validation engine, assists reviewers via an explainable AI Copilot with transparent human-in-the-loop governance (zero silent writes), and produces cryptographically verified records with SHA-256 hashes and an immutable audit trail.
+A full-stack financial diligence platform that ingests multi-source loan tapes, executes a 14-rule validation engine, assists reviewers via an explainable AI Copilot with human-in-the-loop controls (zero silent writes), and produces cryptographically verified records with SHA-256 hashes and an immutable audit trail.
 
 ---
 
-## 📑 Core Modules Implemented
+## 🏗️ Architecture & Features
 
-- **Module A: Data Ingestion & Normalization**: CSV streamer for primary loan tapes (1,200 records), secondary servicer updates, and document manifests with raw lineage preservation.
-- **Module B: 14-Rule Validation Engine**: Automated checks across mandatory fields, duplicates, ISO date formats, sequence logic, balance-to-principal constraints, interest rate bounds, payment status vs. DPD consistency, document availability, cross-source servicer conflicts, and stale records.
-- **Module C: Exception Queue & Reviewer Workbench**: Filterable exception matrix with severity categorization (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`) and side-by-side tape-to-servicer diffing.
-- **Module D: AI Review Assistant (Copilot)**: Root-cause explanations, suggested data patches, transparent prompts, model metadata, and strict human controls (`[Accept AI Patch]`, `[Custom Edit]`, `[Dismiss Flag]`).
-- **Module E: Verified Loan Records**: Canonical JSON serialization with SHA-256 cryptographic hashing and live tamper detection.
-- **Module F: Immutable Audit Trail**: Complete event history from raw ingestion to verified export.
-- **Module G: Role-Based Dashboards**: Tailored interfaces for **Data Operator**, **Reviewer**, and **Data Consumer**.
-- **Module H: Verified Records API**: Complete REST API suite with automated Swagger OpenAPI documentation.
+- **Multi-Source Ingestion**: Streaming parser for primary loan tapes, secondary servicer updates, and document manifests with raw schema lineage tracking.
+- **14-Rule Validation Engine**: High-performance validation covering balance bounds, date sequence logic, duplicates, rate anomalies, payment status vs. DPD mismatches, document status, and cross-source conflict reconciliation.
+- **AI Review Assistant (Copilot)**: Dual-mode engine (Google Gemini API + deterministic local financial heuristic engine for 100% offline resilience) providing root-cause explanations and suggested data patches.
+- **Cryptographic Verification**: Deterministic canonical JSON serialization and SHA-256 record hashing with on-the-fly tamper verification.
+- **Role-Based Workspaces**: Tailored interfaces for Data Operator (ingestion & batch lineage), Reviewer (exception queue & AI drawer), and Data Consumer (verified records & CSV export).
+- **REST API Suite**: Complete REST endpoints with automated Swagger OpenAPI documentation.
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Running Locally (Native Setup)
 
 ### Prerequisites
-- Python 3.11+
-- Node.js 18+ and npm
-- (Optional) Docker & Docker Compose
+- **Python 3.11+**
+- **Node.js 18+** and **npm**
 
-### 1. Backend Setup & Startup
+---
+
+### Step 1: Start the Backend Service
+
+Open a terminal and run:
+
 ```bash
-# From workspace root
+# Navigate to the backend directory
 cd backend
 
-# Install dependencies
+# Install Python dependencies
 pip install -r requirements.txt
 
-# Run automated tests
+# (Optional) Run test suite to verify installation
 python -m pytest tests/ -v
 
-# Start FastAPI server on port 8000
+# Start the FastAPI server
 python -m uvicorn app.main:app --reload --port 8000
 ```
-Backend API will be live at `http://localhost:8000`.
-Swagger interactive documentation: `http://localhost:8000/docs`.
 
-### 2. Frontend Setup & Startup
+- **Backend API**: `http://localhost:8000`
+- **Swagger Interactive API Docs**: `http://localhost:8000/docs`
+- **ReDoc Documentation**: `http://localhost:8000/redoc`
+
+---
+
+### Step 2: Start the Frontend Application
+
+Open a second terminal and run:
+
 ```bash
-# In a new terminal from workspace root
+# Navigate to the frontend directory
 cd frontend
 
-# Install dependencies
+# Install Node dependencies
 npm install
 
-# Start Vite React dev server
+# Start the Vite development server
 npm run dev
 ```
-Web console will be live at `http://localhost:5173`.
+
+- **Frontend Application**: `http://localhost:5173`
 
 ---
 
-## 🔑 Pre-Configured Test Credentials
+## 🐳 Running with Docker & Docker Compose
 
-| Role | Persona Name | Username | Password | Access Level |
+To spin up both the backend and frontend in isolated containers:
+
+### 1. Build and Start Services
+```bash
+# From the project root (where docker-compose.yml is located)
+docker compose up --build
+```
+
+### 2. Access the Applications
+- **Frontend UI**: `http://localhost:5173`
+- **Backend API**: `http://localhost:8000`
+- **Swagger API Docs**: `http://localhost:8000/docs`
+
+### 3. Stop Services
+```bash
+docker compose down
+```
+
+---
+
+## 🔑 Pre-Configured Test Personas
+
+You can switch between test accounts using the persona selector in the top navigation bar:
+
+| Role | Persona Name | Username | Password | Permissions |
 |---|---|---|---|---|
-| **Data Operator** | Elena Rostova | `operator` | `operator123!` | CSV Ingestion, Raw Data, Batch Verification |
-| **Reviewer** | Marcus Vance | `reviewer` | `reviewer123!` | Exception Queue, AI Copilot, Patch Resolution |
-| **Data Consumer** | Sarah Chen | `consumer` | `consumer123!` | Verified Records, Hash Verification, Audit Trail, CSV Export |
-
-*Note: You can instantly switch between test personas using the top navigation switcher.*
+| **Data Operator** | Elena Rostova | `operator` | `operator123!` | CSV upload, schema inspection, batch verification |
+| **Reviewer** | Marcus Vance | `reviewer` | `reviewer123!` | Exception queue, AI copilot, patch approval / edit |
+| **Data Consumer** | Sarah Chen | `consumer` | `consumer123!` | Verified records, SHA-256 hash validation, audit history, CSV export |
 
 ---
 
-## 📦 Key Deliverables & Documentation
+## 📡 REST API Reference
 
-- 📄 **[Architecture Note (docs/ARCHITECTURE.md)](docs/ARCHITECTURE.md)**: 2-page detailed system design, data model, validation rules, AI controls, and architectural trade-offs.
-- 🤖 **[AI Development Log (docs/AI_DEVELOPMENT_LOG.md)](docs/AI_DEVELOPMENT_LOG.md)**: Required agentic coding demonstration, prompt traces, human review process, rejected outputs, and metrics.
-- 🎬 **[Five-Minute Demo Script (docs/DEMO_SCRIPT.md)](docs/DEMO_SCRIPT.md)**: Step-by-step 5-minute evaluation walkthrough for judges.
-- 📊 **[Synthetic Datasets (data/)](data/)**: Complete package containing `loan_tape.csv` (1,200 records), `servicer_update.csv`, `document_manifest.csv`, `validation_rules.json`, `users.json`, and `expected_exception_sample.csv`.
-
----
-
-## 🛠️ Technology Stack
-
-- **Frontend**: React 18, TypeScript, Tailwind CSS, Lucide Icons, Canvas Confetti, Axios, Vite.
-- **Backend**: Python 3.11, FastAPI, SQLAlchemy ORM, Pydantic, Uvicorn, Pytest.
-- **Database**: SQLite (local) / PostgreSQL-ready.
-- **AI / LLM Integration**: Google Gemini API (`gemini-1.5-flash`) + High-Precision Deterministic Financial Heuristic Engine for 100% offline demo resilience.
-- **Cryptography**: Python `hashlib.sha256` with canonical JSON serialization.
-
----
-
-## 🏆 Alignment with Judging Criteria
-
-| Criteria | Max Points | Implementation in Loan Data Verification Copilot |
+| Method | Endpoint | Description |
 |---|---|---|
-| **Full-Stack Product Completeness** | 20 | Complete working frontend & backend, CSV ingestion, SQLite persistence, and end-to-end verified lifecycle. |
-| **Backend Architecture & Data Modeling** | 15 | Clean SQLAlchemy models, modular services, 14-rule validation engine, and RESTful APIs. |
-| **Frontend Workflow & UX** | 15 | Cyber-FinTech dark theme, dynamic 3-stage animated hero, role-based workflows, and responsive layouts. |
-| **AI Feature Quality** | 15 | Explainable AI Copilot, transparent prompt/model metadata, and strict human approval controls (zero silent writes). |
-| **Agentic Coding Demonstration** | 15 | Complete `AI_DEVELOPMENT_LOG.md` with prompt traces, human reviews, rejected AI code examples, and metrics. |
-| **Traceability & Auditability** | 10 | SHA-256 canonical record hashes, live tamper detection, and immutable chronological audit trail. |
-| **Demo Quality** | 10 | Step-by-step 5-minute demo script, pre-seeded datasets, and turnkey local / Docker startup. |
+| `GET` | `/api/summary` | Real-time system health, exception counts, and quality metrics |
+| `GET` | `/api/loans` | Paginated raw and normalized loan records with filters |
+| `GET` | `/api/loans/:id` | Detailed loan record with cross-source references |
+| `PUT` | `/api/loans/:id` | Manual field adjustment with audit trail logging |
+| `GET` | `/api/exceptions` | Filterable exception queue with AI recommendations |
+| `POST` | `/api/exceptions/:id/resolve` | Resolve exception (`ACCEPT_AI`, `MANUAL_EDIT`, `DISMISS`, `REJECT`) |
+| `POST` | `/api/ai/explain` | Generate AI root-cause explanation and suggested patch |
+| `GET` | `/api/verified-loans` | Paginated verified records with SHA-256 hashes |
+| `GET` | `/api/verified-loans/:id` | Verified record with live SHA-256 tamper recalculation |
+| `POST` | `/api/verified-loans/verify-all-clean` | Batch seal all clean loans that passed validation |
+| `GET` | `/api/verified-loans/export/csv` | Download canonical verified dataset in CSV format |
+| `GET` | `/api/audit/:loanId` | Immutable chronological event history for a loan |
 
 ---
 
-© 2026 Intain Campus FinTech Challenge | Loan Data Verification Copilot
+## ⚙️ Environment Variables
+
+Create a `.env` file in `backend/` if you wish to configure optional settings:
+
+```env
+# Database connection string (defaults to SQLite: sqlite:///./copilot.db)
+DATABASE_URL=sqlite:///./copilot.db
+
+# Optional Google Gemini API Key for live LLM inference (fallback heuristic is used if omitted)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Backend host and port
+HOST=0.0.0.0
+PORT=8000
+```
+
+---
+
+## 📂 Project Structure
+
+```
+.
+├── backend/
+│   ├── app/
+│   │   ├── api/             # REST route handlers (auth, loans, exceptions, ai, audit)
+│   │   ├── services/        # Business logic (validation, verification, AI, ingestion)
+│   │   ├── config.py        # Settings & environment variables
+│   │   ├── database.py      # SQLAlchemy database session setup
+│   │   ├── models.py        # SQLAlchemy ORM database models
+│   │   ├── schemas.py       # Pydantic data validation schemas
+│   │   └── main.py          # FastAPI application entrypoint & startup seeder
+│   ├── tests/               # Pytest unit and integration test suite
+│   ├── Dockerfile           # Backend container build specification
+│   └── requirements.txt     # Python dependencies
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/      # UI components (Hero, Operator, Reviewer, Consumer, API)
+│   │   ├── lib/             # Axios API client
+│   │   ├── types/           # TypeScript interfaces
+│   │   ├── App.tsx          # Main application router and state
+│   │   └── main.tsx         # React root entrypoint
+│   ├── Dockerfile           # Frontend container build specification
+│   └── package.json         # Node.js dependencies
+│
+├── data/                    # Synthetic seed datasets & validation rules
+├── docker-compose.yml       # Multi-container orchestration configuration
+└── README.md                # Project documentation
+```
+
+---
+
+## 🧪 Testing
+
+Run backend test suite:
+```bash
+cd backend
+python -m pytest tests/ -v
+```
+
+Run frontend production build verification:
+```bash
+cd frontend
+npm run build
+```
