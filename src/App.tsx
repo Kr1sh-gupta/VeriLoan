@@ -29,7 +29,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#070B14] cyber-grid-bg text-slate-100 flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-200">
       
       {/* Top Navigation */}
       <Navbar
@@ -73,16 +73,17 @@ export function App() {
         )}
       </main>
 
-      {/* Institutional Footer */}
-      <footer className="w-full border-t border-slate-800/80 bg-[#05080F]/90 backdrop-blur-md py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-500">
+      {/* Minimal Clean Footer */}
+      <footer className="w-full border-t border-white/[0.08] bg-[#060913] py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-sans">
           <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>Intain Campus FinTech Challenge 2026 — Loan Data Verification Copilot</span>
+            <span className="font-extrabold text-white lowercase tracking-tight">veriloan</span>
+            <span>— AI Diligence &amp; Cryptographic Verification Platform</span>
           </div>
-          <div className="flex items-center space-x-4 text-slate-400">
-            <span>FastAPI + React/TypeScript + SQLite + Gemini AI</span>
-            <span>SHA-256 Verified</span>
+          <div className="flex items-center space-x-4 text-slate-500 font-mono text-[11px]">
+            <span>FastAPI + React 18</span>
+            <span>14-Rule Engine</span>
+            <span>SHA-256 Canonical Seal</span>
           </div>
         </div>
       </footer>

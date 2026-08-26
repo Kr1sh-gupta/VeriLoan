@@ -31,13 +31,13 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
   }, [loanId]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
-      <div className="w-full max-w-2xl rounded-3xl glass-panel p-6 sm:p-8 space-y-6 border border-cyan-500/30 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+      <div className="w-full max-w-2xl rounded-2xl bg-[#090e1a] p-6 sm:p-8 space-y-6 border border-white/10 shadow-2xl">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+            <div className="w-9 h-9 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-cyan-400">
               <GitCommit className="w-5 h-5" />
             </div>
             <div>
@@ -45,7 +45,7 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
               <p className="text-xs font-mono text-slate-400">Loan ID: {loanId}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800">
+          <button onClick={onClose} className="text-slate-400 hover:text-white p-2 rounded-lg bg-white/[0.05]">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -59,13 +59,13 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
             No audit events found for Loan {loanId}.
           </div>
         ) : (
-          <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-800 max-h-96 overflow-y-auto pr-2">
+          <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-3 before:bottom-3 before:w-0.5 before:bg-white/10 max-h-96 overflow-y-auto pr-2">
             {events.map((ev, idx) => (
               <div key={ev.id || idx} className="relative group">
-                {/* Timeline Dot */}
-                <div className="absolute -left-6 top-1.5 w-3 h-3 rounded-full bg-cyan-500 ring-4 ring-[#070B14] group-hover:scale-125 transition-transform" />
+                {/* Dot */}
+                <div className="absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full bg-cyan-400 ring-4 ring-[#090e1a]" />
                 
-                <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div className="p-4 rounded-xl bg-[#060913] border border-white/10 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-mono font-bold text-cyan-400">
                       {ev.event_type}
@@ -79,8 +79,8 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
                     {ev.summary}
                   </p>
 
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-800/60">
-                    <span>Actor: <strong className="text-slate-300">{ev.actor_id}</strong> ({ev.actor_role})</span>
+                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-white/[0.06]">
+                    <span>Actor: <strong className="text-slate-200">{ev.actor_id}</strong> ({ev.actor_role})</span>
                     {ev.metadata_json?.record_hash && (
                       <span className="text-emerald-400 truncate max-w-[180px]">
                         Hash: {ev.metadata_json.record_hash.substring(0, 16)}...
@@ -93,10 +93,10 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
           </div>
         )}
 
-        <div className="flex justify-end pt-4 border-t border-slate-800">
+        <div className="flex justify-end pt-4 border-t border-white/10">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-800 text-white hover:bg-slate-700 text-xs font-semibold"
+            className="px-5 py-2 rounded-lg bg-white text-[#060913] hover:bg-slate-100 text-xs font-bold uppercase tracking-wider"
           >
             Close
           </button>
