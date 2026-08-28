@@ -3,15 +3,48 @@ import { CheckCircle2 } from 'lucide-react';
 
 export const FloatingVerificationSlate: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
+    const y = (e.clientY - rect.top) / rect.height - 0.5; // -0.5 to 0.5
+    setMousePos({ x, y });
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setMousePos({ x: 0, y: 0 });
+  };
+
+  // Base 3D rotation angle preserving the signature perspective
+  const baseRotX = 14;
+  const baseRotY = -18;
+  const baseRotZ = 3;
+
+  // Dynamically calculate subtle interactive tilt offset without losing the 3D stance
+  const currentRotX = baseRotX - mousePos.y * 16;
+  const currentRotY = baseRotY + mousePos.x * 20;
+
+  // Glare highlight coordinates
+  const glareX = (mousePos.x + 0.5) * 100;
+  const glareY = (mousePos.y + 0.5) * 100;
 
   return (
     <div 
       className="relative w-full max-w-[480px] h-[340px] flex items-center justify-center perspective-1200 cursor-pointer select-none"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Ambient Radial Blue Backlight */}
-      <div className="absolute w-72 h-72 rounded-full bg-blue-600/30 blur-[90px] pointer-events-none -z-10" />
+      <div className={`absolute w-72 h-72 rounded-full bg-blue-600/30 blur-[90px] pointer-events-none -z-10 transition-opacity duration-500 ${
+        isHovered ? 'opacity-100 scale-110' : 'opacity-75'
+      }`} />
       <div className="absolute w-48 h-48 rounded-full bg-indigo-500/20 blur-[60px] pointer-events-none -z-10" />
 
       {/* Floating Asteroid / Metallic Debris Shards */}
@@ -24,13 +57,30 @@ export const FloatingVerificationSlate: React.FC = () => {
 
       {/* Main 3D Floating Slate (Loan Tape Diligence Core) */}
       <div 
-        className={`relative w-[340px] sm:w-[380px] h-[215px] sm:h-[240px] rounded-2xl card-3d-slate p-6 flex flex-col justify-between overflow-hidden transition-all duration-700 ${
-          isHovered ? 'scale-105 rotate-x-6 rotate-y-6' : 'animate-float-card'
+        className={`relative w-[340px] sm:w-[380px] h-[215px] sm:h-[240px] rounded-2xl card-3d-slate p-6 flex flex-col justify-between overflow-hidden ${
+          !isHovered ? 'animate-float-card' : ''
         }`}
+        style={
+          isHovered
+            ? {
+                transform: `translateY(-10px) scale(1.05) rotateX(${currentRotX}deg) rotateY(${currentRotY}deg) rotateZ(${baseRotZ}deg)`,
+                transition: 'transform 0.12s ease-out, box-shadow 0.3s ease',
+              }
+            : {
+                transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease',
+              }
+        }
       >
-        {/* Subtle Brushed Metal Sheen & Texture */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none" />
-        <div className="absolute -top-24 -left-24 w-48 h-48 bg-cyan-400/[0.07] rounded-full blur-2xl pointer-events-none" />
+        {/* Dynamic Specular Sheen Glare following mouse */}
+        <div 
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+          style={{
+            background: isHovered 
+              ? `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.02) 40%, transparent 70%)`
+              : 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 60%)',
+          }}
+        />
+        <div className="absolute -top-24 -left-24 w-48 h-48 bg-cyan-400/[0.08] rounded-full blur-2xl pointer-events-none" />
 
         {/* Top Header of Slate: Security Chip + Protocol Seal */}
         <div className="flex items-center justify-between relative z-10">
