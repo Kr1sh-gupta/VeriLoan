@@ -52,6 +52,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const handleRoleSelection = (role: UserRole) => {
     setSelectedRole(role);
+    setErrorMessage(null);
     const matched = STATIC_USERS.find((u) => u.role === role);
     if (matched) {
       setUsername(matched.username);
@@ -172,6 +173,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
+                autoFocus
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -218,7 +220,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         <div className="mt-5 text-center text-[11px] text-slate-500 font-sans flex items-center justify-center gap-1.5">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Deterministic Role Authorization &amp; Cryptographic Audit</span>
+          <span>Deterministic RBAC • FastAPI Backend Auth with Offline Fallback</span>
         </div>
       </div>
     </div>
