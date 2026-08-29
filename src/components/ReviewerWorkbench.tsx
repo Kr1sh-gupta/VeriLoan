@@ -513,12 +513,17 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
 
                 {/* 3. Reviewer Action Station (Zero Silent Write Governance) */}
                 <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
                     <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 font-bold uppercase">
                       <Lock className="w-4 h-4 text-emerald-600" />
                       <span>Reviewer Human-in-the-Loop Governance</span>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-500">Signer: Marcus Vance</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold uppercase border border-emerald-200">
+                        Human Authority (AI Advisory Only)
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-500">Signer: Marcus Vance</span>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -554,6 +559,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     <button
                       onClick={() => handleResolveAction('ACCEPT_AI')}
                       disabled={resolvingAction !== null}
+                      title="Explicitly approve AI suggested patch and sign record"
                       className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {resolvingAction === 'ACCEPT_AI' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -563,6 +569,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     <button
                       onClick={() => handleResolveAction('MANUAL_EDIT')}
                       disabled={resolvingAction !== null || (!manualPatchValue && !customNotes)}
+                      title={!manualPatchValue && !customNotes ? "Enter manual override value or audit notes to enable custom edit" : "Submit custom manual override"}
                       className="py-3 px-4 rounded-xl bg-blue-50 border border-blue-300 hover:bg-blue-100 text-blue-700 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1.5"
                     >
                       {resolvingAction === 'MANUAL_EDIT' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
@@ -572,6 +579,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     <button
                       onClick={() => handleResolveAction('REJECT')}
                       disabled={resolvingAction !== null}
+                      title="Reject or dismiss exception without modifying record"
                       className="py-3 px-4 rounded-xl bg-red-50 border border-red-300 hover:bg-red-100 text-red-700 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {resolvingAction === 'REJECT' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
