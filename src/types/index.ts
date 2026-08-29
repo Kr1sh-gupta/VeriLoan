@@ -1,4 +1,4 @@
-export type UserRole = 'OPERATOR' | 'REVIEWER' | 'CONSUMER';
+export type UserRole = 'OPERATOR' | 'REVIEWER' | 'CONSUMER' | 'ADMIN';
 
 export interface User {
   id: string;
@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;
   email?: string;
   avatar_badge?: string;
+  last_active?: string;
 }
 
 export interface LoanRecord {
@@ -60,6 +61,8 @@ export interface ValidationException {
   resolved_by?: string;
   resolved_at?: string;
   created_at: string;
+  source_system?: string;
+  assignee?: string;
 }
 
 export interface VerifiedLoan {
@@ -74,6 +77,7 @@ export interface VerifiedLoan {
   verified_at: string;
   resolution_notes?: string;
   ai_assisted: boolean;
+  quality_score?: number;
 }
 
 export interface AuditEvent {
@@ -122,4 +126,105 @@ export interface AIExplainResponse {
   model: string;
   prompt: string;
   timestamp: string;
+}
+
+// Ingestion Hub Types
+export interface IngestionPipelineItem {
+  id: string;
+  name: string;
+  system: string;
+  sourceType: 'CSV' | 'OCR' | 'API' | 'MANUAL' | 'CLIPBOARD';
+  recordCount: number;
+  status: 'QUEUED' | 'PARSING' | 'NORMALIZING' | 'VALIDATING' | 'COMPLETED' | 'FLAGGED';
+  progress: number;
+  timestamp: string;
+}
+
+export interface SchemaFieldMapping {
+  incomingColumn: string;
+  targetField: string;
+  sampleValue: string;
+  confidence: number;
+  isCustomMapped?: boolean;
+}
+
+export interface OcrExtractedField {
+  fieldName: string;
+  label: string;
+  extractedValue: string;
+  confidence: number;
+  isConfirmed: boolean;
+  pageNumber: number;
+}
+
+// Connector Management Types
+export interface SystemConnector {
+  id: string;
+  name: string;
+  type: 'REST_API' | 'WEBHOOK' | 'SFTP' | 'EMAIL';
+  provider: 'Salesforce' | 'Encompass' | 'Plaid' | 'BlackKnight' | 'Custom';
+  status: 'ACTIVE' | 'PAUSED' | 'ERROR';
+  endpointUrl?: string;
+  cadence: 'REALTIME' | 'HOURLY' | 'DAILY' | 'MANUAL';
+  lastSyncTime: string;
+  nextScheduledRun: string;
+  recordsIngested: number;
+  errorCount: number;
+  authType: 'API_KEY' | 'OAUTH2' | 'BASIC';
+  maskedSecret: string;
+}
+
+export interface ApiKeyItem {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  scope: 'READ_ONLY' | 'READ_WRITE' | 'ADMIN';
+  createdAt: string;
+  lastUsed: string;
+  requestCount: number;
+  rateLimit: string;
+  status: 'ACTIVE' | 'REVOKED';
+}
+
+// Rule Builder Types
+export interface ValidationRuleItem {
+  code: string;
+  name: string;
+  description: string;
+  category: 'SANITY' | 'MATHEMATICAL' | 'LOGICAL' | 'COMPLIANCE' | 'DOCUMENT';
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  field: string;
+  operator: '>' | '<' | '==' | '!=' | '>=' | '<=' | 'IN' | 'NOT_NULL' | 'CUSTOM';
+  targetValue: string;
+  enabled: boolean;
+  version: number;
+  lastUpdatedBy: string;
+  lastUpdatedAt: string;
+  affectedRecordsCount: number;
+}
+
+// Notification System Types
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  category: 'INGESTION' | 'EXCEPTION' | 'SECURITY' | 'CONNECTOR' | 'EXPORT';
+  severity: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
+  timestamp: string;
+  read: boolean;
+  actionUrl?: string;
+}
+
+// Export Center Types
+export interface ExportRequestRecord {
+  id: string;
+  datasetName: string;
+  format: 'CSV' | 'JSON' | 'PARQUET';
+  recordCount: number;
+  includeAuditTrail: boolean;
+  status: 'READY' | 'PROCESSING' | 'FAILED';
+  requestedBy: string;
+  requestedAt: string;
+  fileSize: string;
+  downloadUrl?: string;
 }
