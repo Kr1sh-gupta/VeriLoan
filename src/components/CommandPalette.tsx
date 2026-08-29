@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, 
   FileText, 
@@ -18,32 +18,19 @@ import type { UserRole } from '../types';
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpen?: () => void;
   onNavigate: (tab: string, role?: UserRole) => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
+  onOpen,
   onNavigate,
 }) => {
   const [query, setQuery] = useState<string>('');
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        if (isOpen) onClose();
-        else setQuery('');
-      }
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
 
   const allItems = [
     // Main Navigation
@@ -76,6 +63,77 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         item.category.toLowerCase().includes(query.toLowerCase())
       );
 
+  // Reset selectedIndex and scroll position whenever search query changes
+  useEffect(() => {
+    setSelectedIndex(0);
+    if (listContainerRef.current) {
+      listContainerRef.current.scrollTop = 0;
+    }
+  }, [query]);
+
+  // Controlled container auto-scrolling using getBoundingClientRect with 8px padding
+  useEffect(() => {
+    if (!isOpen || !listContainerRef.current) return;
+    const container = listContainerRef.current;
+    const item = container.children[selectedIndex] as HTMLElement;
+    if (!item) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    const padding = 8;
+
+    if (itemRect.top < containerRect.top + padding) {
+      container.scrollTop -= (containerRect.top + padding - itemRect.top);
+    } else if (itemRect.bottom > containerRect.bottom - padding) {
+      container.scrollTop += (itemRect.bottom - (containerRect.bottom - padding));
+    }
+  }, [selectedIndex, isOpen]);
+
+  // Global shortcut listener for Ctrl+K / Cmd+K (toggles open/close)
+  useEffect(() => {
+    const handleGlobalShortcut = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (isOpen) {
+          onClose();
+        } else {
+          setQuery('');
+          onOpen?.();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalShortcut);
+    return () => window.removeEventListener('keydown', handleGlobalShortcut);
+  }, [isOpen, onClose, onOpen]);
+
+  // Active modal keyboard navigation listener (Esc, ArrowUp, ArrowDown, Enter)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (filteredItems.length > 0 ? (prev + 1) % filteredItems.length : 0));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (filteredItems.length > 0 ? (prev - 1 + filteredItems.length) % filteredItems.length : 0));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (filteredItems.length > 0 && filteredItems[selectedIndex]) {
+          const item = filteredItems[selectedIndex];
+          onNavigate(item.tab, item.role);
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, filteredItems, selectedIndex, onNavigate]);
+
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/80 backdrop-blur-md animate-fade-in">
       <div 
@@ -102,14 +160,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-2 divide-y divide-white/[0.04]">
+        <div ref={listContainerRef} className="max-h-96 overflow-y-auto p-2 divide-y divide-white/[0.04]">
           {filteredItems.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-xs font-mono">
               No matching records, rules, or screens found for "{query}".
             </div>
           ) : (
-            filteredItems.map((item) => {
+            filteredItems.map((item, index) => {
               const Icon = item.icon;
+              const isSelected = index === selectedIndex;
+
               return (
                 <div
                   key={item.id}
@@ -117,7 +177,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onNavigate(item.tab, item.role);
                     onClose();
                   }}
-                  className="flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.08] cursor-pointer group transition-all"
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  className={`flex items-center justify-between p-3 rounded-xl cursor-pointer group transition-all ${
+                    isSelected
+                      ? 'bg-white/[0.12] border border-cyan-400/30 text-white shadow-sm ring-1 ring-cyan-400/20'
+                      : 'hover:bg-white/[0.08]'
+                  }`}
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center text-slate-300 group-hover:text-cyan-300 group-hover:border-cyan-400/40 transition-colors">
@@ -147,7 +212,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Footer shortcuts */}
-        <div className="p-3 bg-[#060913] border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-500">
+        <div className="p-3 bg-[#060913] border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-500">
           <div className="flex items-center space-x-3">
             <span>Navigation: <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-slate-300">↑</kbd> <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-slate-300">↓</kbd></span>
             <span>Select: <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-slate-300">↵</kbd></span>

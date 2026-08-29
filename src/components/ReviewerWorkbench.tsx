@@ -86,34 +86,67 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
     setManualPatchValue('');
   };
 
+  const NUMERIC_LOAN_FIELDS = [
+    'original_principal', 
+    'current_balance', 
+    'interest_rate', 
+    'term_months', 
+    'days_past_due', 
+    'quality_score'
+  ];
+
   const handleResolveAction = async (action: 'ACCEPT_AI' | 'MANUAL_EDIT' | 'REJECT' | 'DISMISS') => {
     if (!selectedException) return;
 
     try {
       setResolvingAction(action);
       let patchPayload: Record<string, any> | undefined;
+
       if (action === 'ACCEPT_AI') {
         patchPayload = selectedException.ai_suggested_patch;
-      } else if (action === 'MANUAL_EDIT' && manualPatchValue) {
+      } else if (action === 'MANUAL_EDIT' && manualPatchValue.trim() !== '') {
         const fieldKey = (selectedException.field_name || 'value') as string;
-        patchPayload = { [fieldKey]: manualPatchValue };
+        let finalVal: any = manualPatchValue.trim();
+        if (NUMERIC_LOAN_FIELDS.includes(fieldKey) && !isNaN(Number(finalVal))) {
+          finalVal = Number(finalVal);
+        }
+        patchPayload = { [fieldKey]: finalVal };
+      }
+
+      let defaultNote = 'Manual reviewer override';
+      if (action === 'ACCEPT_AI') {
+        defaultNote = 'Approved deterministic AI patch suggestion';
+      } else if (action === 'REJECT') {
+        defaultNote = 'Loan rejected from portfolio by reviewer';
+      } else if (action === 'DISMISS') {
+        defaultNote = 'Exception dismissed as non-blocking waiver';
       }
 
       await resolveException(
         selectedException.id,
         action,
         patchPayload,
-        customNotes || (action === 'ACCEPT_AI' ? 'Approved deterministic AI patch suggestion' : 'Manual reviewer override'),
+        customNotes || defaultNote,
         'Marcus Vance (Senior Reviewer)'
       );
 
+      // Reset form input values ONLY AFTER successful API resolution response
+      setCustomNotes('');
+      setManualPatchValue('');
+
+      const actionText = action === 'ACCEPT_AI' ? 'AI Patch Accepted'
+                       : action === 'MANUAL_EDIT' ? 'Custom Manual Edit Applied'
+                       : action === 'REJECT' ? 'Loan Rejected'
+                       : 'Exception Dismissed';
+
       setActionStatus({
-        message: `Exception for Loan ${selectedException.loan_id_code} successfully resolved via ${action}. Record queued for canonical sealing.`,
+        message: `Exception for Loan ${selectedException.loan_id_code} successfully resolved via ${actionText}. Record queued for canonical sealing.`,
         type: 'success'
       });
+
       onRefreshSummary();
 
-      // Refresh exception list
+      // Refresh open exception queue
       const updated = await fetchExceptions(
         severityFilter === 'ALL' ? undefined : severityFilter,
         'OPEN',
@@ -142,7 +175,9 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
         ai_explanation: res.explanation,
         ai_suggested_patch: res.suggested_patch,
         ai_confidence: res.confidence,
-        ai_model: res.model
+        ai_model: res.model,
+        ai_prompt: res.prompt,
+        ai_generated_at: res.timestamp
       });
       if (!promptOverride) setCustomAIPrompt('');
     } catch (err) {
@@ -424,8 +459,20 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                         <h3 className="text-sm font-bold text-slate-900 font-sans">
                           AI Diligence Assistant (Deterministic Mode)
                         </h3>
-                        <p className="text-[10px] font-mono text-slate-500">
-                          Model: {selectedException.ai_model || 'gemini-1.5-pro'} • Temperature: 0.0
+                        <p className="text-[10px] font-mono text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                          <span>Model: {selectedException.ai_model || 'gemini-1.5-pro'}</span>
+                          {selectedException.ai_prompt && (
+                            <>
+                              <span>•</span>
+                              <span>Context: {selectedException.ai_prompt}</span>
+                            </>
+                          )}
+                          {selectedException.ai_generated_at && (
+                            <>
+                              <span>•</span>
+                              <span>Timestamp: {selectedException.ai_generated_at}</span>
+                            </>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -499,12 +546,17 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
 
                 {/* 3. Reviewer Action Station (Zero Silent Write Governance) */}
                 <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
                     <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 font-bold uppercase">
                       <Lock className="w-4 h-4 text-emerald-600" />
                       <span>Reviewer Human-in-the-Loop Governance</span>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-500">Signer: Marcus Vance</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold uppercase border border-emerald-200">
+                        Human Authority (AI Advisory Only)
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-500">Signer: Marcus Vance</span>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -535,12 +587,13 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     </div>
                   </div>
 
-                  {/* 3 Strict Explicit Action Buttons */}
-                  <div className="pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* 4 Strict Explicit Action Buttons */}
+                  <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                     <button
                       onClick={() => handleResolveAction('ACCEPT_AI')}
                       disabled={resolvingAction !== null}
-                      className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      title="Explicitly approve AI suggested patch and sign record"
+                      className="py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {resolvingAction === 'ACCEPT_AI' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                       <span>[Accept AI Patch]</span>
@@ -549,19 +602,31 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     <button
                       onClick={() => handleResolveAction('MANUAL_EDIT')}
                       disabled={resolvingAction !== null || (!manualPatchValue && !customNotes)}
-                      className="py-3 px-4 rounded-xl bg-blue-50 border border-blue-300 hover:bg-blue-100 text-blue-700 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1.5"
+                      title={!manualPatchValue && !customNotes ? "Enter manual override value or audit notes to enable custom edit" : "Submit custom manual override"}
+                      className="py-3 px-3 rounded-xl bg-blue-50 border border-blue-300 hover:bg-blue-100 text-blue-700 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1.5"
                     >
                       {resolvingAction === 'MANUAL_EDIT' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
                       <span>[Custom Edit]</span>
                     </button>
 
                     <button
+                      onClick={() => handleResolveAction('DISMISS')}
+                      disabled={resolvingAction !== null}
+                      title="Dismiss exception as a non-blocking waiver without altering record"
+                      className="py-3 px-3 rounded-xl bg-amber-50 border border-amber-300 hover:bg-amber-100 text-amber-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    >
+                      {resolvingAction === 'DISMISS' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+                      <span>[Dismiss]</span>
+                    </button>
+
+                    <button
                       onClick={() => handleResolveAction('REJECT')}
                       disabled={resolvingAction !== null}
-                      className="py-3 px-4 rounded-xl bg-red-50 border border-red-300 hover:bg-red-100 text-red-700 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      title="Reject loan record from portfolio due to critical non-compliance"
+                      className="py-3 px-3 rounded-xl bg-red-50 border border-red-300 hover:bg-red-100 text-red-700 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {resolvingAction === 'REJECT' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                      <span>[Dismiss/Reject]</span>
+                      <span>[Reject Loan]</span>
                     </button>
                   </div>
 

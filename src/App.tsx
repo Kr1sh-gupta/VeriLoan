@@ -337,6 +337,7 @@ export function App() {
       <CommandPalette
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
+        onOpen={() => setCommandPaletteOpen(true)}
         onNavigate={(tab, role) => {
           if (role) handleSetCurrentRole(role);
           handleSetCurrentTab(tab);

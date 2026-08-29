@@ -98,30 +98,92 @@ export const AdminConsole: React.FC = () => {
     }
   };
 
-  const handleGenerateRuleFromPrompt = () => {
-    if (aiRulePrompt.toLowerCase().includes('90')) {
-      setRuleForm({
-        code: 'R15_DPD_90_DEFAULT',
-        name: 'Severe 90+ DPD Conflict',
-        description: 'Auto-flag records where days_past_due > 90 with CURRENT status',
+  // Local Session Rule Tracking & Feedback
+  const [ruleStatus, setRuleStatus] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [localRuleCodes, setLocalRuleCodes] = useState<Set<string>>(new Set());
+
+  const handleGenerateRuleFromPrompt = (promptOverride?: string) => {
+    const promptText = (promptOverride || aiRulePrompt).trim();
+    const lower = promptText.toLowerCase();
+
+    let generated: {
+      code: string;
+      name: string;
+      description: string;
+      category: 'SANITY' | 'MATHEMATICAL' | 'LOGICAL' | 'COMPLIANCE' | 'DOCUMENT';
+      severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+      field: string;
+      operator: '>' | '<' | '==' | '!=' | '>=' | '<=' | 'IN' | 'NOT_NULL' | 'CUSTOM';
+      targetValue: string;
+    } = {
+      code: `R${rules.length + 1}_CUSTOM_RULE`,
+      name: 'Custom Parameter Rule',
+      description: promptText,
+      category: 'LOGICAL',
+      severity: 'HIGH',
+      field: 'current_balance',
+      operator: '>',
+      targetValue: '0'
+    };
+
+    if (lower.includes('dpd') || lower.includes('past due') || lower.includes('90')) {
+      generated = {
+        code: `R${rules.length + 1}_DPD_90_DEFAULT`,
+        name: 'Severe DPD & Status Conflict',
+        description: 'Auto-flag records where days_past_due > 90 with CURRENT payment status',
         category: 'LOGICAL',
         severity: 'CRITICAL',
         field: 'days_past_due',
         operator: '>',
         targetValue: '90'
-      });
-    } else {
-      setRuleForm({
-        code: 'R16_CUSTOM_RATE',
-        name: 'Custom Parameter Evaluation',
-        description: aiRulePrompt,
+      };
+    } else if (lower.includes('rate') || lower.includes('interest') || lower.includes('36')) {
+      generated = {
+        code: `R${rules.length + 1}_INTEREST_RATE_CAP`,
+        name: 'Statutory Interest Rate Limit',
+        description: 'Auto-flag records where interest_rate exceeds statutory limit (36.0%)',
         category: 'SANITY',
-        severity: 'HIGH',
+        severity: 'CRITICAL',
         field: 'interest_rate',
-        operator: '<=',
-        targetValue: '12.5'
-      });
+        operator: '>',
+        targetValue: '36.0'
+      };
+    } else if (lower.includes('balance') || lower.includes('principal')) {
+      generated = {
+        code: `R${rules.length + 1}_BALANCE_PRINCIPAL_CAP`,
+        name: 'Balance Exceeds Principal Cap',
+        description: 'Auto-flag records where current_balance exceeds original_principal',
+        category: 'MATHEMATICAL',
+        severity: 'HIGH',
+        field: 'current_balance',
+        operator: '>',
+        targetValue: 'original_principal'
+      };
+    } else if (lower.includes('maturity') || lower.includes('origination') || lower.includes('date')) {
+      generated = {
+        code: `R${rules.length + 1}_MATURITY_ORIGINATION`,
+        name: 'Maturity Origination Chronology',
+        description: 'Maturity date must be chronologically after origination date',
+        category: 'SANITY',
+        severity: 'CRITICAL',
+        field: 'maturity_date',
+        operator: '<',
+        targetValue: 'origination_date'
+      };
+    } else if (lower.includes('document') || lower.includes('doc') || lower.includes('missing')) {
+      generated = {
+        code: `R${rules.length + 1}_DOC_MANIFEST`,
+        name: 'Mandatory Document Manifest',
+        description: 'Document status must be verified and non-null',
+        category: 'DOCUMENT',
+        severity: 'MEDIUM',
+        field: 'document_status',
+        operator: 'NOT_NULL',
+        targetValue: ''
+      };
     }
+
+    setRuleForm(generated);
   };
 
   const handleSaveRule = () => {
@@ -141,6 +203,11 @@ export const AdminConsole: React.FC = () => {
       affectedRecordsCount: 3
     };
     setRules([created, ...rules]);
+    setLocalRuleCodes((prev) => new Set(prev).add(created.code));
+    setRuleStatus({
+      message: `Rule ${created.code} successfully added to Local Session Governance Table (${rules.length + 1} Active Rules).`,
+      type: 'success'
+    });
     setNewRuleOpen(false);
   };
 
@@ -435,6 +502,18 @@ export const AdminConsole: React.FC = () => {
         {/* TAB 3: VALIDATION RULE BUILDER */}
         {activeTab === 'RULES' && (
           <div className="space-y-8 animate-fade-in">
+            {ruleStatus && (
+              <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 text-xs font-mono flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                  <span>{ruleStatus.message}</span>
+                </div>
+                <button onClick={() => setRuleStatus(null)}>
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             <div className="p-6 rounded-2xl bg-white border border-purple-200 shadow-sm space-y-4">
               <div className="flex items-center space-x-2 text-xs font-mono text-purple-700 font-bold uppercase">
                 <Sparkles className="w-4 h-4 text-purple-600" />
@@ -445,7 +524,7 @@ export const AdminConsole: React.FC = () => {
                   type="text" 
                   value={aiRulePrompt}
                   onChange={(e) => setAiRulePrompt(e.target.value)}
-                  placeholder="e.g. Flag any loan where interest rate exceeds 15% and loan amount > 500,000"
+                  placeholder="e.g. Flag any loan where interest rate exceeds 36.0% or days past due > 90"
                   className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-purple-500 focus:bg-white"
                 />
                 <button
@@ -458,6 +537,29 @@ export const AdminConsole: React.FC = () => {
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Generate Rule</span>
                 </button>
+              </div>
+
+              {/* 1-Click Prompt Chips */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {[
+                  'Flag DPD > 90 with CURRENT status',
+                  'Flag Interest Rate > 36.0% statutory ceiling',
+                  'Flag Current Balance > Original Principal',
+                  'Flag Document Status missing'
+                ].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => {
+                      setAiRulePrompt(chip);
+                      handleGenerateRuleFromPrompt(chip);
+                      setNewRuleOpen(true);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[10px] font-mono text-purple-700 transition-colors"
+                  >
+                    + {chip}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -477,7 +579,14 @@ export const AdminConsole: React.FC = () => {
                   {rules.map((r) => (
                     <tr key={r.code} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-900">
-                        <div className="text-blue-700 font-bold">{r.code}</div>
+                        <div className="text-blue-700 font-bold flex items-center gap-2">
+                          <span>{r.code}</span>
+                          {localRuleCodes.has(r.code) && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 font-bold">
+                              Session Rule
+                            </span>
+                          )}
+                        </div>
                         <div className="text-slate-600 font-sans text-[11px]">{r.name}</div>
                       </td>
                       <td className="px-6 py-4 text-slate-600 font-sans text-xs max-w-xs">{r.description}</td>
@@ -494,8 +603,12 @@ export const AdminConsole: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 text-slate-500">v{r.version}.0</td>
                       <td className="px-6 py-4">
-                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                          Enabled
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          localRuleCodes.has(r.code)
+                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>
+                          {localRuleCodes.has(r.code) ? 'Enabled (Local Session)' : 'Enabled'}
                         </span>
                       </td>
                     </tr>
