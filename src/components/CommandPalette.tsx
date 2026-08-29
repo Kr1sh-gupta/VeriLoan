@@ -212,7 +212,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Footer shortcuts */}
-        <div className="p-3 bg-[#060913] border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-500">
+        <div className="p-3 bg-[#060913] border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-500">
           <div className="flex items-center space-x-3">
             <span>Navigation: <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-slate-300">↑</kbd> <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-slate-300">↓</kbd></span>
             <span>Select: <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-slate-300">↵</kbd></span>
