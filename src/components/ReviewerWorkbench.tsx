@@ -142,7 +142,9 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
         ai_explanation: res.explanation,
         ai_suggested_patch: res.suggested_patch,
         ai_confidence: res.confidence,
-        ai_model: res.model
+        ai_model: res.model,
+        ai_prompt: res.prompt,
+        ai_generated_at: res.timestamp
       });
       if (!promptOverride) setCustomAIPrompt('');
     } catch (err) {
@@ -424,8 +426,20 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                         <h3 className="text-sm font-bold text-slate-900 font-sans">
                           AI Diligence Assistant (Deterministic Mode)
                         </h3>
-                        <p className="text-[10px] font-mono text-slate-500">
-                          Model: {selectedException.ai_model || 'gemini-1.5-pro'} • Temperature: 0.0
+                        <p className="text-[10px] font-mono text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                          <span>Model: {selectedException.ai_model || 'gemini-1.5-pro'}</span>
+                          {selectedException.ai_prompt && (
+                            <>
+                              <span>•</span>
+                              <span>Context: {selectedException.ai_prompt}</span>
+                            </>
+                          )}
+                          {selectedException.ai_generated_at && (
+                            <>
+                              <span>•</span>
+                              <span>Timestamp: {selectedException.ai_generated_at}</span>
+                            </>
+                          )}
                         </p>
                       </div>
                     </div>
