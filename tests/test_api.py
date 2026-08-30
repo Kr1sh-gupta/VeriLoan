@@ -70,3 +70,19 @@ def test_ai_generate_rule_endpoint(client):
     data = response.json()
     assert data["field_name"] == "interest_rate"
     assert "python_expression" in data
+
+def test_add_exception_comment_endpoint(client):
+    exc_res = client.get("/api/exceptions?limit=1")
+    exceptions = exc_res.json()
+    assert len(exceptions) > 0
+    exc_id = exceptions[0]["id"]
+    
+    res = client.post(
+        f"/api/exceptions/{exc_id}/comment",
+        headers={"Authorization": "Bearer jwt-mock-token-usr-002-reviewer"},
+        json={"comment": "Reviewing custodial promissory note deed"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "message" in data
+    assert "Comment by" in data["resolution_notes"]

@@ -47,12 +47,17 @@ class ValidationService:
         # Build lookup indices for fast inter-record checks
         loan_id_counts: Dict[str, List[Loan]] = {}
         borrower_combo_counts: Dict[str, List[Loan]] = {}
+        borrower_id_counts: Dict[str, int] = {}
         
         for loan in loans:
             lid = (loan.loan_id or "").strip()
             if lid:
                 loan_id_counts.setdefault(lid, []).append(loan)
             
+            if loan.borrower_id and str(loan.borrower_id).strip():
+                bid = str(loan.borrower_id).strip()
+                borrower_id_counts[bid] = borrower_id_counts.get(bid, 0) + 1
+
             b_key = f"{loan.borrower_id}_{loan.original_principal}_{loan.origination_date}"
             if loan.borrower_id and loan.original_principal:
                 borrower_combo_counts.setdefault(b_key, []).append(loan)
@@ -349,6 +354,25 @@ class ValidationService:
                     status="OPEN"
                 ))
 
+            # VAL-015: Repeated borrower concentration risk (appears in >= 3 distinct loans)
+            if loan.borrower_id and str(loan.borrower_id).strip():
+                bid = str(loan.borrower_id).strip()
+                b_count = borrower_id_counts.get(bid, 0)
+                if b_count >= 3:
+                    loan_exceptions.append(ValidationException(
+                        id=f"exc-{uuid.uuid4().hex[:12]}",
+                        loan_id_ref=loan.id,
+                        loan_id_code=lid,
+                        rule_code="VAL-015",
+                        category="CONCENTRATION",
+                        severity="MEDIUM",
+                        field_name="borrower_id",
+                        error_message=f"Borrower '{bid}' appears across {b_count} distinct loan records — potential portfolio concentration risk.",
+                        actual_value=f"{b_count} loans",
+                        expected_condition="Each borrower should appear in <= 2 distinct loan records",
+                        status="OPEN"
+                    ))
+
             # Save exceptions and update loan status
             if loan_exceptions:
                 flagged_loan_count += 1
@@ -368,7 +392,7 @@ class ValidationService:
             event_type="VALIDATION_RUN",
             actor_id="system",
             actor_role="VALIDATION_ENGINE",
-            summary=f"Validation Engine executed 14 rules across {len(loans)} loans. Flagged {flagged_loan_count} loans with {total_exceptions} exceptions.",
+            summary=f"Validation Engine executed 15 rules across {len(loans)} loans. Flagged {flagged_loan_count} loans with {total_exceptions} exceptions.",
             metadata_json={"total_loans": len(loans), "flagged_loans": flagged_loan_count, "exceptions_raised": total_exceptions}
         )
 

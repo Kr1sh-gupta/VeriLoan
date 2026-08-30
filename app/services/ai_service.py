@@ -265,6 +265,11 @@ class AIService:
             explanation = f"Loan status is '{loan.payment_status}' but reports positive balance ${loan.current_balance:,.2f}. Zeroed out balance to reflect complete payoff settlement."
             confidence = 0.99
 
+        elif rule == "VAL-015":
+            # Repeated borrower concentration
+            explanation = f"Borrower identifier '{loan.borrower_id}' is associated with multiple loan records in the portfolio tape. Recommended custodial identity verification to assess aggregate borrower debt exposure across the securitization pool."
+            confidence = 0.92
+
         else:
             explanation = f"Validation exception on field '{exception.field_name}'. Review loan documentation."
             confidence = 0.85

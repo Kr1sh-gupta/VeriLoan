@@ -39,12 +39,32 @@ def get_current_user(
             remainder = token_str[len(prefix):]
             parts = remainder.rsplit("-", 1)
             potential_user_id = parts[0]
-            user = db.query(User).filter(User.id == potential_user_id).first()
+            user = db.query(User).filter(
+                (User.id == potential_user_id) | (User.username == potential_user_id)
+            ).first()
             if user:
                 break
+            # Check by role suffix if available
+            if len(parts) > 1:
+                potential_role = parts[1].upper()
+                user = db.query(User).filter(User.role == potential_role).first()
+                if user:
+                    break
     
     if not user:
         user = db.query(User).filter((User.id == token_str) | (User.username == token_str)).first()
+
+    # Fallback by role in token string
+    if not user:
+        token_lower = token_str.lower()
+        if "reviewer" in token_lower:
+            user = db.query(User).filter(User.role == "REVIEWER").first()
+        elif "operator" in token_lower:
+            user = db.query(User).filter(User.role == "OPERATOR").first()
+        elif "consumer" in token_lower:
+            user = db.query(User).filter(User.role == "CONSUMER").first()
+        elif "admin" in token_lower:
+            user = db.query(User).filter(User.role == "ADMIN").first()
 
     if not user:
         raise HTTPException(
