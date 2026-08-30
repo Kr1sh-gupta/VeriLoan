@@ -3,10 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from app.database import get_db
-from app.models import ValidationException, Loan
+from app.models import ValidationException, Loan, User
 from app.schemas import ValidationExceptionSchema, ResolveExceptionRequest
 from app.services.verification_service import VerificationService
 from app.services.audit_service import AuditService
+from app.api.auth import require_role
 
 router = APIRouter(prefix="/exceptions", tags=["Exceptions"])
 
@@ -40,6 +41,7 @@ def list_exceptions(
 def resolve_exception(
     id: str,
     payload: ResolveExceptionRequest,
+    current_user: User = Depends(require_role(["REVIEWER", "ADMIN"])),
     db: Session = Depends(get_db)
 ):
     exc = db.query(ValidationException).filter(ValidationException.id == id).first()
@@ -49,6 +51,8 @@ def resolve_exception(
     loan = db.query(Loan).filter(Loan.id == exc.loan_id_ref).first()
     if not loan:
         raise HTTPException(status_code=404, detail="Associated loan record not found.")
+
+    reviewer_display_name = payload.reviewer_name or current_user.full_name
 
     prev_loan_state = {
         "loan_id": loan.loan_id,
@@ -76,7 +80,7 @@ def resolve_exception(
         exc.status = "RESOLVED"
         exc.resolution_action = "ACCEPTED_AI"
         exc.resolution_notes = payload.notes or f"Accepted AI suggestion: {exc.ai_suggested_patch}"
-        exc.resolved_by = payload.reviewer_name
+        exc.resolved_by = reviewer_display_name
         exc.resolved_at = datetime.datetime.utcnow()
 
     elif payload.action == "MANUAL_EDIT":
@@ -85,23 +89,23 @@ def resolve_exception(
                 if hasattr(loan, field):
                     setattr(loan, field, val)
         exc.status = "RESOLVED"
-        exc.resolution_action = "MANUAL_EDIT"
-        exc.resolution_notes = payload.notes or "Manually adjusted fields by reviewer."
-        exc.resolved_by = payload.reviewer_name
+        exc.resolution_action = "MANUAL_OVERRIDE"
+        exc.resolution_notes = payload.notes or f"Manual override applied: {payload.corrected_data}"
+        exc.resolved_by = reviewer_display_name
         exc.resolved_at = datetime.datetime.utcnow()
 
     elif payload.action == "DISMISS":
         exc.status = "DISMISSED"
         exc.resolution_action = "DISMISSED"
-        exc.resolution_notes = payload.notes or "Exception dismissed as non-blocking waiver."
-        exc.resolved_by = payload.reviewer_name
+        exc.resolution_notes = payload.notes or "Exception dismissed by diligence reviewer."
+        exc.resolved_by = reviewer_display_name
         exc.resolved_at = datetime.datetime.utcnow()
 
     elif payload.action == "REJECT":
         exc.status = "RESOLVED"
         exc.resolution_action = "REJECTED_LOAN"
         exc.resolution_notes = payload.notes or "Loan rejected from portfolio."
-        exc.resolved_by = payload.reviewer_name
+        exc.resolved_by = reviewer_display_name
         exc.resolved_at = datetime.datetime.utcnow()
         loan.status = "REJECTED"
 
@@ -117,7 +121,7 @@ def resolve_exception(
         verified_result = VerificationService.verify_and_seal_loan(
             db=db,
             loan=loan,
-            verified_by=payload.reviewer_name,
+            verified_by=reviewer_display_name,
             resolution_notes=exc.resolution_notes or "All exceptions cleared.",
             ai_assisted=ai_assisted
         )
@@ -125,9 +129,9 @@ def resolve_exception(
     AuditService.log_event(
         db=db,
         event_type="RECORD_APPROVED" if loan.status == "VERIFIED" else ("RECORD_REJECTED" if loan.status == "REJECTED" else "EXCEPTION_RESOLVED"),
-        actor_id="usr-002",
-        actor_role="REVIEWER",
-        summary=f"Reviewer {payload.reviewer_name} took action '{payload.action}' on exception {exc.rule_code} for Loan {loan.loan_id}.",
+        actor_id=current_user.id,
+        actor_role=current_user.role,
+        summary=f"Reviewer {reviewer_display_name} took action '{payload.action}' on exception {exc.rule_code} for Loan {loan.loan_id}.",
         loan_id=loan.loan_id,
         previous_state=prev_loan_state,
         new_state={

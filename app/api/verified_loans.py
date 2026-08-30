@@ -5,10 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from app.database import get_db
-from app.models import VerifiedLoan, Loan, ValidationException
+from app.models import VerifiedLoan, Loan, ValidationException, User
 from app.schemas import VerifiedLoanSchema
 from app.services.verification_service import VerificationService
 from app.services.audit_service import AuditService
+from app.api.auth import require_role
 
 router = APIRouter(prefix="/verified-loans", tags=["Verified Loans"])
 
@@ -48,14 +49,16 @@ def get_verified_loan_detail(id: str, db: Session = Depends(get_db)):
 
 @router.post("/verify-all-clean")
 def verify_all_clean_loans(
-    verified_by: str = "Elena Rostova (Operator)",
+    verified_by: Optional[str] = None,
+    current_user: User = Depends(require_role(["REVIEWER", "OPERATOR", "ADMIN"])),
     db: Session = Depends(get_db)
 ):
+    verifier_name = verified_by or current_user.full_name
     verified_count = VerificationService.verify_clean_loans_batch(
         db=db,
-        verified_by=verified_by,
-        actor_id="usr-001",
-        actor_role="OPERATOR"
+        verified_by=verifier_name,
+        actor_id=current_user.id,
+        actor_role=current_user.role
     )
 
     return {
