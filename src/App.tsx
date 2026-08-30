@@ -110,7 +110,7 @@ export function App() {
     }
   };
 
-  // Persist currentRole and sync currentUser in localStorage whenever it changes
+  // Persist currentRole and sync currentUser and auth token in localStorage whenever it changes
   const handleSetCurrentRole = (role: UserRole) => {
     setCurrentRole(role);
     try {
@@ -122,8 +122,10 @@ export function App() {
     if (matchedUser) {
       const { password: _, ...u } = matchedUser;
       setCurrentUser(u);
+      const token = `jwt-mock-token-${u.id}-${u.role.toLowerCase()}`;
       try {
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
+        localStorage.setItem('veriloan_auth_token', token);
       } catch {
         // ignore
       }

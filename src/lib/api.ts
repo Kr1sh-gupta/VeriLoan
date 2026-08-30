@@ -25,6 +25,14 @@ export const api = axios.create({
   timeout: 30000,
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('veriloan_auth_token') || 'jwt-mock-token-usr-002-reviewer';
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Static Preconfigured Users for demo and testing
 export const STATIC_USERS: (User & { password: string })[] = [
   {
