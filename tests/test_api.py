@@ -70,3 +70,36 @@ def test_ai_generate_rule_endpoint(client):
     data = response.json()
     assert data["field_name"] == "interest_rate"
     assert "python_expression" in data
+
+def test_exceptions_search_by_borrower_id(client):
+    # Search for an existing borrower (e.g. BW-)
+    response = client.get("/api/exceptions?search=BW-&limit=5")
+    assert response.status_code == 200
+    exceptions = response.json()
+    assert isinstance(exceptions, list)
+
+def test_resolve_exception_request_correction(client):
+    exc_res = client.get("/api/exceptions?status=OPEN&limit=1")
+    exceptions = exc_res.json()
+    if len(exceptions) > 0:
+        exc_id = exceptions[0]["id"]
+        res = client.post(
+            f"/api/exceptions/{exc_id}/resolve",
+            headers={"Authorization": "Bearer jwt-mock-token-usr-002-reviewer"},
+            json={
+                "action": "REQUEST_CORRECTION",
+                "notes": "Requesting refreshed title policy and origination date from servicer.",
+                "reviewer_name": "Marcus Vance"
+            }
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["exception_status"] == "OPEN"
+        assert data["loan_status"] == "FLAGGED"
+
+        # Check audit event
+        audit_res = client.get("/api/audit?event_type=CORRECTION_REQUESTED&limit=1")
+        assert audit_res.status_code == 200
+        events = audit_res.json()
+        assert len(events) > 0
+        assert events[0]["event_type"] == "CORRECTION_REQUESTED"

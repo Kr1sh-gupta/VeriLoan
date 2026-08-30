@@ -21,7 +21,7 @@ def list_exceptions(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db)
 ):
-    query = db.query(ValidationException)
+    query = db.query(ValidationException, Loan.borrower_id).join(Loan, ValidationException.loan_id_ref == Loan.id, isouter=True)
     if status:
         query = query.filter(ValidationException.status == status)
     if severity:
@@ -31,11 +31,17 @@ def list_exceptions(
     if search:
         query = query.filter(
             (ValidationException.loan_id_code.ilike(f"%{search}%")) |
-            (ValidationException.error_message.ilike(f"%{search}%"))
+            (ValidationException.error_message.ilike(f"%{search}%")) |
+            (Loan.borrower_id.ilike(f"%{search}%"))
         )
 
-    exceptions = query.order_by(ValidationException.created_at.desc()).offset(offset).limit(limit).all()
-    return [ValidationExceptionSchema.from_orm(e) for e in exceptions]
+    results = query.order_by(ValidationException.created_at.desc()).offset(offset).limit(limit).all()
+    exceptions = []
+    for exc, b_id in results:
+        schema_item = ValidationExceptionSchema.from_orm(exc)
+        schema_item.borrower_id = b_id
+        exceptions.append(schema_item)
+    return exceptions
 
 @router.post("/{id}/resolve")
 def resolve_exception(
@@ -52,7 +58,7 @@ def resolve_exception(
     if not loan:
         raise HTTPException(status_code=404, detail="Associated loan record not found.")
 
-    reviewer_display_name = payload.reviewer_name or current_user.full_name
+    reviewer_display_name = payload.reviewer_name or current_user.full_name or current_user.username
 
     prev_loan_state = {
         "loan_id": loan.loan_id,
@@ -109,6 +115,14 @@ def resolve_exception(
         exc.resolved_at = datetime.datetime.utcnow()
         loan.status = "REJECTED"
 
+    elif payload.action == "REQUEST_CORRECTION":
+        exc.status = "OPEN"
+        exc.resolution_action = "CORRECTION_REQUESTED"
+        exc.resolution_notes = payload.notes or "Correction requested from servicer / primary lender."
+        exc.resolved_by = reviewer_display_name
+        exc.resolved_at = datetime.datetime.utcnow()
+        loan.status = "FLAGGED"
+
     db.commit()
 
     remaining_open = db.query(ValidationException).filter(
@@ -117,7 +131,7 @@ def resolve_exception(
     ).count()
 
     verified_result = None
-    if remaining_open == 0 and loan.status != "REJECTED":
+    if remaining_open == 0 and loan.status != "REJECTED" and payload.action != "REQUEST_CORRECTION":
         verified_result = VerificationService.verify_and_seal_loan(
             db=db,
             loan=loan,
@@ -126,12 +140,20 @@ def resolve_exception(
             ai_assisted=ai_assisted
         )
 
+    event_type = "EXCEPTION_RESOLVED"
+    if payload.action == "REQUEST_CORRECTION":
+        event_type = "CORRECTION_REQUESTED"
+    elif loan.status == "VERIFIED":
+        event_type = "RECORD_APPROVED"
+    elif loan.status == "REJECTED":
+        event_type = "RECORD_REJECTED"
+
     AuditService.log_event(
         db=db,
-        event_type="RECORD_APPROVED" if loan.status == "VERIFIED" else ("RECORD_REJECTED" if loan.status == "REJECTED" else "EXCEPTION_RESOLVED"),
+        event_type=event_type,
         actor_id=current_user.id,
         actor_role=current_user.role,
-        summary=f"Reviewer {reviewer_display_name} took action '{payload.action}' on exception {exc.rule_code} for Loan {loan.loan_id}.",
+        summary=f"Reviewer {reviewer_display_name} requested correction from servicer on exception {exc.rule_code} for Loan {loan.loan_id}: {payload.notes or 'Remediation requested'}" if payload.action == "REQUEST_CORRECTION" else f"Reviewer {reviewer_display_name} took action '{payload.action}' on exception {exc.rule_code} for Loan {loan.loan_id}.",
         loan_id=loan.loan_id,
         previous_state=prev_loan_state,
         new_state={
