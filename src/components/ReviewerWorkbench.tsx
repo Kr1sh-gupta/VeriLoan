@@ -46,9 +46,67 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
   const [customNotes, setCustomNotes] = useState<string>('');
   const [manualPatchValue, setManualPatchValue] = useState<string>('');
   const [customAIPrompt, setCustomAIPrompt] = useState<string>('');
+  const [lastPromptQuery, setLastPromptQuery] = useState<string | null>(null);
   const [isPromptingAI, setIsPromptingAI] = useState<boolean>(false);
+  const [isExpandedExplanation, setIsExpandedExplanation] = useState<boolean>(false);
   const [resolvingAction, setResolvingAction] = useState<string | null>(null);
   const [showPromptDetails, setShowPromptDetails] = useState<boolean>(false);
+
+  const renderInlineMarkdown = (str: string) => {
+    const parts = str.split(/(\*\*.*?\*\*|`.*?`)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-bold text-slate-900">{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return <code key={i} className="px-1.5 py-0.5 rounded bg-purple-100/80 text-purple-900 font-mono text-[11px] font-semibold border border-purple-200/50">{part.slice(1, -1)}</code>;
+      }
+      return part;
+    });
+  };
+
+  const renderFormattedAIExplanation = (text: string, isExpanded: boolean) => {
+    if (!text) return null;
+    const shouldTruncate = text.length > 280;
+    const displayText = shouldTruncate && !isExpanded ? text.slice(0, 260) + '...' : text;
+    const lines = displayText.split('\n');
+
+    return (
+      <div className="space-y-1.5 text-xs font-sans text-slate-700 leading-relaxed">
+        {lines.map((line, idx) => {
+          const trimmed = line.trim();
+          if (!trimmed) return null;
+
+          if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+            const content = trimmed.replace(/\*\*/g, '');
+            return (
+              <h4 key={idx} className="font-bold text-purple-900 mt-2 font-mono text-[11px] uppercase tracking-wider">
+                {content}
+              </h4>
+            );
+          }
+
+          if (/^(\*|\-|\d+\.)\s+/.test(trimmed)) {
+            const formatted = trimmed.replace(/^(\*|\-|\d+\.)\s+/, '');
+            return (
+              <div key={idx} className="flex items-start gap-2 pl-1 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 flex-shrink-0" />
+                <div className="flex-1 text-slate-800">
+                  {renderInlineMarkdown(formatted)}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <p key={idx} className="text-slate-800">
+              {renderInlineMarkdown(trimmed)}
+            </p>
+          );
+        })}
+      </div>
+    );
+  };
 
   const loadData = async () => {
     try {
@@ -60,8 +118,9 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
       );
       setExceptions(data);
       if (data.length > 0 && !selectedException) {
-        setSelectedException(data[0]);
-        loadLoanDetail(data[0].loan_id_ref);
+        const firstExc = data[0];
+        setSelectedException(firstExc);
+        loadLoanDetail(firstExc.loan_id_ref);
       }
     } catch (err) {
       console.error('Failed to load reviewer exceptions', err);
@@ -88,6 +147,8 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
     setActionStatus(null);
     setCustomNotes('');
     setManualPatchValue('');
+    setLastPromptQuery(null);
+    setIsExpandedExplanation(false);
   };
 
   const NUMERIC_LOAN_FIELDS = [
@@ -173,19 +234,19 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
     if (!selectedException || !promptToSend.trim()) return;
     try {
       setIsPromptingAI(true);
+      setLastPromptQuery(promptToSend);
       const res = await requestAIExplanation(selectedException.id, promptToSend);
-      setSelectedException({
-        ...selectedException,
+      setSelectedException((prev) => prev ? ({
+        ...prev,
         ai_explanation: res.explanation,
         ai_suggested_patch: res.suggested_patch,
-        ai_confidence: res.confidence,
         ai_model: res.model,
         ai_prompt: res.prompt,
         ai_generated_at: res.timestamp
-      });
+      }) : null);
       if (!promptOverride) setCustomAIPrompt('');
     } catch (err) {
-      console.error(err);
+      console.error('Failed to execute AI custom prompt', err);
     } finally {
       setIsPromptingAI(false);
     }
@@ -460,11 +521,8 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                         <Sparkles className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-slate-900 font-sans">
-                          AI Diligence Assistant (Deterministic Mode)
-                        </h3>
                         <p className="text-[10px] font-mono text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                          <span>Model: <code className="text-slate-700 font-semibold">{selectedException.ai_model || 'gemini-1.5-pro'}</code></span>
+                          <span>Model: <code className="text-slate-700 font-semibold">{selectedException.ai_model || 'gemini-2.5-flash'}</code></span>
                           {selectedException.ai_generated_at && (
                             <>
                               <span>•</span>
@@ -483,13 +541,51 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     </div>
                   </div>
 
-                  {/* AI Explanation Text */}
-                  <div className="p-3.5 sm:p-4 rounded-xl bg-purple-50/40 border border-purple-100 space-y-2">
-                    <div className="text-[10px] font-mono text-purple-800 uppercase font-bold">Remediation Rationale</div>
-                    <p className="text-xs font-sans text-slate-800 leading-relaxed">
-                      {selectedException.ai_explanation || 'Cross-referencing amortizing term with origination date reveals a transcription boundary typo.'}
-                    </p>
-                  </div>
+                  {/* AI Explanation Text or Loading State */}
+                  {isPromptingAI ? (
+                    <div className="p-5 rounded-xl bg-purple-50 border border-purple-200 flex items-center space-x-3 text-purple-800 animate-pulse">
+                      <RefreshCw className="w-5 h-5 animate-spin text-purple-600 flex-shrink-0" />
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-mono font-bold">Consulting Gemini AI Copilot...</div>
+                        <div className="text-[10px] text-purple-600">Analyzing loan context & synthesizing deep financial rationale</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-purple-50/40 border border-purple-100 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[10px] font-mono text-purple-800 uppercase font-bold">
+                          {lastPromptQuery ? `Analysis for: "${lastPromptQuery}"` : "Remediation Rationale"}
+                        </div>
+                        {lastPromptQuery && (
+                          <span className="text-[10px] font-mono bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold border border-purple-200">
+                            Custom Prompt Answer
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Formatted Markdown Content */}
+                      {renderFormattedAIExplanation(
+                        selectedException.ai_explanation || 'Cross-referencing amortizing term with origination date reveals a transcription boundary typo.',
+                        isExpandedExplanation
+                      )}
+
+                      {/* Read More / Show Less Toggle Button */}
+                      {(selectedException.ai_explanation || '').length > 280 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsExpandedExplanation(!isExpandedExplanation)}
+                          className="text-[11px] font-mono text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 pt-1 transition-colors group cursor-pointer"
+                        >
+                          <span>{isExpandedExplanation ? 'Show Less' : 'Read More'}</span>
+                          {isExpandedExplanation ? (
+                            <ChevronUp className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5" />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Expandable Prompt Context & System Rule Transparency Drawer */}
                   {selectedException.ai_prompt && (
@@ -555,15 +651,16 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                         onChange={(e) => setCustomAIPrompt(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleCustomAIPrompt()}
                         placeholder="Ask AI Copilot custom question..."
-                        className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-purple-500 focus:bg-white"
+                        disabled={isPromptingAI}
+                        className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-purple-500 focus:bg-white disabled:opacity-50"
                       />
                       <button
                         onClick={() => handleCustomAIPrompt()}
-                        disabled={isPromptingAI}
+                        disabled={isPromptingAI || !customAIPrompt.trim()}
                         className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm"
                       >
                         {isPromptingAI ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
-                        <span>Prompt</span>
+                        <span>{isPromptingAI ? 'Analyzing...' : 'Prompt'}</span>
                       </button>
                     </div>
                   </div>
