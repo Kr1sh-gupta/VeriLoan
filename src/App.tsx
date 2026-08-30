@@ -166,7 +166,7 @@ export function App() {
   const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col justify-between">
       
       {/* Top Navbar */}
       <Navbar
