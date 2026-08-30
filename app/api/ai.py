@@ -2,7 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import ValidationException
-from app.schemas import AIExplainRequest, AIExplainResponse
+from app.schemas import (
+    AIExplainRequest, AIExplainResponse,
+    AIBatchSummaryRequest, AIBatchSummaryResponse,
+    AIRuleGenRequest, AIRuleGenResponse
+)
 from app.services.ai_service import AIService
 from app.services.audit_service import AuditService
 
@@ -47,3 +51,20 @@ def explain_exception(payload: AIExplainRequest, db: Session = Depends(get_db)):
         prompt=res["prompt"],
         timestamp=res["timestamp"]
     )
+
+@router.post("/batch-summary", response_model=AIBatchSummaryResponse)
+def batch_summary_exceptions(payload: AIBatchSummaryRequest, db: Session = Depends(get_db)):
+    res = AIService.generate_batch_summary(
+        db=db,
+        severity=payload.severity,
+        rule_code=payload.rule_code,
+        status=payload.status
+    )
+    return AIBatchSummaryResponse(**res)
+
+@router.post("/generate-rule", response_model=AIRuleGenResponse)
+def generate_rule_from_text(payload: AIRuleGenRequest):
+    if not payload.natural_language_description.strip():
+        raise HTTPException(status_code=400, detail="Description cannot be empty.")
+    res = AIService.generate_rule_from_text(payload.natural_language_description)
+    return AIRuleGenResponse(**res)

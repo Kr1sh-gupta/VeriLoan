@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from app.database import get_db
-from app.models import Loan, ValidationException, ServicerUpdate, DocumentManifest
+from app.models import Loan, ValidationException, ServicerUpdate, DocumentManifest, User
 from app.schemas import LoanRecordSchema, ValidationExceptionSchema
 from app.services.audit_service import AuditService
+from app.api.auth import require_role
 
 router = APIRouter(prefix="/loans", tags=["Loans"])
 
@@ -61,14 +62,15 @@ def get_loan_detail(id: str, db: Session = Depends(get_db)):
 def update_loan_fields(
     id: str,
     fields: dict,
-    reviewer_name: str = "Marcus Vance (Reviewer)",
-    actor_id: str = "usr-002",
+    reviewer_name: Optional[str] = None,
+    current_user: User = Depends(require_role(["REVIEWER", "ADMIN"])),
     db: Session = Depends(get_db)
 ):
     loan = db.query(Loan).filter((Loan.id == id) | (Loan.loan_id == id)).first()
     if not loan:
         raise HTTPException(status_code=404, detail="Loan record not found.")
 
+    reviewer_display_name = reviewer_name or current_user.full_name
     prev_state = {k: getattr(loan, k, None) for k in fields.keys() if hasattr(loan, k)}
 
     for k, v in fields.items():
@@ -82,13 +84,13 @@ def update_loan_fields(
     AuditService.log_event(
         db=db,
         event_type="FIELD_EDITED",
-        actor_id=actor_id,
-        actor_role="REVIEWER",
-        summary=f"Reviewer {reviewer_name} manually edited fields on Loan {loan.loan_id}: {list(fields.keys())}",
+        actor_id=current_user.id,
+        actor_role=current_user.role,
+        summary=f"Reviewer {reviewer_display_name} manually edited fields on Loan {loan.loan_id}: {list(fields.keys())}",
         loan_id=loan.loan_id,
         previous_state=prev_state,
         new_state=new_state,
-        metadata_json={"modified_fields": list(fields.keys()), "editor": reviewer_name}
+        metadata_json={"modified_fields": list(fields.keys()), "editor": reviewer_display_name}
     )
 
     return {"message": "Loan updated successfully.", "loan": LoanRecordSchema.from_orm(loan)}

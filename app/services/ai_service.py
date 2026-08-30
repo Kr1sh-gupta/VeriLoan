@@ -71,24 +71,37 @@ class AIService:
             try:
                 import google.generativeai as genai
                 genai.configure(api_key=settings.GEMINI_API_KEY)
-                model = genai.GenerativeModel("gemini-1.5-flash")
-                response = model.generate_content(
-                    prompt_str + "\n\nFormat your response as valid JSON with keys: explanation (string), suggested_patch (object of field:corrected_value), confidence (float between 0.0 and 1.0)."
-                )
-                txt = response.text.strip()
-                if "```json" in txt:
-                    txt = txt.split("```json")[1].split("```")[0].strip()
-                elif "```" in txt:
-                    txt = txt.split("```")[1].split("```")[0].strip()
-                data = json.loads(txt)
-                explanation_result = {
-                    "explanation": data.get("explanation", ""),
-                    "suggested_patch": data.get("suggested_patch", {}),
-                    "confidence": float(data.get("confidence", 0.90)),
-                    "model": "gemini-1.5-flash",
-                    "prompt": prompt_str.strip(),
-                    "timestamp": datetime.datetime.utcnow().isoformat()
-                }
+                
+                augmented_prompt = prompt_str
+                if custom_instruction:
+                    augmented_prompt += f"\n\nREVIEWER DIRECT INQUIRY: \"{custom_instruction}\"\nPlease specifically address this inquiry in a concise, well-structured manner."
+                
+                augmented_prompt += "\n\nCRITICAL FORMAT REQUIREMENT: Keep the 'explanation' concise (2-4 clear paragraphs/bullet points max, under 150 words total). Focus on the exact financial difference and root cause without unnecessary filler text."
+
+                # Try candidate Gemini models with fallback on quota limits
+                for m_name in ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"]:
+                    try:
+                        gemini_model = genai.GenerativeModel(m_name)
+                        response = gemini_model.generate_content(
+                            augmented_prompt + "\n\nFormat your response as valid JSON with keys: explanation (string), suggested_patch (object of field:corrected_value), confidence (float between 0.0 and 1.0)."
+                        )
+                        txt = response.text.strip()
+                        if "```json" in txt:
+                            txt = txt.split("```json")[1].split("```")[0].strip()
+                        elif "```" in txt:
+                            txt = txt.split("```")[1].split("```")[0].strip()
+                        data = json.loads(txt)
+                        explanation_result = {
+                            "explanation": data.get("explanation", ""),
+                            "suggested_patch": data.get("suggested_patch", {}),
+                            "confidence": float(data.get("confidence", 0.95)),
+                            "model": gemini_model.model_name.replace("models/", ""),
+                            "prompt": augmented_prompt.strip(),
+                            "timestamp": datetime.datetime.utcnow().isoformat()
+                        }
+                        break
+                    except Exception:
+                        continue
             except Exception as e:
                 # Fall back to heuristic reasoning engine
                 pass
@@ -260,7 +273,216 @@ class AIService:
             "explanation": explanation,
             "suggested_patch": patch,
             "confidence": confidence,
-            "model": "fintech-copilot-engine-v1",
+            "model": "offline-fintech-heuristic-v1",
             "prompt": prompt.strip(),
             "timestamp": datetime.datetime.utcnow().isoformat()
+        }
+
+    @classmethod
+    def generate_batch_summary(
+        cls,
+        db: Session,
+        severity: Optional[str] = None,
+        rule_code: Optional[str] = None,
+        status: str = "OPEN"
+    ) -> Dict[str, Any]:
+        """
+        Synthesizes a multi-record triage summary of active exception queues using Gemini or local intelligence.
+        """
+        query = db.query(ValidationException).filter(ValidationException.status == status)
+        if severity and severity != "ALL":
+            query = query.filter(ValidationException.severity == severity)
+        if rule_code and rule_code != "ALL":
+            query = query.filter(ValidationException.rule_code == rule_code)
+
+        exceptions = query.all()
+        total_count = len(exceptions)
+
+        if total_count == 0:
+            return {
+                "total_exceptions_analyzed": 0,
+                "summary_headline": "Exception Queue Clean: 0 open exceptions matching criteria.",
+                "top_root_causes": [],
+                "actionable_recommendation": "All records meet current compliance threshold. Ready for batch verification.",
+                "model": "offline-fintech-heuristic-v1",
+                "generated_at": datetime.datetime.utcnow().isoformat()
+            }
+
+        # Rule frequency analysis
+        rule_counts: Dict[str, int] = {}
+        severity_counts: Dict[str, int] = {}
+        for exc in exceptions:
+            rule_counts[exc.rule_code] = rule_counts.get(exc.rule_code, 0) + 1
+            severity_counts[exc.severity] = severity_counts.get(exc.severity, 0) + 1
+
+        top_rules = sorted(rule_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+
+        # Check if Gemini is enabled
+        if settings.GEMINI_API_KEY:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=settings.GEMINI_API_KEY)
+                
+                gemini_model = None
+                for m_name in ["gemini-2.5-flash", "gemini-flash-latest", "gemini-1.5-flash"]:
+                    try:
+                        gemini_model = genai.GenerativeModel(m_name)
+                        break
+                    except Exception:
+                        continue
+
+                if gemini_model:
+                    prompt = f"""
+                    You are a Senior FinTech Portfolio Risk Analyst.
+                    Summarize this batch of {total_count} open mortgage loan exceptions:
+                    - Rule distributions: {json.dumps(rule_counts)}
+                    - Severity distributions: {json.dumps(severity_counts)}
+                    - Sample messages: {[e.error_message for e in exceptions[:5]]}
+
+                    Return valid JSON with:
+                    - summary_headline: A concise 1-sentence executive summary
+                    - top_root_causes: List of objects with keys: cause (string), affected_count (int), category (string)
+                    - actionable_recommendation: 1-2 sentence recommendation for operations team
+                    """
+                    resp = gemini_model.generate_content(prompt)
+                    txt = resp.text.strip()
+                    if "```json" in txt:
+                        txt = txt.split("```json")[1].split("```")[0].strip()
+                    elif "```" in txt:
+                        txt = txt.split("```")[1].split("```")[0].strip()
+                    data = json.loads(txt)
+                    return {
+                        "total_exceptions_analyzed": total_count,
+                        "summary_headline": data.get("summary_headline", f"Identified {total_count} anomalies across portfolio."),
+                        "top_root_causes": data.get("top_root_causes", []),
+                        "actionable_recommendation": data.get("actionable_recommendation", "Review highest-severity items first."),
+                        "model": gemini_model.model_name.replace("models/", ""),
+                        "generated_at": datetime.datetime.utcnow().isoformat()
+                    }
+            except Exception:
+                pass
+
+        # Offline heuristic fallback
+        root_causes = []
+        for code, count in top_rules:
+            category = "CROSS_SOURCE" if code == "VAL-011" else "DATA_FORMAT" if code in ["VAL-004", "VAL-013"] else "INTEGRITY"
+            cause_desc = "Discrepancy between Primary Loan Tape and Servicer Ledger" if code == "VAL-011" else f"Rule violation on {code}"
+            root_causes.append({
+                "cause": f"{cause_desc} ({code})",
+                "affected_count": count,
+                "category": category
+            })
+
+        dom_rule = top_rules[0][0] if top_rules else "VAL-011"
+        headline = f"Portfolio triage: {total_count} open anomalies concentrated in {dom_rule} ({round((top_rules[0][1]/total_count)*100)}% of queue)." if top_rules else f"{total_count} open exceptions analyzed."
+        recommendation = "Prioritize resolving VAL-011 servicer balance discrepancies via AI Suggested Sync to maximize verified record throughput."
+
+        return {
+            "total_exceptions_analyzed": total_count,
+            "summary_headline": headline,
+            "top_root_causes": root_causes,
+            "actionable_recommendation": recommendation,
+            "model": "offline-fintech-heuristic-v1",
+            "generated_at": datetime.datetime.utcnow().isoformat()
+        }
+
+    @classmethod
+    def generate_rule_from_text(cls, description: str) -> Dict[str, Any]:
+        """
+        Converts a natural-language validation rule request into a structured rule specification.
+        """
+        # If Gemini is configured, use LLM
+        if settings.GEMINI_API_KEY:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=settings.GEMINI_API_KEY)
+                
+                gemini_model = None
+                for m_name in ["gemini-2.5-flash", "gemini-flash-latest", "gemini-1.5-flash"]:
+                    try:
+                        gemini_model = genai.GenerativeModel(m_name)
+                        break
+                    except Exception:
+                        continue
+
+                if gemini_model:
+                    prompt = f"""
+                    You are a Financial Data Quality Engineer. Convert this natural-language rule description into a formal rule schema:
+                    Description: "{description}"
+
+                    Return valid JSON with:
+                    - generated_rule_code: e.g. "VAL-CUSTOM-001"
+                    - name: short title (e.g. "High DPD Delinquency Check")
+                    - category: one of MANDATORY, FORMAT, LOGIC, FINANCIAL, INTEGRITY
+                    - severity: one of CRITICAL, HIGH, MEDIUM, LOW
+                    - field_name: primary loan field target (e.g. "days_past_due", "interest_rate")
+                    - operator: e.g. ">=", "<=", "==", "NOT_NULL"
+                    - condition_description: human readable condition
+                    - python_expression: a short Python boolean expression (e.g. "loan.days_past_due > 90 and loan.payment_status == 'CURRENT'")
+                    """
+                    resp = gemini_model.generate_content(prompt)
+                    txt = resp.text.strip()
+                    if "```json" in txt:
+                        txt = txt.split("```json")[1].split("```")[0].strip()
+                    elif "```" in txt:
+                        txt = txt.split("```")[1].split("```")[0].strip()
+                    data = json.loads(txt)
+                    data["model"] = gemini_model.model_name.replace("models/", "")
+                    return data
+            except Exception:
+                pass
+
+        # Offline deterministic natural language parser
+        desc_lower = description.lower()
+        field_name = "current_balance"
+        category = "FINANCIAL"
+        severity = "HIGH"
+        op = ">="
+        cond = "Condition check"
+        py_expr = "loan.current_balance > 0"
+        title = "Custom Validation Rule"
+
+        if "rate" in desc_lower or "interest" in desc_lower:
+            field_name = "interest_rate"
+            title = "Interest Rate Ceiling Policy"
+            category = "FINANCIAL"
+            severity = "CRITICAL"
+            op = "<="
+            cond = "interest_rate must be <= 36.0%"
+            py_expr = "loan.interest_rate <= 36.0"
+        elif "past due" in desc_lower or "dpd" in desc_lower or "delinquent" in desc_lower:
+            field_name = "days_past_due"
+            title = "Delinquency Alignment Rule"
+            category = "LOGIC"
+            severity = "HIGH"
+            op = "=="
+            cond = "days_past_due > 30 implies payment_status != 'CURRENT'"
+            py_expr = "not (loan.days_past_due > 30 and loan.payment_status == 'CURRENT')"
+        elif "date" in desc_lower or "maturity" in desc_lower or "origination" in desc_lower:
+            field_name = "maturity_date"
+            title = "Maturity Date Horizon Rule"
+            category = "LOGIC"
+            severity = "CRITICAL"
+            op = ">"
+            cond = "maturity_date must be after origination_date"
+            py_expr = "loan.maturity_date > loan.origination_date"
+        elif "state" in desc_lower or "address" in desc_lower:
+            field_name = "borrower_state"
+            title = "US Jurisdiction Code Rule"
+            category = "FORMAT"
+            severity = "MEDIUM"
+            op = "IN"
+            cond = "borrower_state must be a valid 2-letter US State abbreviation"
+            py_expr = "loan.borrower_state in US_POSTAL_STATES"
+
+        return {
+            "generated_rule_code": "VAL-CUSTOM-001",
+            "name": title,
+            "category": category,
+            "severity": severity,
+            "field_name": field_name,
+            "operator": op,
+            "condition_description": cond,
+            "python_expression": py_expr,
+            "model": "offline-fintech-heuristic-v1"
         }

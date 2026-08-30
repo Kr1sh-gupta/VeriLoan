@@ -1,8 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import Optional
 from app.database import get_db
 from app.services.ingestion_service import IngestionService
-from app.models import UploadBatch
+from app.models import UploadBatch, User
+from app.api.auth import require_role
 
 router = APIRouter(prefix="/ingest", tags=["Ingestion"])
 
@@ -10,8 +12,8 @@ router = APIRouter(prefix="/ingest", tags=["Ingestion"])
 async def upload_csv(
     file: UploadFile = File(...),
     file_type: str = Form("LOAN_TAPE"),
-    uploaded_by: str = Form("Elena Rostova (Operator)"),
-    actor_id: str = Form("usr-001"),
+    uploaded_by: Optional[str] = Form(None),
+    current_user: User = Depends(require_role(["OPERATOR", "ADMIN"])),
     db: Session = Depends(get_db)
 ):
     if not file.filename.endswith(".csv"):
@@ -25,8 +27,8 @@ async def upload_csv(
         csv_text=csv_text,
         filename=file.filename,
         file_type=file_type,
-        uploaded_by=uploaded_by,
-        actor_id=actor_id,
+        uploaded_by=uploaded_by or current_user.full_name,
+        actor_id=current_user.id,
         run_validation=True
     )
     return res
