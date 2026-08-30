@@ -4,13 +4,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.database import engine, Base, SessionLocal
-from app.models import User, UploadBatch
+from app.database import engine, Base, SessionLocal, init_db_schema
+from app.models import User, UploadBatch, Loan, VerifiedLoan
 from app.services.ingestion_service import IngestionService
+from app.services.verification_service import VerificationService
 from app.api import auth, ingest, loans, exceptions, verified_loans, audit, summary, ai
 
-# Initialize Database Schema
-Base.metadata.create_all(bind=engine)
+# Initialize Database Schema & Migrations
+init_db_schema()
 
 def seed_initial_data_if_empty():
     db = SessionLocal()
@@ -67,6 +68,10 @@ def seed_initial_data_if_empty():
                         file_type="LOAN_TAPE",
                         run_validation=True
                     )
+
+        # Ensure verified loans table is populated with all clean loans
+        if db.query(VerifiedLoan).count() == 0 and db.query(Loan).count() > 0:
+            VerificationService.verify_clean_loans_batch(db=db)
     finally:
         db.close()
 

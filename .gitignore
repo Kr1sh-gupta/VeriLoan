@@ -8,5 +8,8 @@ venv/
 .pytest_cache/
 *.db
 copilot.db
+*.db.backup
+*.backup
 .env
 .DS_Store
+.venv

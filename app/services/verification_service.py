@@ -2,9 +2,9 @@ import hashlib
 import json
 import uuid
 import datetime
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional, List
 from sqlalchemy.orm import Session
-from app.models import Loan, VerifiedLoan
+from app.models import Loan, VerifiedLoan, ValidationException
 from app.services.audit_service import AuditService
 
 class VerificationService:
@@ -29,6 +29,7 @@ class VerificationService:
         verified_by: str = "Marcus Vance (Reviewer)",
         resolution_notes: str = "All validation exceptions resolved and verified.",
         ai_assisted: bool = False,
+        ai_recommendation: Optional[Dict[str, Any]] = None,
         actor_id: str = "usr-002",
         actor_role: str = "REVIEWER"
     ) -> VerifiedLoan:
@@ -60,6 +61,29 @@ class VerificationService:
         record_hash = cls.compute_hash(canonical_payload)
         raw_hash = cls.compute_hash(loan.raw_data or canonical_payload)
 
+        # Snapshot all exceptions and resolutions associated with this loan
+        exceptions = db.query(ValidationException).filter(ValidationException.loan_id_ref == loan.id).all()
+        validation_snapshot = [
+            {
+                "rule_code": exc.rule_code,
+                "category": exc.category,
+                "severity": exc.severity,
+                "status": exc.status,
+                "field_name": exc.field_name,
+                "error_message": exc.error_message,
+                "resolution_action": exc.resolution_action,
+                "resolved_by": exc.resolved_by
+            }
+            for exc in exceptions
+        ]
+
+        # Extract AI recommendation from exceptions if not explicitly provided
+        if ai_recommendation is None and any(exc.ai_suggested_patch for exc in exceptions):
+            for exc in exceptions:
+                if exc.ai_suggested_patch:
+                    ai_recommendation = exc.ai_suggested_patch
+                    break
+
         # Check if verified record already exists
         verified = db.query(VerifiedLoan).filter(VerifiedLoan.loan_id_ref == loan.id).first()
         if not verified:
@@ -74,7 +98,9 @@ class VerificationService:
                 verified_by=verified_by,
                 verified_at=datetime.datetime.utcnow(),
                 resolution_notes=resolution_notes,
-                ai_assisted=ai_assisted
+                ai_assisted=ai_assisted,
+                validation_snapshot=validation_snapshot,
+                ai_recommendation=ai_recommendation
             )
             db.add(verified)
         else:
@@ -84,6 +110,8 @@ class VerificationService:
             verified.verified_at = datetime.datetime.utcnow()
             verified.resolution_notes = resolution_notes
             verified.ai_assisted = ai_assisted
+            verified.validation_snapshot = validation_snapshot
+            verified.ai_recommendation = ai_recommendation
 
         loan.status = "VERIFIED"
         db.commit()
@@ -103,6 +131,40 @@ class VerificationService:
         )
 
         return verified
+
+    @classmethod
+    def verify_clean_loans_batch(
+        cls,
+        db: Session,
+        verified_by: str = "Elena Rostova (Operator)",
+        actor_id: str = "usr-001",
+        actor_role: str = "OPERATOR"
+    ) -> int:
+        """
+        Batch seals all clean loans (those without open exceptions) into VerifiedLoan records.
+        Avoids N+1 queries by fetching open exception loan references in a single set.
+        """
+        open_exc_refs = {
+            r[0] for r in db.query(ValidationException.loan_id_ref).filter(ValidationException.status == "OPEN").all()
+        }
+
+        pending_loans = db.query(Loan).filter(Loan.status.in_(["PENDING", "RESOLVED"])).all()
+        verified_count = 0
+
+        for loan in pending_loans:
+            if loan.id not in open_exc_refs:
+                cls.verify_and_seal_loan(
+                    db=db,
+                    loan=loan,
+                    verified_by=verified_by,
+                    resolution_notes="Clean record passed all validation rules without exceptions.",
+                    ai_assisted=False,
+                    actor_id=actor_id,
+                    actor_role=actor_role
+                )
+                verified_count += 1
+
+        return verified_count
 
     @classmethod
     def verify_hash_integrity(cls, verified_loan: VerifiedLoan) -> Tuple[bool, str]:
