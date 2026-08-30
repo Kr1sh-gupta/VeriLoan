@@ -23,8 +23,18 @@ import axios from 'axios';
 import type { SystemConnector, ApiKeyItem, ValidationRuleItem, User, AuditEvent } from '../types';
 import { fetchConnectors, fetchApiKeys, fetchValidationRules, fetchUsers, fetchAuditTrail } from '../lib/api';
 
-export const AdminConsole: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CONNECTORS' | 'RULES' | 'USERS' | 'PLAYGROUND' | 'AUDIT'>('OVERVIEW');
+interface AdminConsoleProps {
+  initialTab?: 'OVERVIEW' | 'CONNECTORS' | 'RULES' | 'USERS' | 'PLAYGROUND' | 'AUDIT';
+}
+
+export const AdminConsole: React.FC<AdminConsoleProps> = ({ initialTab = 'OVERVIEW' }) => {
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'CONNECTORS' | 'RULES' | 'USERS' | 'PLAYGROUND' | 'AUDIT'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   
   // Data State
   const [connectors, setConnectors] = useState<SystemConnector[]>([]);
@@ -98,30 +108,92 @@ export const AdminConsole: React.FC = () => {
     }
   };
 
-  const handleGenerateRuleFromPrompt = () => {
-    if (aiRulePrompt.toLowerCase().includes('90')) {
-      setRuleForm({
-        code: 'R15_DPD_90_DEFAULT',
-        name: 'Severe 90+ DPD Conflict',
-        description: 'Auto-flag records where days_past_due > 90 with CURRENT status',
+  // Local Session Rule Tracking & Feedback
+  const [ruleStatus, setRuleStatus] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [localRuleCodes, setLocalRuleCodes] = useState<Set<string>>(new Set());
+
+  const handleGenerateRuleFromPrompt = (promptOverride?: string) => {
+    const promptText = (promptOverride || aiRulePrompt).trim();
+    const lower = promptText.toLowerCase();
+
+    let generated: {
+      code: string;
+      name: string;
+      description: string;
+      category: 'SANITY' | 'MATHEMATICAL' | 'LOGICAL' | 'COMPLIANCE' | 'DOCUMENT';
+      severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+      field: string;
+      operator: '>' | '<' | '==' | '!=' | '>=' | '<=' | 'IN' | 'NOT_NULL' | 'CUSTOM';
+      targetValue: string;
+    } = {
+      code: `R${rules.length + 1}_CUSTOM_RULE`,
+      name: 'Custom Parameter Rule',
+      description: promptText,
+      category: 'LOGICAL',
+      severity: 'HIGH',
+      field: 'current_balance',
+      operator: '>',
+      targetValue: '0'
+    };
+
+    if (lower.includes('dpd') || lower.includes('past due') || lower.includes('90')) {
+      generated = {
+        code: `R${rules.length + 1}_DPD_90_DEFAULT`,
+        name: 'Severe DPD & Status Conflict',
+        description: 'Auto-flag records where days_past_due > 90 with CURRENT payment status',
         category: 'LOGICAL',
         severity: 'CRITICAL',
         field: 'days_past_due',
         operator: '>',
         targetValue: '90'
-      });
-    } else {
-      setRuleForm({
-        code: 'R16_CUSTOM_RATE',
-        name: 'Custom Parameter Evaluation',
-        description: aiRulePrompt,
+      };
+    } else if (lower.includes('rate') || lower.includes('interest') || lower.includes('36')) {
+      generated = {
+        code: `R${rules.length + 1}_INTEREST_RATE_CAP`,
+        name: 'Statutory Interest Rate Limit',
+        description: 'Auto-flag records where interest_rate exceeds statutory limit (36.0%)',
         category: 'SANITY',
-        severity: 'HIGH',
+        severity: 'CRITICAL',
         field: 'interest_rate',
-        operator: '<=',
-        targetValue: '12.5'
-      });
+        operator: '>',
+        targetValue: '36.0'
+      };
+    } else if (lower.includes('balance') || lower.includes('principal')) {
+      generated = {
+        code: `R${rules.length + 1}_BALANCE_PRINCIPAL_CAP`,
+        name: 'Balance Exceeds Principal Cap',
+        description: 'Auto-flag records where current_balance exceeds original_principal',
+        category: 'MATHEMATICAL',
+        severity: 'HIGH',
+        field: 'current_balance',
+        operator: '>',
+        targetValue: 'original_principal'
+      };
+    } else if (lower.includes('maturity') || lower.includes('origination') || lower.includes('date')) {
+      generated = {
+        code: `R${rules.length + 1}_MATURITY_ORIGINATION`,
+        name: 'Maturity Origination Chronology',
+        description: 'Maturity date must be chronologically after origination date',
+        category: 'SANITY',
+        severity: 'CRITICAL',
+        field: 'maturity_date',
+        operator: '<',
+        targetValue: 'origination_date'
+      };
+    } else if (lower.includes('document') || lower.includes('doc') || lower.includes('missing')) {
+      generated = {
+        code: `R${rules.length + 1}_DOC_MANIFEST`,
+        name: 'Mandatory Document Manifest',
+        description: 'Document status must be verified and non-null',
+        category: 'DOCUMENT',
+        severity: 'MEDIUM',
+        field: 'document_status',
+        operator: 'NOT_NULL',
+        targetValue: ''
+      };
     }
+
+    setRuleForm(generated);
   };
 
   const handleSaveRule = () => {
@@ -141,31 +213,36 @@ export const AdminConsole: React.FC = () => {
       affectedRecordsCount: 3
     };
     setRules([created, ...rules]);
+    setLocalRuleCodes((prev) => new Set(prev).add(created.code));
+    setRuleStatus({
+      message: `Rule ${created.code} successfully added to Local Session Governance Table (${rules.length + 1} Active Rules).`,
+      type: 'success'
+    });
     setNewRuleOpen(false);
   };
 
   return (
-    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         
         {/* Header Banner */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200">
-          <div className="space-y-2">
-            <div className="text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-2 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 sm:pb-6 border-b border-slate-200">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="text-[10px] sm:text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-2 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse shrink-0" />
               <span>ADMINISTRATIVE GOVERNANCE • FULL SYSTEM TELEMETRY</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-sans">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-sans">
               Admin &amp; Integration Console
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl leading-relaxed">
               Configure external system connectors, manage visual validation rules, oversee user roles, and monitor cryptographic compliance.
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 shrink-0">
             <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full text-xs font-mono text-emerald-800 font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>All Systems Operational (18/18)</span>
             </div>
           </div>
@@ -326,8 +403,8 @@ export const AdminConsole: React.FC = () => {
 
         {/* TAB 2: CONNECTORS & API KEYS */}
         {activeTab === 'CONNECTORS' && (
-          <div className="space-y-8 animate-fade-in">
-            <div className="flex items-center justify-between">
+          <div className="space-y-6 sm:space-y-8 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold font-sans text-slate-900">
                   Configured Inbound &amp; Outbound Connectors
@@ -339,15 +416,15 @@ export const AdminConsole: React.FC = () => {
 
               <button
                 onClick={() => setNewConnectorOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-sm active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-sm active:scale-95 shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Connector</span>
               </button>
             </div>
 
-            <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
-              <table className="w-full text-left text-xs font-mono border-collapse">
+            <div className="rounded-2xl bg-white border border-slate-200 overflow-x-auto shadow-sm">
+              <table className="w-full text-left text-xs font-mono border-collapse min-w-[720px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px]">
                     <th className="px-6 py-3.5 font-bold">Connector Name</th>
@@ -408,18 +485,18 @@ export const AdminConsole: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                 {apiKeys.map((k) => (
-                  <div key={k.id} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+                  <div key={k.id} className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
                     <div className="flex justify-between items-start">
                       <div className="text-xs font-bold text-slate-900 font-sans">{k.name}</div>
                       <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono font-bold">
                         {k.status}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-900 flex justify-between items-center">
-                      <span>{k.keyPrefix}••••••••••••</span>
-                      <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-slate-800 cursor-pointer" />
+                    <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-900 flex justify-between items-center gap-2">
+                      <span className="truncate">{k.keyPrefix}••••••••••••</span>
+                      <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-slate-800 cursor-pointer shrink-0" />
                     </div>
                     <div className="flex justify-between text-[10px] font-mono text-slate-500">
                       <span>Scope: {k.scope}</span>
@@ -434,10 +511,22 @@ export const AdminConsole: React.FC = () => {
 
         {/* TAB 3: VALIDATION RULE BUILDER */}
         {activeTab === 'RULES' && (
-          <div className="space-y-8 animate-fade-in">
-            <div className="p-6 rounded-2xl bg-white border border-purple-200 shadow-sm space-y-4">
+          <div className="space-y-6 sm:space-y-8 animate-fade-in">
+            {ruleStatus && (
+              <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 text-xs font-mono flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                  <span>{ruleStatus.message}</span>
+                </div>
+                <button onClick={() => setRuleStatus(null)}>
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="p-4 sm:p-6 rounded-2xl bg-white border border-purple-200 shadow-sm space-y-4">
               <div className="flex items-center space-x-2 text-xs font-mono text-purple-700 font-bold uppercase">
-                <Sparkles className="w-4 h-4 text-purple-600" />
+                <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
                 <span>Natural Language Rule Generator (AI-Assisted)</span>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
@@ -445,7 +534,7 @@ export const AdminConsole: React.FC = () => {
                   type="text" 
                   value={aiRulePrompt}
                   onChange={(e) => setAiRulePrompt(e.target.value)}
-                  placeholder="e.g. Flag any loan where interest rate exceeds 15% and loan amount > 500,000"
+                  placeholder="e.g. Flag any loan where interest rate exceeds 36.0% or days past due > 90"
                   className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-purple-500 focus:bg-white"
                 />
                 <button
@@ -453,16 +542,39 @@ export const AdminConsole: React.FC = () => {
                     handleGenerateRuleFromPrompt();
                     setNewRuleOpen(true);
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 shrink-0"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Generate Rule</span>
                 </button>
               </div>
+
+              {/* 1-Click Prompt Chips */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {[
+                  'Flag DPD > 90 with CURRENT status',
+                  'Flag Interest Rate > 36.0% statutory ceiling',
+                  'Flag Current Balance > Original Principal',
+                  'Flag Document Status missing'
+                ].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => {
+                      setAiRulePrompt(chip);
+                      handleGenerateRuleFromPrompt(chip);
+                      setNewRuleOpen(true);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[10px] font-mono text-purple-700 transition-colors"
+                  >
+                    + {chip}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
-              <table className="w-full text-left text-xs font-mono border-collapse">
+            <div className="rounded-2xl bg-white border border-slate-200 overflow-x-auto shadow-sm">
+              <table className="w-full text-left text-xs font-mono border-collapse min-w-[760px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px]">
                     <th className="px-6 py-3.5 font-bold">Rule Code &amp; Name</th>
@@ -477,7 +589,14 @@ export const AdminConsole: React.FC = () => {
                   {rules.map((r) => (
                     <tr key={r.code} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-900">
-                        <div className="text-blue-700 font-bold">{r.code}</div>
+                        <div className="text-blue-700 font-bold flex items-center gap-2">
+                          <span>{r.code}</span>
+                          {localRuleCodes.has(r.code) && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 font-bold">
+                              Session Rule
+                            </span>
+                          )}
+                        </div>
                         <div className="text-slate-600 font-sans text-[11px]">{r.name}</div>
                       </td>
                       <td className="px-6 py-4 text-slate-600 font-sans text-xs max-w-xs">{r.description}</td>
@@ -494,8 +613,12 @@ export const AdminConsole: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 text-slate-500">v{r.version}.0</td>
                       <td className="px-6 py-4">
-                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                          Enabled
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          localRuleCodes.has(r.code)
+                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>
+                          {localRuleCodes.has(r.code) ? 'Enabled (Local Session)' : 'Enabled'}
                         </span>
                       </td>
                     </tr>
@@ -508,9 +631,9 @@ export const AdminConsole: React.FC = () => {
 
         {/* TAB 4: USERS & ROLE MANAGEMENT */}
         {activeTab === 'USERS' && (
-          <div className="space-y-8 animate-fade-in">
-            <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
-              <table className="w-full text-left text-xs font-mono border-collapse">
+          <div className="space-y-6 sm:space-y-8 animate-fade-in">
+            <div className="rounded-2xl bg-white border border-slate-200 overflow-x-auto shadow-sm">
+              <table className="w-full text-left text-xs font-mono border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px]">
                     <th className="px-6 py-3.5 font-bold">Full Name</th>
@@ -525,7 +648,7 @@ export const AdminConsole: React.FC = () => {
                   {users.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center text-xs font-bold">
+                        <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">
                           {u.avatar_badge || 'US'}
                         </div>
                         <span>{u.full_name}</span>
@@ -557,7 +680,7 @@ export const AdminConsole: React.FC = () => {
 
         {/* TAB 5: REST API PLAYGROUND */}
         {activeTab === 'PLAYGROUND' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 animate-fade-in">
             <div className="lg:col-span-4 space-y-2">
               <div className="text-xs font-mono uppercase text-slate-600 font-bold mb-2">
                 Available REST Endpoints (Module H)
@@ -591,11 +714,11 @@ export const AdminConsole: React.FC = () => {
               ))}
             </div>
 
-            <div className="lg:col-span-8 p-6 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center space-x-2 font-mono text-xs text-blue-700 font-bold">
-                  <span className="text-slate-900">GET</span>
-                  <span>{selectedEndpoint}</span>
+            <div className="lg:col-span-8 p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                <div className="flex items-center space-x-2 font-mono text-xs text-blue-700 font-bold min-w-0">
+                  <span className="text-slate-900 shrink-0">GET</span>
+                  <span className="truncate">{selectedEndpoint}</span>
                 </div>
                 <button
                   onClick={() => {
@@ -603,21 +726,21 @@ export const AdminConsole: React.FC = () => {
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }}
-                  className="px-3 py-1 rounded bg-slate-100 text-xs font-mono text-slate-700 hover:bg-slate-200 flex items-center gap-1 font-bold"
+                  className="w-full sm:w-auto px-3 py-1 rounded bg-slate-100 text-xs font-mono text-slate-700 hover:bg-slate-200 flex items-center justify-center gap-1 font-bold shrink-0"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                   <span>{copied ? 'Copied' : 'Copy JSON'}</span>
                 </button>
               </div>
 
-              <div className="flex-1 min-h-[300px] bg-slate-900 rounded-xl p-4 border border-slate-800 font-mono text-xs text-slate-200 overflow-y-auto">
+              <div className="flex-1 min-h-[300px] bg-slate-900 rounded-xl p-3.5 sm:p-4 border border-slate-800 font-mono text-xs text-slate-200 overflow-y-auto">
                 {playgroundLoading ? (
                   <div className="flex items-center justify-center h-full text-slate-400">
                     <RefreshCw className="w-5 h-5 animate-spin mr-2" />
                     <span>Executing Request...</span>
                   </div>
                 ) : playgroundResponse ? (
-                  <pre>{JSON.stringify(playgroundResponse, null, 2)}</pre>
+                  <pre className="whitespace-pre-wrap break-all overflow-x-auto">{JSON.stringify(playgroundResponse, null, 2)}</pre>
                 ) : (
                   <div className="flex items-center justify-center h-full text-slate-400">
                     Click any endpoint on the left to execute sandbox query.
@@ -630,8 +753,8 @@ export const AdminConsole: React.FC = () => {
 
         {/* TAB 6: COMPLIANCE AUDIT SEARCH */}
         {activeTab === 'AUDIT' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="flex gap-3">
+          <div className="space-y-5 sm:space-y-6 animate-fade-in">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input 
@@ -646,7 +769,7 @@ export const AdminConsole: React.FC = () => {
                 href="http://localhost:8000/api/audit/export/json"
                 target="_blank"
                 rel="noreferrer"
-                className="px-4 py-2.5 rounded-xl bg-[#0b1c30] hover:bg-slate-800 text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0b1c30] hover:bg-slate-800 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 shadow-sm shrink-0"
               >
                 <Download className="w-4 h-4" />
                 <span>Export Audit JSON</span>
@@ -655,9 +778,9 @@ export const AdminConsole: React.FC = () => {
 
             <div className="space-y-3">
               {auditEvents.map((evt) => (
-                <div key={evt.id} className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm space-y-2">
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <div className="flex items-center space-x-2">
+                <div key={evt.id} className="p-3.5 sm:p-4 rounded-xl bg-white border border-slate-200 shadow-sm space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-bold text-blue-700">{evt.event_type}</span>
                       {evt.loan_id && (
                         <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-900 font-bold border border-slate-200">
@@ -667,7 +790,7 @@ export const AdminConsole: React.FC = () => {
                     </div>
                     <span className="text-slate-400 text-[11px]">{evt.timestamp}</span>
                   </div>
-                  <p className="text-xs text-slate-700 font-sans">
+                  <p className="text-xs text-slate-700 font-sans leading-relaxed break-words">
                     {evt.summary}
                   </p>
                   <div className="text-[10px] font-mono text-slate-500">
@@ -683,9 +806,9 @@ export const AdminConsole: React.FC = () => {
 
       {/* New Rule Modal */}
       {newRuleOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white border border-slate-200 p-6 sm:p-8 space-y-6 text-slate-900 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white border border-slate-200 p-4 sm:p-8 space-y-4 sm:space-y-6 text-slate-900 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 sm:pb-4">
               <h3 className="text-base font-bold text-slate-900 font-sans">
                 Confirm &amp; Save Validation Rule
               </h3>
@@ -725,7 +848,7 @@ export const AdminConsole: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-slate-600 uppercase font-bold mb-1">Field</label>
                   <input 
@@ -776,9 +899,9 @@ export const AdminConsole: React.FC = () => {
 
       {/* New Connector Modal */}
       {newConnectorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white border border-slate-200 p-6 sm:p-8 space-y-6 text-slate-900 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white border border-slate-200 p-4 sm:p-8 space-y-4 sm:space-y-6 text-slate-900 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 sm:pb-4">
               <h3 className="text-base font-bold text-slate-900 font-sans">
                 Add System Connector
               </h3>
