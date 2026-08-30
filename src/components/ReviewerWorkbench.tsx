@@ -172,7 +172,8 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
   const DATE_LOAN_FIELDS = [
     'origination_date',
     'maturity_date',
-    'last_payment_date'
+    'last_payment_date',
+    'last_updated_at'
   ];
 
   const getFieldValidation = (fieldName?: string, val?: string) => {
@@ -191,8 +192,9 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
     }
 
     if (DATE_LOAN_FIELDS.some(f => field.includes(f))) {
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(trimmed) || isNaN(Date.parse(trimmed))) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}:\d{2})?$/;
+      const datePart = trimmed.split(/[ T]/)[0];
+      if (!dateRegex.test(trimmed) || isNaN(Date.parse(datePart))) {
         return { isValid: false, message: `Date field "${fieldName}" requires YYYY-MM-DD format (e.g. 2024-06-15)` };
       }
       return { isValid: true, message: '' };
@@ -455,13 +457,10 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
           </div>
         )}
 
-        {/* Main 2-Column Split Stage */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
-          
-          {/* Left Column: Exception Queue (5 Cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            
-            {/* Search and Filter Tabs with Real-Time Counters */}
+        {/* 1. Mobile Sequential View (< lg: 1. Records -> 2. Violation -> 3. AI Copilot -> 4. Governance -> 5. Notes) */}
+        <div className="flex flex-col space-y-5 lg:hidden">
+          {/* Card 1: Records & Search */}
+          <div className="space-y-4">
             <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -504,8 +503,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
               </div>
             </div>
 
-            {/* Exception Queue Items */}
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-0.5 sm:pr-1">
+            <div className="space-y-3 max-h-[360px] overflow-y-auto pr-0.5 sm:pr-1">
               {loading ? (
                 <div className="p-12 text-center text-slate-400 font-mono text-xs flex items-center justify-center gap-2">
                   <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
@@ -580,22 +578,624 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                 })
               )}
             </div>
+          </div>
+
+          {/* Mobile Exception Deep Inspection Items */}
+          {selectedException ? (
+            <>
+              {/* Card 2: Violation in Exception */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+                <div className="flex items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                  <div>
+                    <div className="text-[10px] font-mono text-slate-500 uppercase">
+                      Violation In Exception #{selectedException.id}
+                    </div>
+                    <h2 className="text-base font-bold font-sans text-slate-900 mt-0.5 flex flex-wrap items-center gap-2">
+                      <span>{selectedException.loan_id_code}</span>
+                      {selectedException.borrower_id && (
+                        <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                          Borrower: {selectedException.borrower_id}
+                        </span>
+                      )}
+                      <span className="text-slate-500 font-normal text-xs font-mono">• {selectedException.rule_code}</span>
+                    </h2>
+                  </div>
+
+                  <span className="text-xs font-mono text-red-700 bg-red-50 px-2.5 py-1 rounded-lg font-bold border border-red-200 shrink-0">
+                    {selectedException.severity}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-sans text-red-800 leading-relaxed break-words">
+                  <span className="font-bold">Rule Constraint Violated: </span>
+                  {selectedException.error_message}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-xs font-mono text-slate-700 uppercase flex items-center gap-1.5 font-bold">
+                    <GitCompare className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Multi-Source Conflict &amp; Field Diff</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-red-50/50 border border-red-200 space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-mono text-red-700 uppercase font-bold">
+                        <span>Source A: Tape Ingest</span>
+                        <span>Conflicting</span>
+                      </div>
+                      <div className="text-xs font-mono text-slate-600 truncate">
+                        Field: <span className="text-slate-900 font-bold">{selectedException.field_name}</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white border border-red-200 text-xs font-mono text-red-700 font-bold break-all">
+                        {selectedException.actual_value}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200 space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-mono text-emerald-700 uppercase font-bold">
+                        <span>Source B: Servicer Feed</span>
+                        <span>Expected</span>
+                      </div>
+                      <div className="text-xs font-mono text-slate-600 truncate">
+                        Field: <span className="text-slate-900 font-bold">{selectedException.field_name}</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white border border-emerald-200 text-xs font-mono text-emerald-700 font-bold break-all">
+                        {selectedException.expected_condition}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: AI Diligence Copilot */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-purple-200 shadow-sm space-y-4 relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center shadow-sm shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 font-sans flex items-center gap-1.5">
+                        <span>AI Diligence Copilot</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold border border-purple-200">
+                          Gemini 2.5 Flash
+                        </span>
+                      </h3>
+                      <p className="text-[10px] font-mono text-slate-500 mt-0.5">
+                        <span>Model: <code className="text-purple-700 font-semibold">{selectedException.ai_model?.replace('models/', '').replace('offline-fintech-heuristic-v1', 'gemini-2.5-flash') || 'gemini-2.5-flash'}</code></span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-left sm:text-right shrink-0">
+                    <div className="text-xs font-mono font-bold text-purple-700">
+                      {Math.round((selectedException.ai_confidence || 0.98) * 100)}% Confidence
+                    </div>
+                  </div>
+                </div>
+
+                {isPromptingAI ? (
+                  <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 flex items-center space-x-3 text-purple-800 animate-pulse">
+                    <RefreshCw className="w-4 h-4 animate-spin text-purple-600 flex-shrink-0" />
+                    <div className="text-xs font-mono font-bold">Consulting Gemini AI Copilot...</div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-purple-50/40 border border-purple-100 space-y-2">
+                    <div className="text-[10px] font-mono text-purple-800 uppercase font-bold">
+                      {lastPromptQuery ? `Analysis for: "${lastPromptQuery}"` : "Remediation Rationale"}
+                    </div>
+                    {renderFormattedAIExplanation(
+                      selectedException.ai_explanation || 'Cross-referencing amortizing term with origination date reveals a transcription boundary typo.',
+                      isExpandedExplanation
+                    )}
+                    {(selectedException.ai_explanation || '').length > 180 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsExpandedExplanation(!isExpandedExplanation)}
+                        className="text-[11px] font-mono text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 pt-1 cursor-pointer"
+                      >
+                        <span>{isExpandedExplanation ? 'Show Less' : 'Read More'}</span>
+                        {isExpandedExplanation ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {selectedException.ai_suggested_patch && (
+                  <div className="space-y-1 font-mono text-xs">
+                    <div className="text-[10px] text-slate-500 uppercase font-bold">Suggested Patch Payload (Dry Run)</div>
+                    <pre className="p-2.5 rounded-xl bg-slate-900 text-emerald-400 text-[10px] overflow-x-auto whitespace-pre-wrap break-all shadow-inner">
+                      {JSON.stringify(selectedException.ai_suggested_patch, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {[
+                    'Explain risk of accepting patch',
+                    'Check note rate vs index spread',
+                    'Audit title & deed timestamp'
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => handleCustomAIPrompt(chip)}
+                      className="px-2 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[10px] font-mono text-purple-700 transition-colors"
+                    >
+                      + {chip}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="pt-1">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={customAIPrompt}
+                      onChange={(e) => setCustomAIPrompt(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCustomAIPrompt()}
+                      placeholder="Ask AI Copilot custom question..."
+                      disabled={isPromptingAI}
+                      className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-purple-500 focus:bg-white disabled:opacity-50"
+                    />
+                    <button
+                      onClick={() => handleCustomAIPrompt()}
+                      disabled={isPromptingAI || !customAIPrompt.trim()}
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+                    >
+                      {isPromptingAI ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
+                      <span>{isPromptingAI ? 'Analyzing...' : 'Prompt'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Reviewer Governance Action Station */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4 animate-fade-in">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
+                  <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 font-bold uppercase">
+                    <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Reviewer Governance</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold uppercase border border-emerald-200">
+                      Human Authority
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500">Signer: Marcus Vance</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-mono uppercase text-slate-600 font-bold">
+                        Manual Override Value
+                      </label>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Target: <code className="text-blue-700 font-bold bg-blue-50 px-1 py-0.5 rounded">{selectedException.field_name || 'value'}</code>
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={manualPatchValue}
+                      onChange={(e) => setManualPatchValue(e.target.value)}
+                      placeholder={
+                        NUMERIC_LOAN_FIELDS.some(f => (selectedException.field_name || '').toLowerCase().includes(f))
+                          ? `Enter numeric value for ${selectedException.field_name} (e.g. 500000)...`
+                          : DATE_LOAN_FIELDS.some(f => (selectedException.field_name || '').toLowerCase().includes(f))
+                          ? `Enter date for ${selectedException.field_name} (YYYY-MM-DD)...`
+                          : `Enter custom value for ${selectedException.field_name}...`
+                      }
+                      className={`w-full bg-slate-50 border rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white transition-all ${
+                        manualPatchValue.trim() && !fieldValidation.isValid
+                          ? 'border-red-400 focus:border-red-500 bg-red-50/30'
+                          : manualPatchValue.trim() && fieldValidation.isValid
+                          ? 'border-emerald-400 focus:border-emerald-500 bg-emerald-50/20'
+                          : 'border-slate-300 focus:border-blue-500'
+                      }`}
+                    />
+                    {manualPatchValue.trim() && !fieldValidation.isValid && (
+                      <div className="text-[11px] font-sans text-red-600 mt-1 flex items-center gap-1 font-medium animate-fade-in">
+                        <span>⚠️ {fieldValidation.message}</span>
+                      </div>
+                    )}
+                    {manualPatchValue.trim() && fieldValidation.isValid && (
+                      <div className="text-[11px] font-sans text-emerald-700 mt-1 flex items-center gap-1 font-medium animate-fade-in">
+                        <span>✓ Valid format for {selectedException.field_name}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-mono uppercase text-slate-600 font-bold">
+                        Reviewer Audit Notes / Justification
+                      </label>
+                      <span className={`text-[10px] font-mono ${customNotes.trim().length >= 5 ? 'text-emerald-700 font-bold' : 'text-slate-400'}`}>
+                        Min 5 chars for [Correction] ({customNotes.trim().length}/5)
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={customNotes}
+                      onChange={(e) => setCustomNotes(e.target.value)}
+                      placeholder="e.g. Verified against physical deed / Servicer must remediate..."
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 grid grid-cols-2 sm:grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleResolveAction('ACCEPT_AI')}
+                    disabled={resolvingAction !== null}
+                    title="Explicitly approve recommended AI remediation patch and sign audit trail"
+                    className="w-full py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {resolvingAction === 'ACCEPT_AI' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    <span>[Accept AI]</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleResolveAction('MANUAL_EDIT')}
+                    disabled={resolvingAction !== null || !isManualEditValid}
+                    title={!isManualEditValid ? (manualPatchValue.trim() ? fieldValidation.message : `Enter a valid manual override value for ${selectedException.field_name || 'the field'} to enable Custom Edit`) : "Submit custom manual field correction and sign audit trail"}
+                    className="w-full py-2.5 px-2 rounded-xl bg-[#0b1c30] hover:bg-slate-800 hover:shadow-md text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-35 flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {resolvingAction === 'MANUAL_EDIT' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />}
+                    <span>[Custom Edit]</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleResolveAction('REQUEST_CORRECTION')}
+                    disabled={resolvingAction !== null || !isCorrectionValid}
+                    title={!isCorrectionValid ? "Enter at least 5 characters of remediation instructions in Reviewer Audit Notes before requesting correction" : "Dispatch correction request notice back to primary lender/servicer"}
+                    className="w-full py-2.5 px-2 rounded-xl bg-amber-600 hover:bg-amber-700 hover:shadow-md text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-35 flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {resolvingAction === 'REQUEST_CORRECTION' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    <span>[Correction]</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleResolveAction('REJECT')}
+                    disabled={resolvingAction !== null}
+                    title="Reject loan record from portfolio or dismiss exception with human sign-off"
+                    className="w-full py-2.5 px-2 rounded-xl bg-rose-600 hover:bg-rose-700 hover:shadow-md text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {resolvingAction === 'REJECT' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                    <span>[Reject]</span>
+                  </button>
+                </div>
+
+                <div className="text-[10px] text-center font-mono text-slate-400 pt-1">
+                  Cryptographically hashed &amp; audit logged.
+                </div>
+              </div>
+
+              {/* Card 5: Reviewer Collaboration & Notes */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-blue-200 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                  <div className="flex items-center space-x-2 text-xs font-mono text-slate-900 font-bold uppercase">
+                    <MessageSquare className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>Reviewer Collaboration &amp; Notes</span>
+                  </div>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                    Audit Logged
+                  </span>
+                </div>
+
+                {selectedException.resolution_notes ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {selectedException.resolution_notes.split(' | ').map((noteItem, nIdx) => (
+                      <div key={nIdx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-sans text-slate-800 space-y-0.5">
+                        <div className="flex items-center gap-1.5 text-[9px] font-mono text-blue-700 font-bold uppercase">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>Finding #{nIdx + 1}</span>
+                        </div>
+                        <p className="text-slate-700 text-xs leading-relaxed font-sans">{noteItem}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-slate-400 text-xs font-mono">
+                    No reviewer notes attached yet. Add intermediate findings below.
+                  </div>
+                )}
+
+                <div className="pt-1">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={reviewerCommentText}
+                      onChange={(e) => setReviewerCommentText(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                      placeholder="Add intermediate review findings, title deed notes..."
+                      disabled={isSubmittingComment}
+                      className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50"
+                    />
+                    <button
+                      onClick={handleAddComment}
+                      disabled={isSubmittingComment || !reviewerCommentText.trim()}
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+                    >
+                      {isSubmittingComment ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
+                      <span>{isSubmittingComment ? 'Saving...' : 'Add Note'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="p-12 rounded-2xl bg-white border border-slate-200 text-center text-slate-400 font-mono text-xs shadow-sm">
+              Select an exception from the queue to start review.
+            </div>
+          )}
+        </div>
+
+        {/* 2. Laptop / Desktop 2-Column Balanced View (>= lg) */}
+        <div className="hidden lg:grid lg:grid-cols-12 gap-6 items-start">
+          
+          {/* Left Column (5 Cols): Records Queue + Reviewer Governance Action Station */}
+          <div className="lg:col-span-5 space-y-5">
+            
+            {/* Search and Filter Tabs */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search Loan ID, Borrower ID (e.g. BOR-20020), Rule..."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl py-2 pl-9 pr-8 text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
+                {[
+                  { id: 'ALL', label: `All (${displayedExceptions.length})` },
+                  { id: 'CRITICAL', label: `Critical (${critCount})` },
+                  { id: 'HIGH', label: `High (${highCount})` },
+                  { id: 'MEDIUM', label: `Medium (${medCount})` },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSeverityFilter(tab.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all whitespace-nowrap ${
+                      severityFilter === tab.id
+                        ? 'bg-[#0b1c30] text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Exception Queue Items List */}
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              {loading ? (
+                <div className="p-12 text-center text-slate-400 font-mono text-xs flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                  <span>Loading exception queue...</span>
+                </div>
+              ) : displayedExceptions.length === 0 ? (
+                <div className="p-12 text-center rounded-2xl bg-white border border-slate-200 text-slate-500 shadow-sm">
+                  <CheckCircle2 className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <div className="font-bold text-slate-900 font-sans text-sm">
+                    {searchQuery ? 'No Matching Exceptions' : 'All Exceptions Resolved!'}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {searchQuery ? `No open exceptions matched "${searchQuery}".` : 'Clean records ready for canonical sealing.'}
+                  </div>
+                </div>
+              ) : (
+                displayedExceptions.map((exc) => {
+                  const isSelected = selectedException?.id === exc.id;
+                  const isCrit = exc.severity === 'CRITICAL';
+                  const isHigh = exc.severity === 'HIGH';
+
+                  return (
+                    <div
+                      key={exc.id}
+                      onClick={() => handleSelectException(exc)}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-2.5 ${
+                        isSelected
+                          ? 'bg-blue-50/70 border-blue-500 shadow-md ring-1 ring-blue-500'
+                          : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center space-x-2 min-w-0">
+                          <span className="font-bold text-xs font-mono text-slate-900 truncate">
+                            {exc.loan_id_code}
+                          </span>
+                          {exc.borrower_id && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200 shrink-0">
+                              {exc.borrower_id}
+                            </span>
+                          )}
+                          <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-bold uppercase shrink-0 ${
+                            isCrit ? 'bg-red-50 text-red-700 border border-red-200' :
+                            isHigh ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                            'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}>
+                            {exc.severity}
+                          </span>
+                        </div>
+
+                        <span className="text-[10px] font-mono text-slate-500 shrink-0 truncate">
+                          {exc.field_name}
+                        </span>
+                      </div>
+
+                      <div className="text-xs font-sans text-slate-700 leading-snug line-clamp-2 break-words">
+                        {exc.error_message}
+                      </div>
+
+                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-2 border-t border-slate-100">
+                        <div className="flex items-center gap-1.5 text-purple-700 font-bold truncate">
+                          <Sparkles className="w-3 h-3 text-purple-600 shrink-0" />
+                          <span>AI Patch Ready ({Math.round((exc.ai_confidence || 0.95) * 100)}%)</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-slate-400 shrink-0">
+                          <Clock className="w-3 h-3" />
+                          <span>{exc.source_system}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop Reviewer Action Station (Zero Silent Write Governance) */}
+            {selectedException && (
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
+                  <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 font-bold uppercase">
+                    <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Reviewer Governance</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold uppercase border border-emerald-200">
+                      Human Authority
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500">Signer: Marcus Vance</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-mono uppercase text-slate-600 font-bold">
+                        Manual Override Value
+                      </label>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Target: <code className="text-blue-700 font-bold bg-blue-50 px-1 py-0.5 rounded">{selectedException.field_name || 'value'}</code>
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={manualPatchValue}
+                      onChange={(e) => setManualPatchValue(e.target.value)}
+                      placeholder={
+                        NUMERIC_LOAN_FIELDS.some(f => (selectedException.field_name || '').toLowerCase().includes(f))
+                          ? `Enter numeric value for ${selectedException.field_name} (e.g. 500000)...`
+                          : DATE_LOAN_FIELDS.some(f => (selectedException.field_name || '').toLowerCase().includes(f))
+                          ? `Enter date for ${selectedException.field_name} (YYYY-MM-DD)...`
+                          : `Enter custom value for ${selectedException.field_name}...`
+                      }
+                      className={`w-full bg-slate-50 border rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white transition-all ${
+                        manualPatchValue.trim() && !fieldValidation.isValid
+                          ? 'border-red-400 focus:border-red-500 bg-red-50/30'
+                          : manualPatchValue.trim() && fieldValidation.isValid
+                          ? 'border-emerald-400 focus:border-emerald-500 bg-emerald-50/20'
+                          : 'border-slate-300 focus:border-blue-500'
+                      }`}
+                    />
+                    {manualPatchValue.trim() && !fieldValidation.isValid && (
+                      <div className="text-[11px] font-sans text-red-600 mt-1 flex items-center gap-1 font-medium animate-fade-in">
+                        <span>⚠️ {fieldValidation.message}</span>
+                      </div>
+                    )}
+                    {manualPatchValue.trim() && fieldValidation.isValid && (
+                      <div className="text-[11px] font-sans text-emerald-700 mt-1 flex items-center gap-1 font-medium animate-fade-in">
+                        <span>✓ Valid format for {selectedException.field_name}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-mono uppercase text-slate-600 font-bold">
+                        Reviewer Audit Notes / Justification
+                      </label>
+                      <span className={`text-[10px] font-mono ${customNotes.trim().length >= 5 ? 'text-emerald-700 font-bold' : 'text-slate-400'}`}>
+                        Min 5 chars for [Correction] ({customNotes.trim().length}/5)
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={customNotes}
+                      onChange={(e) => setCustomNotes(e.target.value)}
+                      placeholder="e.g. Verified against physical deed / Servicer must remediate..."
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleResolveAction('ACCEPT_AI')}
+                    disabled={resolvingAction !== null}
+                    title="Explicitly approve recommended AI remediation patch and sign audit trail"
+                    className="w-full py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {resolvingAction === 'ACCEPT_AI' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    <span>[Accept AI]</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleResolveAction('MANUAL_EDIT')}
+                    disabled={resolvingAction !== null || !isManualEditValid}
+                    title={!isManualEditValid ? (manualPatchValue.trim() ? fieldValidation.message : `Enter a valid manual override value for ${selectedException.field_name || 'the field'} to enable Custom Edit`) : "Submit custom manual field correction and sign audit trail"}
+                    className="w-full py-2.5 px-2 rounded-xl bg-[#0b1c30] hover:bg-slate-800 hover:shadow-md text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-35 flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {resolvingAction === 'MANUAL_EDIT' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />}
+                    <span>[Custom Edit]</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleResolveAction('REQUEST_CORRECTION')}
+                    disabled={resolvingAction !== null || !isCorrectionValid}
+                    title={!isCorrectionValid ? "Enter at least 5 characters of remediation instructions in Reviewer Audit Notes before requesting correction" : "Dispatch correction request notice back to primary lender/servicer"}
+                    className="w-full py-2.5 px-2 rounded-xl bg-amber-600 hover:bg-amber-700 hover:shadow-md text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-35 flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {resolvingAction === 'REQUEST_CORRECTION' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    <span>[Correction]</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleResolveAction('REJECT')}
+                    disabled={resolvingAction !== null}
+                    title="Reject loan record from portfolio or dismiss exception with human sign-off"
+                    className="w-full py-2.5 px-2 rounded-xl bg-rose-600 hover:bg-rose-700 hover:shadow-md text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {resolvingAction === 'REJECT' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                    <span>[Reject]</span>
+                  </button>
+                </div>
+
+                <div className="text-[10px] text-center font-mono text-slate-400 pt-1">
+                  Cryptographically hashed &amp; audit logged.
+                </div>
+              </div>
+            )}
 
           </div>
 
-          {/* Right Column: Deep Inspection & Side-by-Side Conflict Viewer (7 Cols) */}
-          <div className="lg:col-span-7 space-y-5 sm:space-y-6">
+          {/* Right Column (7 Cols): Violation Details + AI Copilot + Collaboration Notes Thread */}
+          <div className="lg:col-span-7 space-y-5">
             {selectedException ? (
-              <div className="space-y-5 sm:space-y-6">
-                
-                {/* 1. Exception Details & Conflict Header */}
-                <div className="p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+              <>
+                {/* Desktop Card 1: Exception Violation Header & Side-by-Side Diff */}
+                <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4 gap-2">
                     <div>
                       <div className="text-[10px] font-mono text-slate-500 uppercase">
                         Violation In Exception #{selectedException.id}
                       </div>
-                      <h2 className="text-base sm:text-lg font-bold font-sans text-slate-900 mt-0.5 flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-bold font-sans text-slate-900 mt-0.5 flex items-center gap-2">
                         <span>{selectedException.loan_id_code}</span>
                         {selectedException.borrower_id && (
                           <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
@@ -611,20 +1211,19 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-sans text-red-800 leading-relaxed break-words">
+                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-sans text-red-800 leading-relaxed break-words">
                     <span className="font-bold">Rule Constraint Violated: </span>
                     {selectedException.error_message}
                   </div>
 
-                  {/* Side-by-Side Multi-Source Conflict Diff */}
                   <div className="space-y-2">
                     <div className="text-xs font-mono text-slate-700 uppercase flex items-center gap-1.5 font-bold">
                       <GitCompare className="w-3.5 h-3.5 text-blue-600" />
                       <span>Multi-Source Conflict &amp; Field Diff</span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="p-3.5 sm:p-4 rounded-xl bg-red-50/50 border border-red-200 space-y-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3.5 rounded-xl bg-red-50/50 border border-red-200 space-y-1.5">
                         <div className="flex justify-between text-[10px] font-mono text-red-700 uppercase font-bold">
                           <span>Source A: Tape Ingest</span>
                           <span>Conflicting</span>
@@ -632,12 +1231,12 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                         <div className="text-xs font-mono text-slate-600 truncate">
                           Field: <span className="text-slate-900 font-bold">{selectedException.field_name}</span>
                         </div>
-                        <div className="p-2.5 rounded-lg bg-white border border-red-200 text-xs sm:text-sm font-mono text-red-700 font-bold break-all">
+                        <div className="p-2.5 rounded-lg bg-white border border-red-200 text-xs font-mono text-red-700 font-bold break-all">
                           {selectedException.actual_value}
                         </div>
                       </div>
 
-                      <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50/50 border border-emerald-200 space-y-2">
+                      <div className="p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-200 space-y-1.5">
                         <div className="flex justify-between text-[10px] font-mono text-emerald-700 uppercase font-bold">
                           <span>Source B: Servicer Feed</span>
                           <span>Expected</span>
@@ -645,7 +1244,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                         <div className="text-xs font-mono text-slate-600 truncate">
                           Field: <span className="text-slate-900 font-bold">{selectedException.field_name}</span>
                         </div>
-                        <div className="p-2.5 rounded-lg bg-white border border-emerald-200 text-xs sm:text-sm font-mono text-emerald-700 font-bold break-all">
+                        <div className="p-2.5 rounded-lg bg-white border border-emerald-200 text-xs font-mono text-emerald-700 font-bold break-all">
                           {selectedException.expected_condition}
                         </div>
                       </div>
@@ -653,93 +1252,69 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                   </div>
                 </div>
 
-                {/* 2. AI Assistant Panel (Transparent, Explainable, Non-Silent) */}
-                <div className="p-4 sm:p-6 rounded-2xl bg-white border border-purple-200 shadow-sm space-y-4 relative overflow-hidden">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+                {/* Desktop Card 2: AI Diligence Copilot */}
+                <div className="p-5 rounded-2xl bg-white border border-purple-200 shadow-sm space-y-4 relative overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3 gap-2">
                     <div className="flex items-center space-x-3">
-                      <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center shadow-sm shrink-0">
-                        <Sparkles className="w-5 h-5" />
+                      <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center shadow-sm shrink-0">
+                        <Sparkles className="w-4 h-4" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-slate-900 font-sans flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-900 font-sans flex items-center gap-1.5">
                           <span>AI Diligence Copilot</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold border border-purple-200">
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold border border-purple-200">
                             Gemini 2.5 Flash
                           </span>
                         </h3>
-                        <p className="text-[10px] font-mono text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                        <p className="text-[10px] font-mono text-slate-500 mt-0.5">
                           <span>Model: <code className="text-purple-700 font-semibold">{selectedException.ai_model?.replace('models/', '').replace('offline-fintech-heuristic-v1', 'gemini-2.5-flash') || 'gemini-2.5-flash'}</code></span>
-                          <span>•</span>
-                          <span>Timestamp: <code className="text-slate-700">{selectedException.ai_generated_at || new Date().toISOString().slice(0, 19).replace('T', ' ')}</code></span>
                         </p>
                       </div>
                     </div>
 
-                    <div className="text-left sm:text-right shrink-0">
+                    <div className="text-right shrink-0">
                       <div className="text-xs font-mono font-bold text-purple-700">
                         {Math.round((selectedException.ai_confidence || 0.98) * 100)}% Confidence
                       </div>
-                      <div className="text-[10px] font-sans text-slate-400">Mathematical Proof</div>
                     </div>
                   </div>
 
-                  {/* AI Explanation Text or Loading State */}
                   {isPromptingAI ? (
-                    <div className="p-5 rounded-xl bg-purple-50 border border-purple-200 flex items-center space-x-3 text-purple-800 animate-pulse">
-                      <RefreshCw className="w-5 h-5 animate-spin text-purple-600 flex-shrink-0" />
-                      <div className="space-y-0.5">
-                        <div className="text-xs font-mono font-bold">Consulting Gemini AI Copilot...</div>
-                        <div className="text-[10px] text-purple-600">Analyzing loan context & synthesizing deep financial rationale</div>
-                      </div>
+                    <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 flex items-center space-x-3 text-purple-800 animate-pulse">
+                      <RefreshCw className="w-4 h-4 animate-spin text-purple-600 flex-shrink-0" />
+                      <div className="text-xs font-mono font-bold">Consulting Gemini AI Copilot...</div>
                     </div>
                   ) : (
-                    <div className="p-4 rounded-xl bg-purple-50/40 border border-purple-100 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="text-[10px] font-mono text-purple-800 uppercase font-bold">
-                          {lastPromptQuery ? `Analysis for: "${lastPromptQuery}"` : "Remediation Rationale"}
-                        </div>
-                        {lastPromptQuery && (
-                          <span className="text-[10px] font-mono bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold border border-purple-200">
-                            Custom Prompt Answer
-                          </span>
-                        )}
+                    <div className="p-3.5 rounded-xl bg-purple-50/40 border border-purple-100 space-y-2">
+                      <div className="text-[10px] font-mono text-purple-800 uppercase font-bold">
+                        {lastPromptQuery ? `Analysis for: "${lastPromptQuery}"` : "Remediation Rationale"}
                       </div>
-                      
-                      {/* Formatted Markdown Content */}
                       {renderFormattedAIExplanation(
                         selectedException.ai_explanation || 'Cross-referencing amortizing term with origination date reveals a transcription boundary typo.',
                         isExpandedExplanation
                       )}
-
-                      {/* Read More / Show Less Toggle Button */}
                       {(selectedException.ai_explanation || '').length > 180 && (
                         <button
                           type="button"
                           onClick={() => setIsExpandedExplanation(!isExpandedExplanation)}
-                          className="text-[11px] font-mono text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 pt-1 transition-colors group cursor-pointer"
+                          className="text-[11px] font-mono text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1 pt-1 cursor-pointer"
                         >
                           <span>{isExpandedExplanation ? 'Show Less' : 'Read More'}</span>
-                          {isExpandedExplanation ? (
-                            <ChevronUp className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" />
-                          )}
+                          {isExpandedExplanation ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                         </button>
                       )}
                     </div>
                   )}
 
-                  {/* Suggested Patch Preview */}
                   {selectedException.ai_suggested_patch && (
-                    <div className="space-y-1.5 font-mono text-xs">
+                    <div className="space-y-1 font-mono text-xs">
                       <div className="text-[10px] text-slate-500 uppercase font-bold">Suggested Patch Payload (Dry Run)</div>
-                      <pre className="p-3 rounded-xl bg-slate-900 text-emerald-400 text-[11px] overflow-x-auto whitespace-pre-wrap break-all shadow-inner">
+                      <pre className="p-3 rounded-xl bg-slate-900 text-emerald-400 text-[10px] overflow-x-auto whitespace-pre-wrap break-all shadow-inner">
                         {JSON.stringify(selectedException.ai_suggested_patch, null, 2)}
                       </pre>
                     </div>
                   )}
 
-                  {/* 1-Click Prompt Chips */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {[
                       'Explain risk of accepting patch',
@@ -757,9 +1332,8 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     ))}
                   </div>
 
-                  {/* Interactive Prompt Copilot Box */}
-                  <div className="space-y-2 pt-1">
-                    <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="pt-1">
+                    <div className="flex gap-2">
                       <input
                         type="text"
                         value={customAIPrompt}
@@ -772,7 +1346,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                       <button
                         onClick={() => handleCustomAIPrompt()}
                         disabled={isPromptingAI || !customAIPrompt.trim()}
-                        className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+                        className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm cursor-pointer shrink-0"
                       >
                         {isPromptingAI ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
                         <span>{isPromptingAI ? 'Analyzing...' : 'Prompt'}</span>
@@ -781,9 +1355,9 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                   </div>
                 </div>
 
-                {/* 2.5. Reviewer Notes & Diligence Findings Thread */}
-                <div className="p-4 sm:p-6 rounded-2xl bg-white border border-blue-200 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                {/* Desktop Card 3: Reviewer Collaboration & Notes */}
+                <div className="p-5 rounded-2xl bg-white border border-blue-200 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                     <div className="flex items-center space-x-2 text-xs font-mono text-slate-900 font-bold uppercase">
                       <MessageSquare className="w-4 h-4 text-blue-600 shrink-0" />
                       <span>Reviewer Collaboration &amp; Notes</span>
@@ -793,13 +1367,12 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     </span>
                   </div>
 
-                  {/* Notes List / Thread */}
                   {selectedException.resolution_notes ? (
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
                       {selectedException.resolution_notes.split(' | ').map((noteItem, nIdx) => (
-                        <div key={nIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-sans text-slate-800 space-y-1">
-                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-blue-700 font-bold uppercase">
-                            <Clock className="w-3 h-3" />
+                        <div key={nIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-sans text-slate-800 space-y-0.5">
+                          <div className="flex items-center gap-1.5 text-[9px] font-mono text-blue-700 font-bold uppercase">
+                            <Clock className="w-2.5 h-2.5" />
                             <span>Finding #{nIdx + 1}</span>
                           </div>
                           <p className="text-slate-700 text-xs leading-relaxed font-sans">{noteItem}</p>
@@ -808,26 +1381,25 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     </div>
                   ) : (
                     <div className="p-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-slate-400 text-xs font-mono">
-                      No reviewer notes attached yet. Add intermediate findings or notes below.
+                      No reviewer notes attached yet. Add intermediate findings below.
                     </div>
                   )}
 
-                  {/* Add Note Input */}
-                  <div className="space-y-2 pt-1">
-                    <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="pt-1">
+                    <div className="flex gap-2">
                       <input
                         type="text"
                         value={reviewerCommentText}
                         onChange={(e) => setReviewerCommentText(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
-                        placeholder="Add intermediate review findings, title deed notes, or borrower verification notes..."
+                        placeholder="Add intermediate review findings, title deed notes..."
                         disabled={isSubmittingComment}
                         className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50"
                       />
                       <button
                         onClick={handleAddComment}
                         disabled={isSubmittingComment || !reviewerCommentText.trim()}
-                        className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm cursor-pointer shrink-0"
                       >
                         {isSubmittingComment ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
                         <span>{isSubmittingComment ? 'Saving...' : 'Add Note'}</span>
@@ -835,139 +1407,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     </div>
                   </div>
                 </div>
-
-                {/* 3. Reviewer Action Station (Zero Silent Write Governance) */}
-                <div className="p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
-                    <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 font-bold uppercase">
-                      <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Reviewer Human-in-the-Loop Governance</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold uppercase border border-emerald-200">
-                        Human Authority (AI Advisory Only)
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-500">Signer: Marcus Vance</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-[11px] font-mono uppercase text-slate-600 font-bold">
-                          Manual Override Value (Required for Custom Edit)
-                        </label>
-                        <span className="text-[10px] font-mono text-slate-400">
-                          Target Field: <code className="text-blue-700 font-bold bg-blue-50 px-1 py-0.5 rounded">{selectedException.field_name || 'value'}</code>
-                        </span>
-                      </div>
-                      <input
-                        type="text"
-                        value={manualPatchValue}
-                        onChange={(e) => setManualPatchValue(e.target.value)}
-                        placeholder={
-                          NUMERIC_LOAN_FIELDS.some(f => (selectedException.field_name || '').toLowerCase().includes(f))
-                            ? `Enter numeric value for ${selectedException.field_name} (e.g. 500000)...`
-                            : DATE_LOAN_FIELDS.some(f => (selectedException.field_name || '').toLowerCase().includes(f))
-                            ? `Enter date for ${selectedException.field_name} (YYYY-MM-DD)...`
-                            : `Enter custom value for ${selectedException.field_name}...`
-                        }
-                        className={`w-full bg-slate-50 border rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white transition-all ${
-                          manualPatchValue.trim() && !fieldValidation.isValid
-                            ? 'border-red-400 focus:border-red-500 bg-red-50/30'
-                            : manualPatchValue.trim() && fieldValidation.isValid
-                            ? 'border-emerald-400 focus:border-emerald-500 bg-emerald-50/20'
-                            : 'border-slate-300 focus:border-blue-500'
-                        }`}
-                      />
-                      {manualPatchValue.trim() && !fieldValidation.isValid && (
-                        <div className="text-[11px] font-sans text-red-600 mt-1 flex items-center gap-1 font-medium animate-fade-in">
-                          <span>⚠️ {fieldValidation.message}</span>
-                        </div>
-                      )}
-                      {manualPatchValue.trim() && fieldValidation.isValid && (
-                        <div className="text-[11px] font-sans text-emerald-700 mt-1 flex items-center gap-1 font-medium animate-fade-in">
-                          <span>✓ Valid format for {selectedException.field_name}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-[11px] font-mono uppercase text-slate-600 font-bold">
-                          Reviewer Audit Notes / Justification
-                        </label>
-                        <span className={`text-[10px] font-mono ${customNotes.trim().length >= 5 ? 'text-emerald-700 font-bold' : 'text-slate-400'}`}>
-                          Min 5 chars for [Correction] ({customNotes.trim().length}/5)
-                        </span>
-                      </div>
-                      <input
-                        type="text"
-                        value={customNotes}
-                        onChange={(e) => setCustomNotes(e.target.value)}
-                        placeholder="e.g. Verified against physical deed and title policy / Servicer must remediate..."
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Clean 4-Button Diligence Action Grid */}
-                  <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                    {/* Action 1: Accept AI Patch (Green) */}
-                    <button
-                      onClick={() => handleResolveAction('ACCEPT_AI')}
-                      disabled={resolvingAction !== null}
-                      title="Explicitly approve recommended AI remediation patch and sign audit trail"
-                      aria-label="Accept AI Patch: Explicitly approve recommended AI remediation patch and sign audit trail"
-                      className="w-full py-3 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      {resolvingAction === 'ACCEPT_AI' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                      <span>[Accept AI]</span>
-                    </button>
-
-                    {/* Action 2: Custom Edit (Neutral/Slate) */}
-                    <button
-                      onClick={() => handleResolveAction('MANUAL_EDIT')}
-                      disabled={resolvingAction !== null || !isManualEditValid}
-                      title={!isManualEditValid ? (manualPatchValue.trim() ? fieldValidation.message : `Enter a valid manual override value for ${selectedException.field_name || 'the field'} to enable Custom Edit`) : "Submit custom manual field correction and sign audit trail"}
-                      aria-label="Custom Edit: Submit custom manual field correction and sign audit trail"
-                      className="w-full py-3 px-2.5 rounded-xl bg-[#0b1c30] hover:bg-slate-800 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      {resolvingAction === 'MANUAL_EDIT' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />}
-                      <span>[Custom Edit]</span>
-                    </button>
-
-                    {/* Action 3: Request Correction (Amber/Orange) */}
-                    <button
-                      onClick={() => handleResolveAction('REQUEST_CORRECTION')}
-                      disabled={resolvingAction !== null || !isCorrectionValid}
-                      title={!isCorrectionValid ? "Enter at least 5 characters of remediation instructions in Reviewer Audit Notes before requesting correction" : "Dispatch correction request notice back to primary lender/servicer"}
-                      aria-label="Request Correction: Dispatch correction request notice back to primary lender/servicer"
-                      className="w-full py-3 px-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      {resolvingAction === 'REQUEST_CORRECTION' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                      <span>[Correction]</span>
-                    </button>
-
-                    {/* Action 4: Reject/Dismiss (Red) */}
-                    <button
-                      onClick={() => handleResolveAction('REJECT')}
-                      disabled={resolvingAction !== null}
-                      title="Reject loan record from portfolio or dismiss exception with human sign-off"
-                      aria-label="Reject/Dismiss: Reject loan record from portfolio or dismiss exception with human sign-off"
-                      className="w-full py-3 px-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      {resolvingAction === 'REJECT' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                      <span>[Reject]</span>
-                    </button>
-                  </div>
-
-                  <div className="text-[10px] text-center font-mono text-slate-400 pt-2">
-                    Every sign-off is cryptographically hashed and logged to the immutable audit ledger.
-                  </div>
-                </div>
-
-              </div>
+              </>
             ) : (
               <div className="p-16 rounded-2xl bg-white border border-slate-200 text-center text-slate-400 font-mono text-xs shadow-sm">
                 Select an exception from the queue to start review.
@@ -981,3 +1421,5 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
     </div>
   );
 };
+
+export default ReviewerWorkbench;
