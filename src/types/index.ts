@@ -42,6 +42,7 @@ export interface ValidationException {
   id: string;
   loan_id_ref: string;
   loan_id_code?: string;
+  borrower_id?: string;
   rule_code: string;
   category: string;
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
