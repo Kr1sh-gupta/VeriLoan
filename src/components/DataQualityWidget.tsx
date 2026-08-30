@@ -46,15 +46,15 @@ export const DataQualityWidget: React.FC<DataQualityWidgetProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
         
         {/* Circular Gauge */}
-        <div className="flex items-center space-x-4">
-          <div className="relative w-24 h-24 flex items-center justify-center">
+        <div className="flex items-center space-x-3.5 sm:space-x-4 min-w-0">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center shrink-0">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
               <circle
                 cx="50"
                 cy="50"
                 r={radius}
                 className="text-slate-100"
-                strokeWidth="8"
+                strokeWidth="7"
                 stroke="currentColor"
                 fill="transparent"
               />
@@ -63,7 +63,7 @@ export const DataQualityWidget: React.FC<DataQualityWidgetProps> = ({
                 cy="50"
                 r={radius}
                 className="text-emerald-500 transition-all duration-1000 ease-out"
-                strokeWidth="8"
+                strokeWidth="7"
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
@@ -71,14 +71,18 @@ export const DataQualityWidget: React.FC<DataQualityWidgetProps> = ({
                 fill="transparent"
               />
             </svg>
-            <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-xl font-extrabold font-mono text-slate-900">{score}%</span>
-              <span className="text-[9px] font-mono uppercase text-slate-400">Score</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-1 pointer-events-none select-none">
+              <span className="text-base sm:text-lg md:text-xl font-extrabold font-mono text-slate-900 tracking-tighter leading-none">
+                {score}%
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 mt-1 leading-none">
+                Score
+              </span>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <div className="text-xs font-mono font-bold text-slate-800">
+          <div className="space-y-1 min-w-0 flex-1">
+            <div className="text-xs font-mono font-bold text-slate-800 truncate">
               Canonical Quality Index
             </div>
             <div className="text-xs font-sans text-slate-500 leading-snug">
@@ -87,8 +91,8 @@ export const DataQualityWidget: React.FC<DataQualityWidgetProps> = ({
             {/* NOTE: 7-day trend below is static placeholder data — no historical
                 quality-score endpoint exists on the backend yet to compute real change. */}
             <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Trend tracking coming soon</span>
+              <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Trend tracking coming soon</span>
             </div>
           </div>
         </div>
