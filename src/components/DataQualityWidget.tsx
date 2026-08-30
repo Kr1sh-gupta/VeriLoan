@@ -7,13 +7,15 @@ interface DataQualityWidgetProps {
 }
 
 export const DataQualityWidget: React.FC<DataQualityWidgetProps> = ({
-  score = 98.4,
-  totalRecords = 250,
-  cleanRecords = 232,
+  score = 0,
+  totalRecords = 0,
+  cleanRecords = 0,
 }) => {
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
+  const passRate = totalRecords > 0 ? Math.round((cleanRecords / totalRecords) * 100) : 0;
+  const exceptionsCount = totalRecords > 0 ? totalRecords - cleanRecords : 0;
 
   return (
     <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm text-slate-900 space-y-6">
@@ -80,11 +82,13 @@ export const DataQualityWidget: React.FC<DataQualityWidgetProps> = ({
               Canonical Quality Index
             </div>
             <div className="text-xs font-sans text-slate-500 leading-snug">
-              98.4% of tape records meet full GSE and statutory compliance.
+              {score}% of tape records meet full GSE and statutory compliance.
             </div>
-            <div className="text-[11px] font-mono text-emerald-600 flex items-center gap-1">
+            {/* NOTE: 7-day trend below is static placeholder data — no historical
+                quality-score endpoint exists on the backend yet to compute real change. */}
+            <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>+1.8% over last 7 days</span>
+              <span>Trend tracking coming soon</span>
             </div>
           </div>
         </div>
@@ -97,7 +101,7 @@ export const DataQualityWidget: React.FC<DataQualityWidgetProps> = ({
               <span>Verified Clean</span>
             </div>
             <div className="text-2xl font-extrabold font-mono text-slate-900">{cleanRecords}</div>
-            <div className="text-[10px] text-slate-500 font-mono">{Math.round((cleanRecords / totalRecords) * 100)}% Pass Rate</div>
+            <div className="text-[10px] text-slate-500 font-mono">{passRate}% Pass Rate</div>
           </div>
 
           <div className="space-y-1">
@@ -105,32 +109,21 @@ export const DataQualityWidget: React.FC<DataQualityWidgetProps> = ({
               <AlertCircle className="w-3 h-3 text-amber-600" />
               <span>Exceptions</span>
             </div>
-            <div className="text-2xl font-extrabold font-mono text-amber-600">{totalRecords - cleanRecords}</div>
-            <div className="text-[10px] text-slate-500 font-mono">14 Auto-Assigned</div>
+            <div className="text-2xl font-extrabold font-mono text-amber-600">{exceptionsCount}</div>
           </div>
         </div>
 
         {/* 7-Day Sparkline Trend */}
+        {/* NOTE: placeholder chart — flagged to the team, not fixed here.
+            Needs a real backend endpoint tracking daily quality-score history. */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-mono text-slate-500">
             <span>7-Day Quality Score Trend</span>
-            <span className="text-slate-800 font-bold">96.2% → 98.4%</span>
+            <span className="text-slate-400 font-bold">Not yet tracked</span>
           </div>
 
-          <div className="h-16 flex items-end gap-1.5 pt-2">
-            {[94, 95, 96.5, 97, 96.8, 98.1, 98.4].map((val, idx) => {
-              const heightPct = ((val - 90) / 10) * 100;
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1 group relative">
-                  <div 
-                    className="w-full rounded-t bg-blue-100 group-hover:bg-blue-600 transition-all duration-300 cursor-pointer"
-                    style={{ height: `${heightPct}%` }}
-                    title={`Day ${idx + 1}: ${val}%`}
-                  />
-                  <span className="text-[9px] font-mono text-slate-400">D{idx + 1}</span>
-                </div>
-              );
-            })}
+          <div className="h-16 flex items-center justify-center text-[10px] font-mono text-slate-300 border border-dashed border-slate-200 rounded-lg">
+            Historical trend data not available
           </div>
         </div>
 

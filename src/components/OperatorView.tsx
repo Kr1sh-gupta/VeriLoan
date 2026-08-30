@@ -24,6 +24,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
 }) => {
   const [loans, setLoans] = useState<LoanRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -31,10 +32,12 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const loanData = await fetchLoans(statusFilter === 'ALL' ? undefined : statusFilter, searchQuery || undefined);
       setLoans(loanData);
     } catch (err) {
       console.error('Failed to load operator data', err);
+      setError('Could not load loan records. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -57,6 +60,10 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
       setLoading(false);
     }
   };
+
+  const cleanCount = loans.filter((l) => l.status === 'VERIFIED').length;
+  const flaggedCount = loans.filter((l) => l.status === 'FLAGGED').length;
+  const cleanPct = loans.length > 0 ? ((cleanCount / loans.length) * 100).toFixed(1) : '0.0';
 
   return (
     <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-8 sm:py-12">
@@ -107,29 +114,36 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           </div>
         )}
 
+        {error && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-mono flex items-center justify-between shadow-sm">
+            <span>{error}</span>
+            <button onClick={loadData} className="font-bold underline">Retry</button>
+          </div>
+        )}
+
         {/* Batch Lineage Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Total Ingested Records</div>
-            <div className="text-3xl font-extrabold font-mono text-slate-900">250</div>
-            <div className="text-[11px] font-sans text-slate-500">Across 3 active files</div>
+            <div className="text-3xl font-extrabold font-mono text-slate-900">{loading ? '—' : loans.length}</div>
+            <div className="text-[11px] font-sans text-slate-500">Currently loaded records</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Clean Loans (Passed)</div>
-            <div className="text-3xl font-extrabold font-mono text-emerald-700">232</div>
-            <div className="text-[11px] font-sans text-emerald-700 font-bold">92.8% First-Pass Yield</div>
+            <div className="text-3xl font-extrabold font-mono text-emerald-700">{loading ? '—' : cleanCount}</div>
+            <div className="text-[11px] font-sans text-emerald-700 font-bold">{loading ? '' : `${cleanPct}% First-Pass Yield`}</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Exceptions Routed</div>
-            <div className="text-3xl font-extrabold font-mono text-amber-600">18</div>
+            <div className="text-3xl font-extrabold font-mono text-amber-600">{loading ? '—' : flaggedCount}</div>
             <div className="text-[11px] font-sans text-amber-700 font-bold">Awaiting Reviewer</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Sealed Verified Records</div>
-            <div className="text-3xl font-extrabold font-mono text-blue-700">232</div>
+            <div className="text-3xl font-extrabold font-mono text-blue-700">{loading ? '—' : cleanCount}</div>
             <div className="text-[11px] font-sans text-blue-700 font-bold">SHA-256 Hash Immutability</div>
           </div>
         </div>
@@ -150,8 +164,8 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
             </button>
           </div>
 
-          <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left text-xs font-mono border-collapse">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono border-collapse min-w-[700px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px]">
                   <th className="px-6 py-3.5 font-bold">Batch Filename</th>
@@ -167,63 +181,15 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                 <tr className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-blue-600" />
-                    <span>loan_tape.csv</span>
+                    <span>All ingested records</span>
                   </td>
                   <td className="px-6 py-4">LOAN_TAPE</td>
-                  <td className="px-6 py-4 font-bold">250</td>
-                  <td className="px-6 py-4 text-emerald-700 font-bold">232</td>
-                  <td className="px-6 py-4 text-amber-600 font-bold">18</td>
+                  <td className="px-6 py-4 font-bold">{loading ? '—' : loans.length}</td>
+                  <td className="px-6 py-4 text-emerald-700 font-bold">{loading ? '—' : cleanCount}</td>
+                  <td className="px-6 py-4 text-amber-600 font-bold">{loading ? '—' : flaggedCount}</td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                      PROCESSED
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={onNavigateToReviewer}
-                      className="px-3 py-1 rounded bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold"
-                    >
-                      Inspect Queue →
-                    </button>
-                  </td>
-                </tr>
-
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    <span>servicer_update.csv</span>
-                  </td>
-                  <td className="px-6 py-4">SERVICER_UPDATE</td>
-                  <td className="px-6 py-4 font-bold">250</td>
-                  <td className="px-6 py-4 text-emerald-700 font-bold">245</td>
-                  <td className="px-6 py-4 text-amber-600 font-bold">5</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                      PROCESSED
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={onNavigateToReviewer}
-                      className="px-3 py-1 rounded bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold"
-                    >
-                      Inspect Queue →
-                    </button>
-                  </td>
-                </tr>
-
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    <span>document_manifest.csv</span>
-                  </td>
-                  <td className="px-6 py-4">DOC_MANIFEST</td>
-                  <td className="px-6 py-4 font-bold">250</td>
-                  <td className="px-6 py-4 text-emerald-700 font-bold">248</td>
-                  <td className="px-6 py-4 text-amber-600 font-bold">2</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                      PROCESSED
+                      {loading ? 'LOADING' : 'PROCESSED'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -245,7 +211,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 uppercase tracking-wider font-bold">
               <Layers className="w-4 h-4 text-blue-600" />
-              <span>Normalized Ingested Records (250 Records)</span>
+              <span>Normalized Ingested Records ({loans.length} Records)</span>
             </div>
 
             <div className="flex items-center space-x-3">
@@ -255,6 +221,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') loadData(); }}
                   placeholder="Filter records..."
                   className="bg-white border border-slate-300 rounded-xl py-1.5 pl-9 pr-4 text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 shadow-sm"
                 />
@@ -273,8 +240,8 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left text-xs font-mono border-collapse">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono border-collapse min-w-[700px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px]">
                   <th className="px-6 py-3.5 font-bold">Loan ID</th>
@@ -287,7 +254,23 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {loans.map((l) => (
+                {loading && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-10 text-center text-slate-400 font-mono text-xs">
+                      Loading records…
+                    </td>
+                  </tr>
+                )}
+
+                {!loading && !error && loans.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-10 text-center text-slate-400 font-mono text-xs">
+                      No records found. Try uploading a loan tape from the Ingestion Hub.
+                    </td>
+                  </tr>
+                )}
+
+                {!loading && loans.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-3.5 font-bold text-slate-900">{l.loan_id}</td>
                     <td className="px-6 py-3.5 text-slate-600">{l.borrower_id}</td>

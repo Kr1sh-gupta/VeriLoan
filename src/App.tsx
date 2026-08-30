@@ -12,6 +12,7 @@ import { ApiExplorerView } from './components/ApiExplorerView';
 import { LoginModal } from './components/LoginModal';
 import { CommandPalette } from './components/CommandPalette';
 import { NotificationCenter } from './components/NotificationCenter';
+import { Footer } from './components/Footer';
 import type { SystemSummary, UserRole, User, NotificationItem } from './types';
 import { fetchSummary, STATIC_USERS, INITIAL_NOTIFICATIONS } from './lib/api';
 
@@ -199,30 +200,34 @@ export function App() {
       {/* Main View Area */}
       {isLanding ? (
         /* Full width Landing Stage */
-        <main className="flex-1 bg-[#060913]">
-          <LandingPage
-            summary={summary}
-            setCurrentTab={(tab) => {
-              if (!currentUser) {
-                handleOpenLogin();
-              } else {
-                handleSetCurrentTab(tab);
-              }
-            }}
-            setCurrentRole={(role) => {
-              handleSetCurrentRole(role);
-              if (!currentUser) {
-                handleOpenLogin(role);
-              } else {
-                const matchedUser = STATIC_USERS.find((u) => u.role === role);
-                if (matchedUser) {
-                  const { password: _, ...u } = matchedUser;
-                  setCurrentUser(u);
+        <div className="flex-1 flex flex-col justify-between bg-[#060913]">
+          <main className="flex-1">
+            <LandingPage
+              summary={summary}
+              setCurrentTab={(tab) => {
+                if (!currentUser) {
+                  handleOpenLogin();
+                } else {
+                  handleSetCurrentTab(tab);
                 }
-              }
-            }}
-          />
-        </main>
+              }}
+              setCurrentRole={(role) => {
+                handleSetCurrentRole(role);
+                if (!currentUser) {
+                  handleOpenLogin(role);
+                } else {
+                  const matchedUser = STATIC_USERS.find((u) => u.role === role);
+                  if (matchedUser) {
+                    const { password: _, ...u } = matchedUser;
+                    setCurrentUser(u);
+                  }
+                }
+              }}
+            />
+          </main>
+          {/* Landing Stage Footer */}
+          <Footer />
+        </div>
       ) : (
         /* Dynamic Role-Based Dashboard with Left Sidebar */
         <div className="flex-1 min-h-screen flex relative bg-[#f8f9fc]">
@@ -252,64 +257,71 @@ export function App() {
           />
 
           {/* Main Dashboard Workspace (Responsive pl-0 on mobile, offset on desktop) */}
-          <main className={`flex-1 transition-all duration-300 pt-16 sm:pt-20 bg-[#f8f9fc] text-slate-900 pl-0 ${
+          <main className={`flex-1 flex flex-col justify-between transition-all duration-300 pt-16 sm:pt-20 min-h-screen pl-0 ${
+            currentTab === 'api' ? 'bg-[#060913] text-white' : 'bg-[#f8f9fc] text-slate-900'
+          } ${
             sidebarOpen ? 'md:pl-64' : 'md:pl-16'
           }`}>
-            {currentTab === 'ingest' && (
-              <IngestionHub
-                onRefreshSummary={loadSummary}
-                onNavigateToReviewer={() => {
-                  handleSetCurrentRole('REVIEWER');
-                  handleSetCurrentTab('reviewer');
-                }}
-                onNavigateToOperator={() => {
-                  handleSetCurrentRole('OPERATOR');
-                  handleSetCurrentTab('operator');
-                }}
-              />
-            )}
+            <div className="flex-1">
+              {currentTab === 'ingest' && (
+                <IngestionHub
+                  onRefreshSummary={loadSummary}
+                  onNavigateToReviewer={() => {
+                    handleSetCurrentRole('REVIEWER');
+                    handleSetCurrentTab('reviewer');
+                  }}
+                  onNavigateToOperator={() => {
+                    handleSetCurrentRole('OPERATOR');
+                    handleSetCurrentTab('operator');
+                  }}
+                />
+              )}
 
-            {currentTab === 'operator' && (
-              <OperatorView
-                onRefreshSummary={loadSummary}
-                onNavigateToReviewer={() => {
-                  handleSetCurrentRole('REVIEWER');
-                  handleSetCurrentTab('reviewer');
-                }}
-                onNavigateToIngest={() => {
-                  handleSetCurrentRole('OPERATOR');
-                  handleSetCurrentTab('ingest');
-                }}
-              />
-            )}
+              {currentTab === 'operator' && (
+                <OperatorView
+                  onRefreshSummary={loadSummary}
+                  onNavigateToReviewer={() => {
+                    handleSetCurrentRole('REVIEWER');
+                    handleSetCurrentTab('reviewer');
+                  }}
+                  onNavigateToIngest={() => {
+                    handleSetCurrentRole('OPERATOR');
+                    handleSetCurrentTab('ingest');
+                  }}
+                />
+              )}
 
-            {currentTab === 'reviewer' && (
-              <ReviewerWorkbench
-                onRefreshSummary={loadSummary}
-                onNavigateToConsumer={() => {
-                  handleSetCurrentRole('CONSUMER');
-                  handleSetCurrentTab('consumer');
-                }}
-              />
-            )}
+              {currentTab === 'reviewer' && (
+                <ReviewerWorkbench
+                  onRefreshSummary={loadSummary}
+                  onNavigateToConsumer={() => {
+                    handleSetCurrentRole('CONSUMER');
+                    handleSetCurrentTab('consumer');
+                  }}
+                />
+              )}
 
-            {currentTab === 'consumer' && (
-              <ConsumerExplorer
-                onNavigateToExport={() => handleSetCurrentTab('export')}
-              />
-            )}
+              {currentTab === 'consumer' && (
+                <ConsumerExplorer
+                  onNavigateToExport={() => handleSetCurrentTab('export')}
+                />
+              )}
 
-            {currentTab === 'export' && (
-              <ExportCenter />
-            )}
+              {currentTab === 'export' && (
+                <ExportCenter />
+              )}
 
-            {currentTab === 'admin' && (
-              <AdminConsole />
-            )}
+              {currentTab === 'admin' && (
+                <AdminConsole />
+              )}
 
-            {currentTab === 'api' && (
-              <ApiExplorerView />
-            )}
+              {currentTab === 'api' && (
+                <ApiExplorerView />
+              )}
+            </div>
+
+            {/* In-Dashboard Workspace Footer */}
+            <Footer />
           </main>
         </div>
       )}
@@ -342,23 +354,6 @@ export function App() {
           handleSetCurrentTab(tab);
         }}
       />
-
-      {/* Responsive Footer */}
-      <footer className={`w-full border-t border-white/[0.08] bg-[#060913] py-6 z-10 transition-all duration-300 pl-0 ${
-        !isLanding ? (sidebarOpen ? 'md:pl-64' : 'md:pl-16') : ''
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-sans">
-          <div className="flex items-center space-x-2">
-            <span className="font-extrabold text-white lowercase tracking-tight">veriloan</span>
-            <span>— AI Financial Diligence &amp; Cryptographic Verification Platform</span>
-          </div>
-          <div className="flex items-center space-x-4 text-slate-500 font-mono text-[11px]">
-            <span>FastAPI + React 19</span>
-            <span>14 Deterministic Rules</span>
-            <span>Role-Based Precision Cockpit</span>
-          </div>
-        </div>
-      </footer>
 
     </div>
   );
