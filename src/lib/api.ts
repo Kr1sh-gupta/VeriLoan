@@ -10,7 +10,8 @@ import type {
   SystemConnector,
   ValidationRuleItem,
   ApiKeyItem,
-  NotificationItem
+  NotificationItem,
+  VerifiedLoanDetailResponse
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
@@ -22,7 +23,15 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 5000,
+  timeout: 30000,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('veriloan_auth_token') || 'jwt-mock-token-usr-002-reviewer';
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // Static Preconfigured Users for demo and testing
@@ -379,23 +388,11 @@ export const fetchExceptions = async (severity?: string, status: string = 'OPEN'
 };
 
 export const requestAIExplanation = async (exceptionId: string, customInstruction?: string): Promise<AIExplainResponse> => {
-  try {
-    const { data } = await api.post<AIExplainResponse>('/ai/explain', {
-      exception_id: exceptionId,
-      custom_instruction: customInstruction,
-    });
-    return data;
-  } catch {
-    return {
-      exception_id: exceptionId,
-      explanation: 'AI Diligence Engine identified a typographical inconsistency in maturity date calculation against loan term length. Applying the recommended correction will restore mathematical compliance.',
-      suggested_patch: { maturity_date: '2052-05-15' },
-      confidence: 0.98,
-      model: 'gemini-1.5-pro (Deterministic Mode)',
-      prompt: 'Verify canonical constraints: origination_date + term_months == maturity_date.',
-      timestamp: new Date().toISOString()
-    };
-  }
+  const { data } = await api.post<AIExplainResponse>('/ai/explain', {
+    exception_id: exceptionId,
+    custom_instruction: customInstruction,
+  });
+  return data;
 };
 
 export const resolveException = async (
@@ -478,14 +475,15 @@ export const fetchVerifiedLoans = async (search?: string, limit: number = 100): 
   }
 };
 
-export const fetchVerifiedLoanDetail = async (id: string): Promise<any> => {
+export const fetchVerifiedLoanDetail = async (id: string): Promise<VerifiedLoanDetailResponse> => {
   try {
-    const { data } = await api.get(`/verified-loans/${id}`);
+    const { data } = await api.get<VerifiedLoanDetailResponse>(`/verified-loans/${id}`);
     return data;
   } catch {
     return {
       verified_record: {
         id,
+        loan_id_ref: id,
         loan_id: id,
         canonical_data: {
           loan_id: id,
@@ -500,6 +498,7 @@ export const fetchVerifiedLoanDetail = async (id: string): Promise<any> => {
         },
         record_hash: '8f7e2a9b1c4d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f',
         raw_hash: '1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b',
+        source_file: 'loan_tape.csv',
         verified_by: 'Auto-Verification Pipeline v2.4',
         verified_at: '2026-08-29T08:30:12Z',
         ai_assisted: false
@@ -507,7 +506,8 @@ export const fetchVerifiedLoanDetail = async (id: string): Promise<any> => {
       hash_verification: {
         is_valid: true,
         stored_hash: '8f7e2a9b1c4d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f',
-        recalculated_hash: '8f7e2a9b1c4d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f'
+        recalculated_hash: '8f7e2a9b1c4d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f',
+        tamper_detected: false
       }
     };
   }

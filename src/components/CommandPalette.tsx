@@ -31,6 +31,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const [query, setQuery] = useState<string>('');
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const listContainerRef = useRef<HTMLDivElement | null>(null);
+  const selectedItemRef = useRef<HTMLDivElement | null>(null);
 
   const allItems = [
     // Main Navigation
@@ -71,21 +72,22 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [query]);
 
-  // Controlled container auto-scrolling using getBoundingClientRect with 8px padding
+  // Ensure selectedIndex is always within valid bounds of filteredItems
   useEffect(() => {
-    if (!isOpen || !listContainerRef.current) return;
-    const container = listContainerRef.current;
-    const item = container.children[selectedIndex] as HTMLElement;
-    if (!item) return;
+    if (filteredItems.length === 0) {
+      setSelectedIndex(0);
+    } else if (selectedIndex >= filteredItems.length) {
+      setSelectedIndex(filteredItems.length - 1);
+    }
+  }, [filteredItems.length, selectedIndex]);
 
-    const containerRect = container.getBoundingClientRect();
-    const itemRect = item.getBoundingClientRect();
-    const padding = 8;
-
-    if (itemRect.top < containerRect.top + padding) {
-      container.scrollTop -= (containerRect.top + padding - itemRect.top);
-    } else if (itemRect.bottom > containerRect.bottom - padding) {
-      container.scrollTop += (itemRect.bottom - (containerRect.bottom - padding));
+  // Synchronize scroll position with selected item using scrollIntoView
+  useEffect(() => {
+    if (!isOpen) return;
+    if (selectedItemRef.current) {
+      selectedItemRef.current.scrollIntoView({
+        block: 'nearest',
+      });
     }
   }, [selectedIndex, isOpen]);
 
@@ -132,10 +134,25 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, filteredItems, selectedIndex, onNavigate]);
 
+  // Lock background document scrolling while Command Palette is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+    <div 
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+      onClick={onClose}
+    >
       <div 
         className="relative w-full max-w-2xl rounded-2xl bg-[#0c1220] border border-white/15 shadow-2xl text-white overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -173,11 +190,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               return (
                 <div
                   key={item.id}
+                  ref={isSelected ? selectedItemRef : null}
                   onClick={() => {
                     onNavigate(item.tab, item.role);
                     onClose();
                   }}
-                  onMouseEnter={() => setSelectedIndex(index)}
+                  onMouseMove={() => {
+                    if (selectedIndex !== index) {
+                      setSelectedIndex(index);
+                    }
+                  }}
                   className={`flex items-center justify-between p-3 rounded-xl cursor-pointer group transition-all ${
                     isSelected
                       ? 'bg-white/[0.12] border border-cyan-400/30 text-white shadow-sm ring-1 ring-cyan-400/20'

@@ -14,6 +14,7 @@ interface NotificationCenterProps {
   onClose: () => void;
   notifications: NotificationItem[];
   onMarkAllAsRead: () => void;
+  onMarkAsRead?: (id: string) => void;
   onNavigate: (tab: string, role?: UserRole) => void;
 }
 
@@ -32,6 +33,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   onClose,
   notifications,
   onMarkAllAsRead,
+  onMarkAsRead,
   onNavigate,
 }) => {
   useEffect(() => {
@@ -100,6 +102,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               <div
                 key={item.id}
                 onClick={() => {
+                  if (onMarkAsRead) {
+                    onMarkAsRead(item.id);
+                  }
                   if (item.actionUrl) {
                     onNavigate(item.actionUrl, targetRole);
                     onClose();
