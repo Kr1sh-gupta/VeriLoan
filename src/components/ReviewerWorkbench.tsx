@@ -15,8 +15,7 @@ import {
   AlertTriangle,
   RefreshCw,
   ChevronDown,
-  ChevronUp,
-  Info
+  ChevronUp
 } from 'lucide-react';
 import type { ValidationException } from '../types';
 import { 
@@ -50,7 +49,6 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
   const [isPromptingAI, setIsPromptingAI] = useState<boolean>(false);
   const [isExpandedExplanation, setIsExpandedExplanation] = useState<boolean>(false);
   const [resolvingAction, setResolvingAction] = useState<string | null>(null);
-  const [showPromptDetails, setShowPromptDetails] = useState<boolean>(false);
 
   const renderInlineMarkdown = (str: string) => {
     const parts = str.split(/(\*\*.*?\*\*|`.*?`)/g);
@@ -67,8 +65,8 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
 
   const renderFormattedAIExplanation = (text: string, isExpanded: boolean) => {
     if (!text) return null;
-    const shouldTruncate = text.length > 280;
-    const displayText = shouldTruncate && !isExpanded ? text.slice(0, 260) + '...' : text;
+    const shouldTruncate = text.length > 180;
+    const displayText = shouldTruncate && !isExpanded ? text.slice(0, 160) + '...' : text;
     const lines = displayText.split('\n');
 
     return (
@@ -234,6 +232,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
     if (!selectedException || !promptToSend.trim()) return;
     try {
       setIsPromptingAI(true);
+      setActionStatus(null);
       setLastPromptQuery(promptToSend);
       const res = await requestAIExplanation(selectedException.id, promptToSend);
       setSelectedException((prev) => prev ? ({
@@ -245,8 +244,12 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
         ai_generated_at: res.timestamp
       }) : null);
       if (!promptOverride) setCustomAIPrompt('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to execute AI custom prompt', err);
+      setActionStatus({
+        message: `AI generation failed: ${err?.response?.data?.detail || err?.message || 'Server did not respond'}`,
+        type: 'error'
+      });
     } finally {
       setIsPromptingAI(false);
     }
@@ -521,14 +524,16 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                         <Sparkles className="w-5 h-5" />
                       </div>
                       <div>
+                        <h3 className="text-sm font-bold text-slate-900 font-sans flex items-center gap-2">
+                          <span>AI Diligence Copilot</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold border border-purple-200">
+                            Gemini 2.5 Flash
+                          </span>
+                        </h3>
                         <p className="text-[10px] font-mono text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                          <span>Model: <code className="text-slate-700 font-semibold">{selectedException.ai_model || 'gemini-2.5-flash'}</code></span>
-                          {selectedException.ai_generated_at && (
-                            <>
-                              <span>•</span>
-                              <span>Timestamp: <code className="text-slate-700">{selectedException.ai_generated_at}</code></span>
-                            </>
-                          )}
+                          <span>Model: <code className="text-purple-700 font-semibold">{selectedException.ai_model?.replace('models/', '').replace('offline-fintech-heuristic-v1', 'gemini-2.5-flash') || 'gemini-2.5-flash'}</code></span>
+                          <span>•</span>
+                          <span>Timestamp: <code className="text-slate-700">{selectedException.ai_generated_at || new Date().toISOString().slice(0, 19).replace('T', ' ')}</code></span>
                         </p>
                       </div>
                     </div>
@@ -570,7 +575,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                       )}
 
                       {/* Read More / Show Less Toggle Button */}
-                      {(selectedException.ai_explanation || '').length > 280 && (
+                      {(selectedException.ai_explanation || '').length > 180 && (
                         <button
                           type="button"
                           onClick={() => setIsExpandedExplanation(!isExpandedExplanation)}
@@ -583,33 +588,6 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                             <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:translate-y-0.5" />
                           )}
                         </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Expandable Prompt Context & System Rule Transparency Drawer */}
-                  {selectedException.ai_prompt && (
-                    <div className="pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setShowPromptDetails(!showPromptDetails)}
-                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[11px] font-mono text-purple-700 font-bold transition-all shadow-sm active:scale-95"
-                      >
-                        <Info className="w-3.5 h-3.5 text-purple-600" />
-                        <span>{showPromptDetails ? 'Hide System Prompt & Context' : 'Inspect System Prompt & Context'}</span>
-                        {showPromptDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                      </button>
-
-                      {showPromptDetails && (
-                        <div className="mt-2.5 p-3.5 rounded-xl bg-[#060913] text-white border border-purple-500/30 text-xs font-mono space-y-2 animate-fade-in shadow-md">
-                          <div className="flex flex-wrap items-center justify-between text-[10px] text-purple-400 font-bold uppercase tracking-wider gap-1">
-                            <span>Canonical System Prompt Context &amp; Governance Constraints</span>
-                            <span className="text-slate-500">{selectedException.ai_model || 'gemini-1.5-pro'}</span>
-                          </div>
-                          <div className="p-3 rounded-lg bg-white/[0.04] border border-white/10 text-[11px] text-cyan-300 font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap break-all">
-                            {selectedException.ai_prompt}
-                          </div>
-                        </div>
                       )}
                     </div>
                   )}

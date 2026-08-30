@@ -22,7 +22,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 5000,
+  timeout: 30000,
 });
 
 // Static Preconfigured Users for demo and testing
