@@ -37,7 +37,7 @@ api.interceptors.request.use((config) => {
 // Static Preconfigured Users for demo and testing
 export const STATIC_USERS: (User & { password: string })[] = [
   {
-    id: 'usr-op-01',
+    id: 'usr-001',
     username: 'operator',
     password: 'operator123',
     full_name: 'Elena Rostova',
@@ -47,7 +47,7 @@ export const STATIC_USERS: (User & { password: string })[] = [
     last_active: '2m ago'
   },
   {
-    id: 'usr-rv-02',
+    id: 'usr-002',
     username: 'reviewer',
     password: 'reviewer123',
     full_name: 'Marcus Vance',
@@ -57,7 +57,7 @@ export const STATIC_USERS: (User & { password: string })[] = [
     last_active: 'Just now'
   },
   {
-    id: 'usr-dc-03',
+    id: 'usr-003',
     username: 'consumer',
     password: 'consumer123',
     full_name: 'Sarah Chen',
@@ -67,7 +67,7 @@ export const STATIC_USERS: (User & { password: string })[] = [
     last_active: '15m ago'
   },
   {
-    id: 'usr-ad-04',
+    id: 'usr-004',
     username: 'admin',
     password: 'admin123',
     full_name: 'Alex Rivera',
@@ -413,6 +413,18 @@ export const resolveException = async (
   } catch {
     return { success: true, message: `Exception ${exceptionId} resolved with action ${action}.` };
   }
+};
+
+export const addExceptionComment = async (
+  exceptionId: string,
+  comment: string,
+  reviewerName?: string
+): Promise<{ message: string; exception_id: string; resolution_notes: string }> => {
+  const { data } = await api.post(`/exceptions/${exceptionId}/comment`, {
+    comment,
+    reviewer_name: reviewerName || 'Marcus Vance (Reviewer)',
+  });
+  return data;
 };
 
 export const fetchVerifiedLoans = async (search?: string, limit: number = 100): Promise<VerifiedLoan[]> => {

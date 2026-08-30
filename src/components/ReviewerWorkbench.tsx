@@ -22,7 +22,8 @@ import {
   fetchExceptions, 
   fetchLoanDetail, 
   requestAIExplanation, 
-  resolveException 
+  resolveException,
+  addExceptionComment
 } from '../lib/api';
 
 interface ReviewerWorkbenchProps {
@@ -49,6 +50,8 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
   const [isPromptingAI, setIsPromptingAI] = useState<boolean>(false);
   const [isExpandedExplanation, setIsExpandedExplanation] = useState<boolean>(false);
   const [resolvingAction, setResolvingAction] = useState<string | null>(null);
+  const [reviewerCommentText, setReviewerCommentText] = useState<string>('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState<boolean>(false);
 
   const renderInlineMarkdown = (str: string) => {
     const parts = str.split(/(\*\*.*?\*\*|`.*?`)/g);
@@ -252,6 +255,32 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
       });
     } finally {
       setIsPromptingAI(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!selectedException || !reviewerCommentText.trim()) return;
+    try {
+      setIsSubmittingComment(true);
+      setActionStatus(null);
+      const res = await addExceptionComment(selectedException.id, reviewerCommentText.trim());
+      const updatedNotes = res.resolution_notes;
+      const updatedExc = { ...selectedException, resolution_notes: updatedNotes };
+      setSelectedException(updatedExc);
+      setExceptions((prev) => prev.map((e) => (e.id === selectedException.id ? updatedExc : e)));
+      setReviewerCommentText('');
+      setActionStatus({
+        message: `Reviewer note added & logged to Loan ${selectedException.loan_id_code} audit trail.`,
+        type: 'success',
+      });
+      setTimeout(() => setActionStatus(null), 4000);
+    } catch (err: any) {
+      setActionStatus({
+        message: `Failed to post comment: ${err?.response?.data?.detail || err?.message || 'Unknown error'}`,
+        type: 'error',
+      });
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
@@ -635,10 +664,65 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                       <button
                         onClick={() => handleCustomAIPrompt()}
                         disabled={isPromptingAI || !customAIPrompt.trim()}
-                        className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm"
+                        className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
                       >
                         {isPromptingAI ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
                         <span>{isPromptingAI ? 'Analyzing...' : 'Prompt'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2.5. Reviewer Notes & Diligence Findings Thread */}
+                <div className="p-4 sm:p-6 rounded-2xl bg-white border border-blue-200 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center space-x-2 text-xs font-mono text-slate-900 font-bold uppercase">
+                      <MessageSquare className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span>Reviewer Collaboration &amp; Notes</span>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                      Audit Logged
+                    </span>
+                  </div>
+
+                  {/* Notes List / Thread */}
+                  {selectedException.resolution_notes ? (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {selectedException.resolution_notes.split(' | ').map((noteItem, nIdx) => (
+                        <div key={nIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-sans text-slate-800 space-y-1">
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-blue-700 font-bold uppercase">
+                            <Clock className="w-3 h-3" />
+                            <span>Finding #{nIdx + 1}</span>
+                          </div>
+                          <p className="text-slate-700 text-xs leading-relaxed font-sans">{noteItem}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-slate-400 text-xs font-mono">
+                      No reviewer notes attached yet. Add intermediate findings or notes below.
+                    </div>
+                  )}
+
+                  {/* Add Note Input */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={reviewerCommentText}
+                        onChange={(e) => setReviewerCommentText(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                        placeholder="Add intermediate review findings, title deed notes, or borrower verification notes..."
+                        disabled={isSubmittingComment}
+                        className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50"
+                      />
+                      <button
+                        onClick={handleAddComment}
+                        disabled={isSubmittingComment || !reviewerCommentText.trim()}
+                        className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+                      >
+                        {isSubmittingComment ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
+                        <span>{isSubmittingComment ? 'Saving...' : 'Add Note'}</span>
                       </button>
                     </div>
                   </div>
