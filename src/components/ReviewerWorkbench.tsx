@@ -50,6 +50,8 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
   const [resolvingAction, setResolvingAction] = useState<string | null>(null);
   const [showPromptDetails, setShowPromptDetails] = useState<boolean>(false);
 
+  const [manualResolutionMode, setManualResolutionMode] = useState<'EDIT' | 'DISMISS'>('EDIT');
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -586,16 +588,50 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[11px] font-mono uppercase text-slate-600 font-bold mb-1">
-                        Manual Override Value (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={manualPatchValue}
-                        onChange={(e) => setManualPatchValue(e.target.value)}
-                        placeholder={`Enter custom value for ${selectedException.field_name}...`}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
-                      />
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-mono uppercase text-slate-600 font-bold">
+                          {manualResolutionMode === 'EDIT' ? 'Manual Override Value' : 'Waiver Mode Active'}
+                        </label>
+                        <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[10px] font-mono">
+                          <button
+                            type="button"
+                            onClick={() => setManualResolutionMode('EDIT')}
+                            className={`px-2 py-0.5 rounded font-bold transition-all ${
+                              manualResolutionMode === 'EDIT'
+                                ? 'bg-white text-blue-700 shadow-sm border border-slate-200'
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                          >
+                            Edit Field
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setManualResolutionMode('DISMISS')}
+                            className={`px-2 py-0.5 rounded font-bold transition-all ${
+                              manualResolutionMode === 'DISMISS'
+                                ? 'bg-white text-amber-700 shadow-sm border border-slate-200'
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                          >
+                            Dismiss Waiver
+                          </button>
+                        </div>
+                      </div>
+
+                      {manualResolutionMode === 'EDIT' ? (
+                        <input
+                          type="text"
+                          value={manualPatchValue}
+                          onChange={(e) => setManualPatchValue(e.target.value)}
+                          placeholder={`Enter custom value for ${selectedException.field_name}...`}
+                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
+                        />
+                      ) : (
+                        <div className="p-2.5 rounded-xl bg-amber-50/60 border border-amber-200 text-xs font-sans text-amber-900 flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>Dismiss mode selected: Exception will be flagged as a non-blocking waiver without mutating field values.</span>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -612,43 +648,52 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                     </div>
                   </div>
 
-                  {/* 4 Strict Explicit Action Buttons */}
-                  <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {/* Simplified 3-Button Action Pattern */}
+                  <div className="pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* Action 1: Accept AI Patch */}
                     <button
                       onClick={() => handleResolveAction('ACCEPT_AI')}
                       disabled={resolvingAction !== null}
-                      title="Explicitly approve AI suggested patch and sign record"
+                      title="Explicitly approve recommended AI remediation patch and sign audit trail"
+                      aria-label="Accept AI Patch: Explicitly approve recommended AI remediation patch and sign audit trail"
                       className="py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {resolvingAction === 'ACCEPT_AI' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                       <span>[Accept AI Patch]</span>
                     </button>
 
-                    <button
-                      onClick={() => handleResolveAction('MANUAL_EDIT')}
-                      disabled={resolvingAction !== null || (!manualPatchValue && !customNotes)}
-                      title={!manualPatchValue && !customNotes ? "Enter manual override value or audit notes to enable custom edit" : "Submit custom manual override"}
-                      className="py-3 px-3 rounded-xl bg-blue-50 border border-blue-300 hover:bg-blue-100 text-blue-700 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1.5"
-                    >
-                      {resolvingAction === 'MANUAL_EDIT' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
-                      <span>[Custom Edit]</span>
-                    </button>
+                    {/* Action 2: Manual Resolution (Custom Edit / Dismiss Waiver) */}
+                    {manualResolutionMode === 'EDIT' ? (
+                      <button
+                        onClick={() => handleResolveAction('MANUAL_EDIT')}
+                        disabled={resolvingAction !== null || (!manualPatchValue && !customNotes)}
+                        title={!manualPatchValue && !customNotes ? "Enter manual override value or audit notes to enable custom edit" : "Submit custom manual field correction and sign audit trail"}
+                        aria-label="Custom Edit: Submit custom manual field correction and sign audit trail"
+                        className="py-3 px-3 rounded-xl bg-[#0b1c30] hover:bg-slate-800 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1.5"
+                      >
+                        {resolvingAction === 'MANUAL_EDIT' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4 text-cyan-400" />}
+                        <span>[Custom Edit]</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleResolveAction('DISMISS')}
+                        disabled={resolvingAction !== null}
+                        title="Dismiss exception as a non-blocking waiver without altering record values"
+                        aria-label="Dismiss Exception: Dismiss exception as a non-blocking waiver without altering record values"
+                        className="py-3 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      >
+                        {resolvingAction === 'DISMISS' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+                        <span>[Dismiss Waiver]</span>
+                      </button>
+                    )}
 
-                    <button
-                      onClick={() => handleResolveAction('DISMISS')}
-                      disabled={resolvingAction !== null}
-                      title="Dismiss exception as a non-blocking waiver without altering record"
-                      className="py-3 px-3 rounded-xl bg-amber-50 border border-amber-300 hover:bg-amber-100 text-amber-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
-                    >
-                      {resolvingAction === 'DISMISS' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
-                      <span>[Dismiss]</span>
-                    </button>
-
+                    {/* Action 3: Reject Loan */}
                     <button
                       onClick={() => handleResolveAction('REJECT')}
                       disabled={resolvingAction !== null}
                       title="Reject loan record from portfolio due to critical non-compliance"
-                      className="py-3 px-3 rounded-xl bg-red-50 border border-red-300 hover:bg-red-100 text-red-700 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      aria-label="Reject Loan: Reject loan record from portfolio due to critical non-compliance"
+                      className="py-3 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {resolvingAction === 'REJECT' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                       <span>[Reject Loan]</span>
