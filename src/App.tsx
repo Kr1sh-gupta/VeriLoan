@@ -19,6 +19,7 @@ import { fetchSummary, STATIC_USERS, INITIAL_NOTIFICATIONS } from './lib/api';
 const AUTH_STORAGE_KEY = 'veriloan_auth_user';
 const TAB_STORAGE_KEY = 'veriloan_current_tab';
 const ROLE_STORAGE_KEY = 'veriloan_current_role';
+const NOTIFICATIONS_STORAGE_KEY = 'veriloan_notifications';
 
 export function App() {
   // Initialize user from localStorage if present
@@ -80,7 +81,22 @@ export function App() {
   const [loginInitialRole, setLoginInitialRole] = useState<UserRole>('REVIEWER');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [notificationCenterOpen, setNotificationCenterOpen] = useState<boolean>(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+
+  // Notifications State with localStorage persistence
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    try {
+      const stored = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return INITIAL_NOTIFICATIONS;
+  });
 
   const isLanding = currentTab === 'landing';
 
@@ -94,7 +110,7 @@ export function App() {
     }
   };
 
-  // Persist currentRole in localStorage whenever it changes
+  // Persist currentRole and sync currentUser in localStorage whenever it changes
   const handleSetCurrentRole = (role: UserRole) => {
     setCurrentRole(role);
     try {
@@ -102,6 +118,35 @@ export function App() {
     } catch {
       // ignore
     }
+    const matchedUser = STATIC_USERS.find((u) => u.role === role);
+    if (matchedUser) {
+      const { password: _, ...u } = matchedUser;
+      setCurrentUser(u);
+      try {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const saveNotifications = (newNotifications: NotificationItem[]) => {
+    setNotifications(newNotifications);
+    try {
+      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(newNotifications));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleMarkAllNotificationsRead = () => {
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    saveNotifications(updated);
+  };
+
+  const handleMarkNotificationRead = (id: string) => {
+    const updated = notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
+    saveNotifications(updated);
   };
 
   const loadSummary = async () => {
@@ -158,10 +203,6 @@ export function App() {
     setLoginModalOpen(false);
     setCommandPaletteOpen(false);
     setNotificationCenterOpen(false);
-  };
-
-  const handleMarkAllNotificationsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
@@ -356,6 +397,7 @@ export function App() {
         onClose={() => setNotificationCenterOpen(false)}
         notifications={notifications}
         onMarkAllAsRead={handleMarkAllNotificationsRead}
+        onMarkAsRead={handleMarkNotificationRead}
         onNavigate={(tab, role) => {
           if (role) handleSetCurrentRole(role);
           handleSetCurrentTab(tab);
