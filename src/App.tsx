@@ -230,7 +230,7 @@ export function App() {
         </div>
       ) : (
         /* Dynamic Role-Based Dashboard with Left Sidebar */
-        <div className="flex-1 min-h-screen flex relative bg-[#f8f9fc]">
+        <div className="flex-1 min-h-screen flex relative bg-[#f8f9fc] w-full max-w-full min-w-0 overflow-x-hidden">
           
           {/* Left Burger Menu / Sidebar Navigation */}
           <Sidebar
@@ -257,12 +257,12 @@ export function App() {
           />
 
           {/* Main Dashboard Workspace (Responsive pl-0 on mobile, offset on desktop) */}
-          <main className={`flex-1 flex flex-col justify-between transition-all duration-300 pt-16 sm:pt-20 min-h-screen pl-0 ${
+          <main className={`flex-1 flex flex-col justify-between transition-all duration-300 pt-16 sm:pt-20 min-h-screen pl-0 w-full max-w-full min-w-0 overflow-x-hidden ${
             currentTab === 'api' ? 'bg-[#060913] text-white' : 'bg-[#f8f9fc] text-slate-900'
           } ${
             sidebarOpen ? 'md:pl-64' : 'md:pl-16'
           }`}>
-            <div className="flex-1">
+            <div className="flex-1 w-full max-w-full min-w-0">
               {currentTab === 'ingest' && (
                 <IngestionHub
                   onRefreshSummary={loadSummary}
@@ -311,8 +311,15 @@ export function App() {
                 <ExportCenter />
               )}
 
-              {currentTab === 'admin' && (
-                <AdminConsole />
+              {(currentTab === 'admin' || currentTab.startsWith('admin_')) && (
+                <AdminConsole 
+                  initialTab={
+                    currentTab === 'admin_connectors' ? 'CONNECTORS' :
+                    currentTab === 'admin_rules' ? 'RULES' :
+                    currentTab === 'admin_users' ? 'USERS' :
+                    currentTab === 'admin_audit' ? 'AUDIT' : 'OVERVIEW'
+                  }
+                />
               )}
 
               {currentTab === 'api' && (

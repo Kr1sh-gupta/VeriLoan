@@ -66,29 +66,29 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   const cleanPct = loans.length > 0 ? ((cleanCount / loans.length) * 100).toFixed(1) : '0.0';
 
   return (
-    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         
         {/* Header Banner */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200">
-          <div className="space-y-2">
-            <div className="text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-2 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 sm:pb-6 border-b border-slate-200">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="text-[10px] sm:text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-2 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
               <span>MODULE A &amp; B • DATA OPERATOR CONSOLE</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-sans">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-sans">
               Batch Lineage &amp; Operator Console
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl leading-relaxed">
               Track batch import history, verify clean subsets, and monitor raw file lineage.
             </p>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:space-x-3 space-x-0 shrink-0">
             {onNavigateToIngest && (
               <button
                 onClick={onNavigateToIngest}
-                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
               >
                 <Layers className="w-3.5 h-3.5" />
                 <span>Open Ingestion Hub</span>
@@ -97,7 +97,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
             <button
               onClick={handleVerifyCleanBatch}
               disabled={loading}
-              className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50"
+              className="w-full sm:w-auto flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Verify Clean Loans</span>
@@ -122,42 +122,42 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
         )}
 
         {/* Batch Lineage Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Total Ingested Records</div>
-            <div className="text-3xl font-extrabold font-mono text-slate-900">{loading ? '—' : loans.length}</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-900">{loading ? '—' : loans.length}</div>
             <div className="text-[11px] font-sans text-slate-500">Currently loaded records</div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Clean Loans (Passed)</div>
-            <div className="text-3xl font-extrabold font-mono text-emerald-700">{loading ? '—' : cleanCount}</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-700">{loading ? '—' : cleanCount}</div>
             <div className="text-[11px] font-sans text-emerald-700 font-bold">{loading ? '' : `${cleanPct}% First-Pass Yield`}</div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Exceptions Routed</div>
-            <div className="text-3xl font-extrabold font-mono text-amber-600">{loading ? '—' : flaggedCount}</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-600">{loading ? '—' : flaggedCount}</div>
             <div className="text-[11px] font-sans text-amber-700 font-bold">Awaiting Reviewer</div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Sealed Verified Records</div>
-            <div className="text-3xl font-extrabold font-mono text-blue-700">{loading ? '—' : cleanCount}</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-blue-700">{loading ? '—' : cleanCount}</div>
             <div className="text-[11px] font-sans text-blue-700 font-bold">SHA-256 Hash Immutability</div>
           </div>
         </div>
 
         {/* Import Batches Table */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 uppercase tracking-wider font-bold">
-              <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+              <FileSpreadsheet className="w-4 h-4 text-blue-600 shrink-0" />
               <span>Import History &amp; Lineage Batches</span>
             </div>
             <button
               onClick={onNavigateToReviewer}
-              className="text-xs font-mono text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1"
+              className="text-xs font-mono text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 self-start sm:self-auto"
             >
               <span>Resolve Flagged Items</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -180,7 +180,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
               <tbody className="divide-y divide-slate-100">
                 <tr className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600" />
+                    <FileText className="w-4 h-4 text-blue-600 shrink-0" />
                     <span>All ingested records</span>
                   </td>
                   <td className="px-6 py-4">LOAN_TAPE</td>
@@ -208,14 +208,14 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
 
         {/* Normalized Loans Browser */}
         <div className="space-y-4 pt-6 border-t border-slate-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 uppercase tracking-wider font-bold">
-              <Layers className="w-4 h-4 text-blue-600" />
+              <Layers className="w-4 h-4 text-blue-600 shrink-0" />
               <span>Normalized Ingested Records ({loans.length} Records)</span>
             </div>
 
-            <div className="flex items-center space-x-3">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:space-x-3 space-x-0">
+              <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
@@ -223,14 +223,14 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') loadData(); }}
                   placeholder="Filter records..."
-                  className="bg-white border border-slate-300 rounded-xl py-1.5 pl-9 pr-4 text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 shadow-sm"
+                  className="w-full bg-white border border-slate-300 rounded-xl py-1.5 pl-9 pr-4 text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 shadow-sm"
                 />
               </div>
 
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 shadow-sm font-bold"
+                className="w-full sm:w-auto bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 shadow-sm font-bold"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="FLAGGED">FLAGGED</option>

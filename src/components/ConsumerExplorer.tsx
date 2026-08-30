@@ -74,29 +74,29 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
   });
 
   return (
-    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-6 sm:py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         
         {/* Header Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-200">
           <div className="space-y-1.5">
-            <div className="text-[11px] font-mono tracking-wider text-slate-500 uppercase flex items-center gap-2 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="text-[10px] sm:text-[11px] font-mono tracking-wider text-slate-500 uppercase flex items-center gap-2 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>MODULE E &amp; F • VERIFIED RECORDS &amp; CRYPTOGRAPHY</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
+            <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
               Verified Records Portal
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl leading-relaxed">
               Access sealed canonical records, verify SHA-256 integrity, inspect full audit lineage, and export clean datasets.
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 shrink-0">
             {onNavigateToExport ? (
               <button
                 onClick={onNavigateToExport}
-                className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Open Export Center</span>
@@ -104,7 +104,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
             ) : (
               <button
                 onClick={handleExportCsv}
-                className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export Dataset (CSV)</span>
@@ -136,7 +136,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
         )}
 
         {/* Search & Filter Bar */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -149,7 +149,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
             />
           </div>
 
-          <div className="flex items-center flex-wrap gap-2">
+          <div className="flex items-center overflow-x-auto pb-1 gap-2">
             {[
               { id: 'ALL', label: `All (${verifiedLoans.length})` },
               { id: 'AI_ASSISTED', label: `AI-Assisted (${aiAssistedCount})` },
@@ -158,7 +158,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
               <button
                 key={f.id}
                 onClick={() => setFilterMode(f.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all whitespace-nowrap ${
                   filterMode === f.id
                     ? 'bg-[#0b1c30] text-white shadow-sm font-bold'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'

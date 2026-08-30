@@ -127,20 +127,20 @@ export const ApiExplorerView: React.FC = () => {
   };
 
   return (
-    <div className="w-full bg-[#060913] text-white min-h-[calc(100vh-80px)] py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="w-full bg-[#060913] text-white min-h-[calc(100vh-80px)] py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/[0.08]">
-          <div className="space-y-2">
-            <div className="text-[11px] font-mono tracking-widest text-slate-400 uppercase flex items-center gap-2 font-semibold">
-              <Code2 className="w-4 h-4 text-cyan-400" />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 sm:pb-6 border-b border-white/[0.08]">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="text-[10px] sm:text-[11px] font-mono tracking-widest text-slate-400 uppercase flex items-center gap-2 font-semibold">
+              <Code2 className="w-4 h-4 text-cyan-400 shrink-0" />
               <span>MODULE H • REST API PLAYGROUND</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-sans">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-sans">
               REST API Explorer
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 font-sans max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-400 font-sans max-w-xl leading-relaxed">
               Directly execute and inspect live JSON responses from backend diligence endpoints.
             </p>
           </div>
@@ -149,14 +149,14 @@ export const ApiExplorerView: React.FC = () => {
             href="http://localhost:8000/docs"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center space-x-2 px-5 py-2.5 rounded-lg bg-white text-[#060913] hover:bg-slate-100 font-bold text-xs tracking-wider uppercase transition-all shadow-md"
+            className="w-full sm:w-auto flex items-center justify-center space-x-2 px-5 py-2.5 rounded-lg bg-white text-[#060913] hover:bg-slate-100 font-bold text-xs tracking-wider uppercase transition-all shadow-md shrink-0"
           >
             <span>Swagger Interactive Docs</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
           
           {/* Endpoint List */}
           <div className="lg:col-span-4 space-y-3">
@@ -171,7 +171,7 @@ export const ApiExplorerView: React.FC = () => {
                       handleSelectEndpoint(ep);
                       handleExecute(ep.path, ep.method);
                     }}
-                    className={`p-4 rounded-xl cursor-pointer transition-all border ${
+                    className={`p-3.5 sm:p-4 rounded-xl cursor-pointer transition-all border ${
                       isSelected
                         ? 'bg-white/[0.08] border-cyan-400/50 shadow-md'
                         : 'bg-white/[0.02] border-white/[0.08] hover:border-white/20'
@@ -196,20 +196,20 @@ export const ApiExplorerView: React.FC = () => {
           </div>
 
           {/* Live Response Card */}
-          <div className="lg:col-span-8 p-6 rounded-2xl bg-white/[0.02] border border-white/[0.08] flex flex-col justify-between space-y-4">
+          <div className="lg:col-span-8 p-4 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/[0.08] flex flex-col justify-between space-y-4">
             <div>
               {/* Endpoint & Actions Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
-                <div className="flex items-center space-x-2 font-mono text-xs text-cyan-400">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                <div className="flex items-center space-x-2 font-mono text-xs text-cyan-400 min-w-0">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded shrink-0 ${
                     selectedMethod === 'POST' ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'
                   }`}>
                     {selectedMethod}
                   </span>
-                  <strong className="text-white">{selectedEndpoint}</strong>
+                  <strong className="text-white truncate">{selectedEndpoint}</strong>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 shrink-0">
                   <button
                     onClick={() => handleExecute(selectedEndpoint, selectedMethod)}
                     disabled={loading}
@@ -232,7 +232,7 @@ export const ApiExplorerView: React.FC = () => {
               {/* POST Request Body Editor */}
               {selectedMethod === 'POST' && (
                 <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <label className="block text-[10px] font-mono uppercase text-slate-400 font-bold">
                       Request Payload (JSON Body):
                     </label>
@@ -288,7 +288,7 @@ export const ApiExplorerView: React.FC = () => {
                   <RefreshCw className="w-4 h-4 animate-spin" /> Querying API backend...
                 </div>
               ) : responseJson ? (
-                <pre className="mt-4 p-4 rounded-xl bg-[#03060c] border border-white/10 text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-[500px] overflow-y-auto">
+                <pre className="mt-4 p-4 rounded-xl bg-[#03060c] border border-white/10 text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-[500px] overflow-y-auto whitespace-pre-wrap break-all">
                   {JSON.stringify(responseJson, null, 2)}
                 </pre>
               ) : (

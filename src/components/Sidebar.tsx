@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar Aside Drawer */}
       <aside
         className={`fixed left-0 top-0 bottom-0 h-full bg-[#060913] text-white z-50 flex flex-col border-r border-slate-800/80 shadow-2xl transition-all duration-300 ${
-          isOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-16'
+          isOpen ? 'translate-x-0 w-64 max-w-[85vw]' : '-translate-x-full md:translate-x-0 md:w-16'
         }`}
       >
         {/* Brand Header at top of sidebar */}
@@ -167,11 +167,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {activeMenuItems.map((item) => {
             const Icon = item.icon;
-            const targetTab = item.id.startsWith('operator') ? 'operator' :
-                             item.id.startsWith('reviewer') ? 'reviewer' :
-                             item.id.startsWith('consumer') ? 'consumer' :
-                             item.id.startsWith('admin') ? 'admin' : item.id;
-            const isActive = currentTab === targetTab;
+            const targetTab = item.id;
+            const isActive = currentTab === targetTab || (targetTab === 'admin' && currentTab.startsWith('admin_'));
 
             return (
               <button
