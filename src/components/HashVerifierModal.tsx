@@ -13,6 +13,7 @@ export const HashVerifierModal: React.FC<HashVerifierModalProps> = ({
 }) => {
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
 
   useEffect(() => {
@@ -27,10 +28,12 @@ export const HashVerifierModal: React.FC<HashVerifierModalProps> = ({
     const loadDetail = async () => {
       try {
         setLoading(true);
+        setError(null);
         const res = await fetchVerifiedLoanDetail(verifiedLoanId);
         setData(res);
       } catch (err) {
         console.error(err);
+        setError('Could not load hash verification data. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -43,6 +46,9 @@ export const HashVerifierModal: React.FC<HashVerifierModalProps> = ({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const isValid = data?.hash_verification?.is_valid === true;
+  const hasVerificationData = !!data?.hash_verification;
 
   return (
     <div 
@@ -77,34 +83,40 @@ export const HashVerifierModal: React.FC<HashVerifierModalProps> = ({
           <div className="py-12 text-center text-slate-400 font-mono text-xs flex items-center justify-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-blue-500" /> Verifying SHA-256 canonical hash integrity...
           </div>
-        ) : data ? (
+        ) : error ? (
+          <div className="py-12 text-center text-red-400 font-mono text-xs">{error}</div>
+        ) : data && hasVerificationData ? (
           <div className="space-y-4">
             
             {/* Status Badge */}
             <div className={`p-4 rounded-xl border flex items-center justify-between ${
-              data.hash_verification.is_valid
+              isValid
                 ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
                 : 'bg-red-950/40 border-red-500/50 text-red-300'
             }`}>
               <div className="flex items-center space-x-3">
-                {data.hash_verification.is_valid ? (
+                {isValid ? (
                   <CheckCircle2 className="w-6 h-6 text-emerald-400" />
                 ) : (
                   <AlertTriangle className="w-6 h-6 text-red-400" />
                 )}
                 <div>
                   <div className="font-bold text-sm font-sans">
-                    {data.hash_verification.is_valid ? 'Cryptographic Integrity Verified' : 'Integrity Violation Detected!'}
+                    {isValid ? 'Cryptographic Integrity Verified' : 'Integrity Violation Detected!'}
                   </div>
                   <div className="text-xs text-slate-300 mt-0.5 font-sans">
-                    {data.hash_verification.is_valid
+                    {isValid
                       ? 'Live recalculated SHA-256 match confirms zero data tampering.'
-                      : 'Calculated hash differs from sealed record!'}
+                      : 'Calculated hash differs from sealed record! This record may have been altered after verification.'}
                   </div>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold uppercase px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                100% Valid
+              <span className={`text-xs font-mono font-bold uppercase px-3 py-1 rounded border ${
+                isValid
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : 'bg-red-500/20 text-red-300 border-red-500/30'
+              }`}>
+                {isValid ? 'Valid' : 'Mismatch'}
               </span>
             </div>
 
@@ -126,11 +138,11 @@ export const HashVerifierModal: React.FC<HashVerifierModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#060913] border border-slate-800">
+              <div className={`p-3 rounded-xl bg-[#060913] border ${isValid ? 'border-slate-800' : 'border-red-500/40'}`}>
                 <div className="text-[10px] text-slate-400 uppercase mb-1">
                   Live Recalculated Hash: <code>SHA256(canonical_json(record))</code>
                 </div>
-                <div className="text-emerald-400 break-all select-all">
+                <div className={`break-all select-all ${isValid ? 'text-emerald-400' : 'text-red-400'}`}>
                   {data.hash_verification.recalculated_hash}
                 </div>
               </div>
@@ -140,7 +152,7 @@ export const HashVerifierModal: React.FC<HashVerifierModalProps> = ({
             <div>
               <div className="text-xs font-mono text-slate-400 uppercase mb-2">Canonical Serialized Payload</div>
               <pre className="p-4 rounded-xl bg-[#03060c] border border-slate-800 text-[11px] font-mono text-slate-300 max-h-48 overflow-y-auto">
-                {JSON.stringify(data.verified_record.canonical_data, null, 2)}
+                {JSON.stringify(data.verified_record?.canonical_data, null, 2)}
               </pre>
             </div>
 
