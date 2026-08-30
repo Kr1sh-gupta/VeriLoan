@@ -52,3 +52,21 @@ def test_audit_trail_endpoint(client):
     events = response.json()
     assert isinstance(events, list)
     assert len(events) > 0
+
+def test_ai_batch_summary_endpoint(client):
+    response = client.post("/api/ai/batch-summary", json={"status": "OPEN"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "total_exceptions_analyzed" in data
+    assert "summary_headline" in data
+    assert "actionable_recommendation" in data
+    assert data["total_exceptions_analyzed"] >= 0
+
+def test_ai_generate_rule_endpoint(client):
+    response = client.post("/api/ai/generate-rule", json={
+        "natural_language_description": "flag any loan where interest rate is greater than 36%"
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["field_name"] == "interest_rate"
+    assert "python_expression" in data

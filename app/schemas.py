@@ -129,6 +129,33 @@ class AIExplainResponse(BaseModel):
     prompt: str
     timestamp: str
 
+class AIBatchSummaryRequest(BaseModel):
+    severity: Optional[str] = None
+    rule_code: Optional[str] = None
+    status: str = "OPEN"
+
+class AIBatchSummaryResponse(BaseModel):
+    total_exceptions_analyzed: int
+    summary_headline: str
+    top_root_causes: List[Dict[str, Any]]
+    actionable_recommendation: str
+    model: str
+    generated_at: str
+
+class AIRuleGenRequest(BaseModel):
+    natural_language_description: str
+
+class AIRuleGenResponse(BaseModel):
+    generated_rule_code: str
+    name: str
+    category: str
+    severity: str
+    field_name: str
+    operator: str
+    condition_description: str
+    python_expression: str
+    model: str
+
 class ResolveExceptionRequest(BaseModel):
     action: str
     corrected_data: Optional[Dict[str, Any]] = None
