@@ -57,6 +57,7 @@ class ValidationExceptionSchema(BaseModel):
     id: str
     loan_id_ref: str
     loan_id_code: Optional[str] = None
+    borrower_id: Optional[str] = None
     rule_code: str
     category: str
     severity: str

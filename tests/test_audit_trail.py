@@ -1,4 +1,5 @@
 import io
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -94,10 +95,11 @@ def test_verification_sealed_audit_event(db_session):
 
 def test_batch_sealed_audit_event(db_session):
     # Ensure there is a clean pending loan
+    u_id = uuid.uuid4().hex[:8]
     clean_loan = Loan(
-        id="row-batch-test-clean-1",
-        loan_id="LN-BATCH-CLEAN-1",
-        borrower_id="BW-BATCH-1",
+        id=f"row-batch-test-{u_id}",
+        loan_id=f"LN-BATCH-{u_id}",
+        borrower_id=f"BW-BATCH-{u_id}",
         original_principal=300000.0,
         current_balance=290000.0,
         interest_rate=5.5,
