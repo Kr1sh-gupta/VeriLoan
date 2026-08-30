@@ -27,6 +27,51 @@ def test_val_001_missing_loan_id(db_session):
     assert exc is not None
     assert exc.severity == "CRITICAL"
 
+def test_val_004_invalid_date_formats(db_session):
+    # Test invalid last_payment_date and invalid last_updated_at
+    loan1 = Loan(
+        id="row-val4-1",
+        loan_id="LN-VAL4-1",
+        origination_date="2022-01-01",
+        maturity_date="2052-01-01",
+        last_payment_date="08/15/2026",  # Non-ISO format
+        original_principal=100000,
+        current_balance=90000,
+        borrower_state="CA",
+        payment_status="CURRENT"
+    )
+    loan2 = Loan(
+        id="row-val4-2",
+        loan_id="LN-VAL4-2",
+        origination_date="2022-01-01",
+        maturity_date="2052-01-01",
+        last_updated_at="August 20, 2026",  # Non-ISO format
+        original_principal=100000,
+        current_balance=90000,
+        borrower_state="CA",
+        payment_status="CURRENT"
+    )
+    db_session.add(loan1)
+    db_session.add(loan2)
+    db_session.commit()
+
+    ValidationService.run_all_validations(db_session)
+    excs_loan1 = db_session.query(ValidationException).filter(
+        ValidationException.loan_id_ref == "row-val4-1",
+        ValidationException.rule_code == "VAL-004",
+        ValidationException.field_name == "last_payment_date"
+    ).all()
+    assert len(excs_loan1) == 1
+    assert "last_payment_date" in excs_loan1[0].error_message
+
+    excs_loan2 = db_session.query(ValidationException).filter(
+        ValidationException.loan_id_ref == "row-val4-2",
+        ValidationException.rule_code == "VAL-004",
+        ValidationException.field_name == "last_updated_at"
+    ).all()
+    assert len(excs_loan2) == 1
+    assert "last_updated_at" in excs_loan2[0].error_message
+
 def test_val_005_maturity_before_origination(db_session):
     loan = Loan(
         id="row-2",
