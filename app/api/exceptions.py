@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from app.database import get_db
 from app.models import ValidationException, Loan, User
-from app.schemas import ValidationExceptionSchema, ResolveExceptionRequest
+from app.schemas import ValidationExceptionSchema, ResolveExceptionRequest, CommentExceptionRequest
 from app.services.verification_service import VerificationService
 from app.services.audit_service import AuditService
 from app.api.auth import require_role
@@ -175,4 +175,50 @@ def resolve_exception(
         "loan_status": loan.status,
         "remaining_open_exceptions": remaining_open,
         "verified_record": verified_result.record_hash if verified_result else None
+    }
+
+@router.post("/{id}/comment")
+def add_exception_comment(
+    id: str,
+    payload: CommentExceptionRequest,
+    current_user: User = Depends(require_role(["REVIEWER", "ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    exc = db.query(ValidationException).filter(ValidationException.id == id).first()
+    if not exc:
+        raise HTTPException(status_code=404, detail="Exception record not found.")
+
+    if not payload.comment.strip():
+        raise HTTPException(status_code=400, detail="Comment cannot be empty.")
+
+    reviewer_display_name = payload.reviewer_name or current_user.full_name or current_user.username
+
+    if exc.resolution_notes:
+        exc.resolution_notes += f" | Comment by {reviewer_display_name}: {payload.comment}"
+    else:
+        exc.resolution_notes = f"Comment by {reviewer_display_name}: {payload.comment}"
+
+    db.commit()
+    db.refresh(exc)
+
+    # Log REVIEWER_COMMENT audit event
+    AuditService.log_event(
+        db=db,
+        event_type="REVIEWER_COMMENT",
+        actor_id=current_user.id,
+        actor_role=current_user.role,
+        summary=f"Reviewer {reviewer_display_name} commented on exception {exc.rule_code} (Loan {exc.loan_id_code}): {payload.comment[:80]}",
+        loan_id=exc.loan_id_code,
+        metadata_json={
+            "exception_id": exc.id,
+            "rule_code": exc.rule_code,
+            "comment": payload.comment,
+            "reviewer_name": reviewer_display_name
+        }
+    )
+
+    return {
+        "message": "Comment added successfully.",
+        "exception_id": exc.id,
+        "resolution_notes": exc.resolution_notes
     }

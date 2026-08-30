@@ -71,9 +71,25 @@ def test_ai_generate_rule_endpoint(client):
     assert data["field_name"] == "interest_rate"
     assert "python_expression" in data
 
+def test_add_exception_comment_endpoint(client):
+    exc_res = client.get("/api/exceptions?limit=1")
+    exceptions = exc_res.json()
+    assert len(exceptions) > 0
+    exc_id = exceptions[0]["id"]
+    
+    res = client.post(
+        f"/api/exceptions/{exc_id}/comment",
+        headers={"Authorization": "Bearer jwt-mock-token-usr-002-reviewer"},
+        json={"comment": "Reviewing custodial promissory note deed"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "message" in data
+    assert "Comment by" in data["resolution_notes"]
+
 def test_exceptions_search_by_borrower_id(client):
-    # Search for an existing borrower (e.g. BW-)
-    response = client.get("/api/exceptions?search=BW-&limit=5")
+    # Search for an existing borrower (e.g. BOR-)
+    response = client.get("/api/exceptions?search=BOR-&limit=5")
     assert response.status_code == 200
     exceptions = response.json()
     assert isinstance(exceptions, list)

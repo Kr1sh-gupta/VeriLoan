@@ -163,6 +163,10 @@ class ResolveExceptionRequest(BaseModel):
     notes: Optional[str] = None
     reviewer_name: str = "Marcus Vance (Reviewer)"
 
+class CommentExceptionRequest(BaseModel):
+    comment: str
+    reviewer_name: Optional[str] = None
+
 class IngestionSummaryResponse(BaseModel):
     batch_id: str
     filename: str
