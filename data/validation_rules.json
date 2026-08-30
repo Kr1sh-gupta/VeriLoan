@@ -113,6 +113,14 @@
       "severity": "HIGH",
       "field": "payment_status, current_balance",
       "description": "Loans designated as PAID_OFF or CLOSED must carry a $0.00 current balance."
+    },
+    {
+      "code": "VAL-015",
+      "name": "Repeated Borrower Concentration Check",
+      "category": "CONCENTRATION",
+      "severity": "MEDIUM",
+      "field": "borrower_id",
+      "description": "Flags borrowers appearing across 3 or more distinct loans in the portfolio tape to detect borrower concentration risk."
     }
   ]
 }
