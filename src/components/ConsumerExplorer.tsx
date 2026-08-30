@@ -8,7 +8,7 @@ import {
   Check
 } from 'lucide-react';
 import type { VerifiedLoan, SystemSummary } from '../types';
-import { fetchVerifiedLoans, fetchSummary } from '../lib/api';
+import { fetchVerifiedLoans, fetchSummary, exportCsvUrl } from '../lib/api';
 import { HashVerifierModal } from './HashVerifierModal';
 import { AuditTrailModal } from './AuditTrailModal';
 import { DataQualityWidget } from './DataQualityWidget';
@@ -61,8 +61,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
   };
 
   const handleExportCsv = () => {
-    const apiBase = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8000/api';
-    window.open(`${apiBase}/verified-loans/export/csv`, '_blank');
+    window.open(exportCsvUrl(), '_blank');
   };
 
   const aiAssistedCount = verifiedLoans.filter((l) => l.ai_assisted).length;
