@@ -11,6 +11,7 @@ class UserBase(BaseModel):
     avatar_badge: Optional[str] = None
 
     class Config:
+        from_attributes = True
         orm_mode = True
 
 class UserAuthRequest(BaseModel):
@@ -49,6 +50,7 @@ class LoanRecordSchema(BaseModel):
     created_at: Optional[datetime.datetime] = None
 
     class Config:
+        from_attributes = True
         orm_mode = True
 
 class ValidationExceptionSchema(BaseModel):
@@ -76,6 +78,7 @@ class ValidationExceptionSchema(BaseModel):
     created_at: datetime.datetime
 
     class Config:
+        from_attributes = True
         orm_mode = True
 
 class VerifiedLoanSchema(BaseModel):
@@ -90,8 +93,11 @@ class VerifiedLoanSchema(BaseModel):
     verified_at: datetime.datetime
     resolution_notes: Optional[str] = None
     ai_assisted: bool = False
+    validation_snapshot: Optional[List[Dict[str, Any]]] = None
+    ai_recommendation: Optional[Dict[str, Any]] = None
 
     class Config:
+        from_attributes = True
         orm_mode = True
 
 class AuditEventSchema(BaseModel):
@@ -107,6 +113,7 @@ class AuditEventSchema(BaseModel):
     timestamp: datetime.datetime
 
     class Config:
+        from_attributes = True
         orm_mode = True
 
 class AIExplainRequest(BaseModel):
@@ -139,6 +146,7 @@ class IngestionSummaryResponse(BaseModel):
     created_at: datetime.datetime
 
     class Config:
+        from_attributes = True
         orm_mode = True
 
 class SystemSummaryMetrics(BaseModel):

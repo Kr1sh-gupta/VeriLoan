@@ -133,6 +133,8 @@ class VerifiedLoan(Base):
     verified_at = Column(DateTime, default=datetime.datetime.utcnow)
     resolution_notes = Column(Text, nullable=True)
     ai_assisted = Column(Boolean, default=False)
+    validation_snapshot = Column(JSON, nullable=True)
+    ai_recommendation = Column(JSON, nullable=True)
 
     loan = relationship("Loan", back_populates="verified_record")
 

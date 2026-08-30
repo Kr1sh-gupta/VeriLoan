@@ -51,24 +51,12 @@ def verify_all_clean_loans(
     verified_by: str = "Elena Rostova (Operator)",
     db: Session = Depends(get_db)
 ):
-    pending_loans = db.query(Loan).filter(Loan.status.in_(["PENDING", "RESOLVED"])).all()
-    verified_count = 0
-
-    for loan in pending_loans:
-        open_exc_count = db.query(ValidationException).filter(
-            ValidationException.loan_id_ref == loan.id,
-            ValidationException.status == "OPEN"
-        ).count()
-
-        if open_exc_count == 0:
-            VerificationService.verify_and_seal_loan(
-                db=db,
-                loan=loan,
-                verified_by=verified_by,
-                resolution_notes="Clean record passed all 14 validation rules without exceptions.",
-                ai_assisted=False
-            )
-            verified_count += 1
+    verified_count = VerificationService.verify_clean_loans_batch(
+        db=db,
+        verified_by=verified_by,
+        actor_id="usr-001",
+        actor_role="OPERATOR"
+    )
 
     return {
         "message": f"Successfully verified {verified_count} clean loan records.",
