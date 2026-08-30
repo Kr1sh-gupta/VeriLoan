@@ -13,7 +13,10 @@ import {
   BrainCircuit, 
   MessageSquare,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Info
 } from 'lucide-react';
 import type { ValidationException } from '../types';
 import { 
@@ -45,6 +48,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
   const [customAIPrompt, setCustomAIPrompt] = useState<string>('');
   const [isPromptingAI, setIsPromptingAI] = useState<boolean>(false);
   const [resolvingAction, setResolvingAction] = useState<string | null>(null);
+  const [showPromptDetails, setShowPromptDetails] = useState<boolean>(false);
 
   const loadData = async () => {
     try {
@@ -452,7 +456,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                 <div className="p-6 rounded-2xl bg-white border border-purple-200 shadow-sm space-y-4 relative overflow-hidden">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center shadow-sm">
+                      <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center shadow-sm shrink-0">
                         <Sparkles className="w-5 h-5" />
                       </div>
                       <div>
@@ -460,24 +464,18 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                           AI Diligence Assistant (Deterministic Mode)
                         </h3>
                         <p className="text-[10px] font-mono text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                          <span>Model: {selectedException.ai_model || 'gemini-1.5-pro'}</span>
-                          {selectedException.ai_prompt && (
-                            <>
-                              <span>•</span>
-                              <span>Context: {selectedException.ai_prompt}</span>
-                            </>
-                          )}
+                          <span>Model: <code className="text-slate-700 font-semibold">{selectedException.ai_model || 'gemini-1.5-pro'}</code></span>
                           {selectedException.ai_generated_at && (
                             <>
                               <span>•</span>
-                              <span>Timestamp: {selectedException.ai_generated_at}</span>
+                              <span>Timestamp: <code className="text-slate-700">{selectedException.ai_generated_at}</code></span>
                             </>
                           )}
                         </p>
                       </div>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <div className="text-xs font-mono font-bold text-purple-700">
                         {Math.round((selectedException.ai_confidence || 0.98) * 100)}% Confidence
                       </div>
@@ -492,6 +490,33 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                       {selectedException.ai_explanation || 'Cross-referencing amortizing term with origination date reveals a transcription boundary typo.'}
                     </p>
                   </div>
+
+                  {/* Expandable Prompt Context & System Rule Transparency Drawer */}
+                  {selectedException.ai_prompt && (
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowPromptDetails(!showPromptDetails)}
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[11px] font-mono text-purple-700 font-bold transition-all shadow-sm active:scale-95"
+                      >
+                        <Info className="w-3.5 h-3.5 text-purple-600" />
+                        <span>{showPromptDetails ? 'Hide System Prompt & Context' : 'Inspect System Prompt & Context'}</span>
+                        {showPromptDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+
+                      {showPromptDetails && (
+                        <div className="mt-2.5 p-3.5 rounded-xl bg-[#060913] text-white border border-purple-500/30 text-xs font-mono space-y-2 animate-fade-in shadow-md">
+                          <div className="flex items-center justify-between text-[10px] text-purple-400 font-bold uppercase tracking-wider">
+                            <span>Canonical System Prompt Context &amp; Governance Constraints</span>
+                            <span className="text-slate-500">{selectedException.ai_model || 'gemini-1.5-pro'}</span>
+                          </div>
+                          <div className="p-3 rounded-lg bg-white/[0.04] border border-white/10 text-[11px] text-cyan-300 font-mono leading-relaxed overflow-x-auto">
+                            {selectedException.ai_prompt}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Suggested Patch Preview */}
                   {selectedException.ai_suggested_patch && (
