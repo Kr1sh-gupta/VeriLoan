@@ -80,6 +80,18 @@ export interface VerifiedLoan {
   quality_score?: number;
 }
 
+export interface HashVerificationDetail {
+  is_valid: boolean;
+  stored_hash: string;
+  recalculated_hash: string;
+  tamper_detected: boolean;
+}
+
+export interface VerifiedLoanDetailResponse {
+  verified_record: VerifiedLoan;
+  hash_verification: HashVerificationDetail;
+}
+
 export interface AuditEvent {
   id: string;
   loan_id?: string;
