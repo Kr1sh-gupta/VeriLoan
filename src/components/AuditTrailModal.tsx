@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { GitCommit, Clock, X, RefreshCw } from 'lucide-react';
+import { GitCommit, Clock, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import type { AuditEvent } from '../types';
 import { fetchAuditTrail } from '../lib/api';
 
@@ -14,6 +14,7 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
 }) => {
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -27,16 +28,24 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
     const loadEvents = async () => {
       try {
         setLoading(true);
+        setError(null);
         const res = await fetchAuditTrail(loanId);
         setEvents(res);
       } catch (err) {
         console.error(err);
+        setError('Could not load the audit trail. Please try again.');
       } finally {
         setLoading(false);
       }
     };
     loadEvents();
   }, [loanId]);
+
+  const formatTimestamp = (ts: string | undefined | null) => {
+    if (!ts) return 'Unknown time';
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? 'Unknown time' : d.toLocaleString();
+  };
 
   return (
     <div 
@@ -72,6 +81,11 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
           <div className="py-12 text-center text-slate-400 font-mono text-xs flex items-center justify-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-blue-500" /> Loading event history...
           </div>
+        ) : error ? (
+          <div className="py-12 text-center text-red-400 font-mono text-xs flex flex-col items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            <span>{error}</span>
+          </div>
         ) : events.length === 0 ? (
           <div className="text-center py-10 text-slate-500 text-xs font-sans">
             No audit events found for Loan {loanId}.
@@ -89,7 +103,7 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
                       {ev.event_type}
                     </span>
                     <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {new Date(ev.timestamp).toLocaleString()}
+                      <Clock className="w-3 h-3" /> {formatTimestamp(ev.timestamp)}
                     </span>
                   </div>
 
