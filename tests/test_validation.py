@@ -78,3 +78,25 @@ def test_val_014_paid_off_with_balance(db_session):
     exc = db_session.query(ValidationException).filter(ValidationException.rule_code == "VAL-014").first()
     assert exc is not None
     assert exc.severity == "HIGH"
+
+def test_val_015_repeated_borrower_concentration(db_session):
+    for i in range(1, 4):
+        loan = Loan(
+            id=f"row-val15-{i}",
+            loan_id=f"LN-VAL15-{i}",
+            borrower_id="BW-REPEAT-999",
+            origination_date="2023-01-01",
+            maturity_date="2053-01-01",
+            original_principal=200000.0,
+            current_balance=190000.0,
+            borrower_state="TX",
+            payment_status="CURRENT"
+        )
+        db_session.add(loan)
+    db_session.commit()
+
+    ValidationService.run_all_validations(db_session)
+    exceptions = db_session.query(ValidationException).filter(ValidationException.rule_code == "VAL-015").all()
+    assert len(exceptions) >= 3
+    assert exceptions[0].severity == "MEDIUM"
+    assert "concentration risk" in exceptions[0].error_message.lower()
