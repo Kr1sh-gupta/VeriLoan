@@ -14,14 +14,26 @@ interface NotificationCenterProps {
   onClose: () => void;
   notifications: NotificationItem[];
   onMarkAllAsRead: () => void;
+  onMarkAsRead?: (id: string) => void;
   onNavigate: (tab: string, role?: UserRole) => void;
 }
+
+const TAB_TO_ROLE: Record<string, UserRole> = {
+  ingest: 'OPERATOR',
+  operator: 'OPERATOR',
+  reviewer: 'REVIEWER',
+  consumer: 'CONSUMER',
+  export: 'CONSUMER',
+  admin: 'ADMIN',
+  api: 'ADMIN',
+};
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   isOpen,
   onClose,
   notifications,
   onMarkAllAsRead,
+  onMarkAsRead,
   onNavigate,
 }) => {
   useEffect(() => {
@@ -84,13 +96,17 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             const isError = item.severity === 'ERROR';
             const isWarning = item.severity === 'WARNING';
             const isSuccess = item.severity === 'SUCCESS';
+            const targetRole = item.actionUrl ? TAB_TO_ROLE[item.actionUrl] : undefined;
 
             return (
               <div
                 key={item.id}
                 onClick={() => {
+                  if (onMarkAsRead) {
+                    onMarkAsRead(item.id);
+                  }
                   if (item.actionUrl) {
-                    onNavigate(item.actionUrl);
+                    onNavigate(item.actionUrl, targetRole);
                     onClose();
                   }
                 }}

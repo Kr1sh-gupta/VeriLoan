@@ -388,23 +388,11 @@ export const fetchExceptions = async (severity?: string, status: string = 'OPEN'
 };
 
 export const requestAIExplanation = async (exceptionId: string, customInstruction?: string): Promise<AIExplainResponse> => {
-  try {
-    const { data } = await api.post<AIExplainResponse>('/ai/explain', {
-      exception_id: exceptionId,
-      custom_instruction: customInstruction,
-    });
-    return data;
-  } catch {
-    return {
-      exception_id: exceptionId,
-      explanation: 'AI Diligence Engine identified a typographical inconsistency in maturity date calculation against loan term length. Applying the recommended correction will restore mathematical compliance.',
-      suggested_patch: { maturity_date: '2052-05-15' },
-      confidence: 0.98,
-      model: 'gemini-1.5-pro (Deterministic Mode)',
-      prompt: 'Verify canonical constraints: origination_date + term_months == maturity_date.',
-      timestamp: new Date().toISOString()
-    };
-  }
+  const { data } = await api.post<AIExplainResponse>('/ai/explain', {
+    exception_id: exceptionId,
+    custom_instruction: customInstruction,
+  });
+  return data;
 };
 
 export const resolveException = async (

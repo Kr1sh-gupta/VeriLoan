@@ -77,38 +77,38 @@ export const ExportCenter: React.FC = () => {
   };
 
   return (
-    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         
         {/* Header Banner */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200">
-          <div className="space-y-2">
-            <div className="text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-2 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 sm:pb-6 border-b border-slate-200">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="text-[10px] sm:text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-2 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>MODULE G • EXPORT CENTER &amp; COMPLIANCE DELIVERY</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-sans">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-sans">
               Export Center
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl leading-relaxed">
               Generate standardized downstream exports of verified canonical loan records paired with immutable cryptographic audit trails.
             </p>
           </div>
 
-          <div className="flex items-center space-x-3 text-xs font-mono text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 font-bold">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center space-x-3 text-xs font-mono text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 font-bold shrink-0">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>Verified Data Only Boundary Active</span>
           </div>
         </div>
 
         {/* Export Configuration Card */}
-        <div className="p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
+        <div className="p-4 sm:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-sm shrink-0">
               <Download className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900 font-sans">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 font-sans">
                 Configure Dataset Export Package
               </h3>
               <p className="text-xs text-slate-500 font-sans">
@@ -201,16 +201,16 @@ export const ExportCenter: React.FC = () => {
 
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="text-xs font-mono text-slate-600 flex items-center gap-2 font-medium">
-              <Lock className="w-4 h-4 text-emerald-600" />
+              <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>Immutable Export Package • Ready for GSE / Trustee Delivery</span>
             </div>
 
             <button
               onClick={handleTriggerExport}
               disabled={isExporting}
-              className="px-6 py-3 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <Download className="w-4 h-4" />
               <span>{isExporting ? 'Generating Package...' : 'Download Export Package'}</span>
@@ -221,12 +221,12 @@ export const ExportCenter: React.FC = () => {
         {/* Export History Table */}
         <div className="space-y-4">
           <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 uppercase tracking-wider font-bold">
-            <History className="w-4 h-4 text-blue-600" />
+            <History className="w-4 h-4 text-blue-600 shrink-0" />
             <span>Export History &amp; Compliance Logs</span>
           </div>
 
-          <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left text-xs font-mono border-collapse">
+          <div className="rounded-2xl bg-white border border-slate-200 overflow-x-auto shadow-sm">
+            <table className="w-full text-left text-xs font-mono border-collapse min-w-[700px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px]">
                   <th className="px-6 py-3.5 font-bold">Dataset Name</th>
