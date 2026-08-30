@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "last_updated": "2026-08-26T00:00:00Z",
+  "last_updated": "2026-08-30T17:25:20.360758Z",
   "rules": [
     {
       "code": "VAL-001",
@@ -8,6 +8,7 @@
       "category": "MANDATORY",
       "severity": "CRITICAL",
       "field": "loan_id",
+      "enabled": true,
       "description": "Each record must have a non-empty, non-null loan ID identifier."
     },
     {
@@ -16,6 +17,7 @@
       "category": "INTEGRITY",
       "severity": "CRITICAL",
       "field": "loan_id",
+      "enabled": true,
       "description": "Loan ID must be strictly unique across the portfolio tape."
     },
     {
@@ -24,6 +26,7 @@
       "category": "INTEGRITY",
       "severity": "HIGH",
       "field": "borrower_id",
+      "enabled": true,
       "description": "Flags duplicate loans sharing same borrower ID, principal balance, and origination date."
     },
     {
@@ -32,6 +35,7 @@
       "category": "FORMAT",
       "severity": "HIGH",
       "field": "origination_date, maturity_date",
+      "enabled": true,
       "description": "Dates must adhere strictly to standard YYYY-MM-DD format."
     },
     {
@@ -40,6 +44,7 @@
       "category": "LOGIC",
       "severity": "CRITICAL",
       "field": "maturity_date",
+      "enabled": true,
       "description": "Maturity date must occur strictly after the origination date."
     },
     {
@@ -48,6 +53,8 @@
       "category": "FINANCIAL",
       "severity": "CRITICAL",
       "field": "original_principal, current_balance",
+      "enabled": true,
+      "allow_negative": false,
       "description": "Original principal and current balance cannot be negative numbers."
     },
     {
@@ -56,15 +63,21 @@
       "category": "FINANCIAL",
       "severity": "HIGH",
       "field": "current_balance",
+      "enabled": true,
+      "allow_exceeds_principal": false,
       "description": "Current balance cannot exceed original principal without an authorized negative amortization rider."
     },
     {
       "code": "VAL-008",
       "name": "Interest Rate Bounds",
       "category": "FINANCIAL",
-      "severity": "MEDIUM",
+      "severity": "CRITICAL",
       "field": "interest_rate",
-      "description": "Interest rate must fall between 0.0% and 36.0% statutory maximum."
+      "enabled": true,
+      "min_value": 0.0,
+      "max_value": 36.0,
+      "description": "Interest rate must fall between 0.0% and 36.0% statutory maximum.",
+      "max_interest_rate": 30.0
     },
     {
       "code": "VAL-009",
@@ -72,6 +85,8 @@
       "category": "CONSISTENCY",
       "severity": "HIGH",
       "field": "payment_status, days_past_due",
+      "enabled": true,
+      "current_max_dpd": 30,
       "description": "Days past due must logically correspond with the designated payment status classification."
     },
     {
@@ -80,6 +95,13 @@
       "category": "DOCUMENTATION",
       "severity": "MEDIUM",
       "field": "document_status",
+      "enabled": true,
+      "disallowed_statuses": [
+        "MISSING",
+        "EXPIRED",
+        "UNVERIFIED",
+        ""
+      ],
       "description": "Required promissory notes and deeds of trust must be present in the document manifest."
     },
     {
@@ -88,6 +110,8 @@
       "category": "RECONCILIATION",
       "severity": "HIGH",
       "field": "current_balance, payment_status",
+      "enabled": true,
+      "balance_diff_threshold": 50.0,
       "description": "Balances and payment statuses in the primary tape must reconcile with the second-source servicer update."
     },
     {
@@ -96,6 +120,8 @@
       "category": "FRESHNESS",
       "severity": "LOW",
       "field": "last_updated_at",
+      "enabled": true,
+      "max_age_days": 180,
       "description": "Records updated more than 180 days ago are flagged as stale."
     },
     {
@@ -104,6 +130,7 @@
       "category": "FORMAT",
       "severity": "MEDIUM",
       "field": "borrower_state",
+      "enabled": true,
       "description": "Borrower state must be a valid 2-letter US postal state/territory abbreviation."
     },
     {
@@ -112,6 +139,7 @@
       "category": "STATUS",
       "severity": "HIGH",
       "field": "payment_status, current_balance",
+      "enabled": true,
       "description": "Loans designated as PAID_OFF or CLOSED must carry a $0.00 current balance."
     },
     {
@@ -120,6 +148,8 @@
       "category": "CONCENTRATION",
       "severity": "MEDIUM",
       "field": "borrower_id",
+      "enabled": true,
+      "max_loan_count": 3,
       "description": "Flags borrowers appearing across 3 or more distinct loans in the portfolio tape to detect borrower concentration risk."
     }
   ]
