@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   RefreshCw,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Send
 } from 'lucide-react';
 import type { ValidationException } from '../types';
 import { 
@@ -115,13 +116,17 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
       const data = await fetchExceptions(
         severityFilter === 'ALL' ? undefined : severityFilter,
         'OPEN',
-        searchQuery || undefined
+        searchQuery.trim() || undefined
       );
       setExceptions(data);
-      if (data.length > 0 && !selectedException) {
-        const firstExc = data[0];
-        setSelectedException(firstExc);
-        loadLoanDetail(firstExc.loan_id_ref);
+      if (data.length > 0) {
+        if (!selectedException || !data.some((e) => e.id === selectedException.id)) {
+          const firstExc = data[0];
+          setSelectedException(firstExc);
+          loadLoanDetail(firstExc.loan_id_ref);
+        }
+      } else {
+        setSelectedException(null);
       }
     } catch (err) {
       console.error('Failed to load reviewer exceptions', err);
@@ -139,8 +144,11 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
   };
 
   useEffect(() => {
-    loadData();
-  }, [severityFilter]);
+    const timer = setTimeout(() => {
+      loadData();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [severityFilter, searchQuery]);
 
   const handleSelectException = (exc: ValidationException) => {
     setSelectedException(exc);
@@ -161,7 +169,43 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
     'quality_score'
   ];
 
-  const handleResolveAction = async (action: 'ACCEPT_AI' | 'MANUAL_EDIT' | 'REJECT' | 'DISMISS') => {
+  const DATE_LOAN_FIELDS = [
+    'origination_date',
+    'maturity_date',
+    'last_payment_date'
+  ];
+
+  const getFieldValidation = (fieldName?: string, val?: string) => {
+    if (!val || !val.trim()) return { isValid: false, message: '' };
+    const trimmed = val.trim();
+    const field = (fieldName || '').toLowerCase();
+
+    if (NUMERIC_LOAN_FIELDS.some(f => field.includes(f))) {
+      if (isNaN(Number(trimmed)) || trimmed === '') {
+        return { isValid: false, message: `Field "${fieldName}" requires a valid numeric value (e.g. 250000 or 5.75)` };
+      }
+      if (Number(trimmed) < 0 && !field.includes('days_past_due')) {
+        return { isValid: false, message: `Financial value for "${fieldName}" cannot be negative` };
+      }
+      return { isValid: true, message: '' };
+    }
+
+    if (DATE_LOAN_FIELDS.some(f => field.includes(f))) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(trimmed) || isNaN(Date.parse(trimmed))) {
+        return { isValid: false, message: `Date field "${fieldName}" requires YYYY-MM-DD format (e.g. 2024-06-15)` };
+      }
+      return { isValid: true, message: '' };
+    }
+
+    return { isValid: true, message: '' };
+  };
+
+  const fieldValidation = getFieldValidation(selectedException?.field_name, manualPatchValue);
+  const isManualEditValid = manualPatchValue.trim() !== '' && fieldValidation.isValid;
+  const isCorrectionValid = customNotes.trim().length >= 5;
+
+  const handleResolveAction = async (action: 'ACCEPT_AI' | 'MANUAL_EDIT' | 'REJECT' | 'DISMISS' | 'REQUEST_CORRECTION') => {
     if (!selectedException) return;
 
     try {
@@ -186,6 +230,8 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
         defaultNote = 'Loan rejected from portfolio by reviewer';
       } else if (action === 'DISMISS') {
         defaultNote = 'Exception dismissed as non-blocking waiver';
+      } else if (action === 'REQUEST_CORRECTION') {
+        defaultNote = 'Correction requested from primary servicer / lender';
       }
 
       await resolveException(
@@ -196,6 +242,27 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
         'Marcus Vance (Senior Reviewer)'
       );
 
+      // Add in-app notification if correction was requested
+      if (action === 'REQUEST_CORRECTION') {
+        try {
+          const stored = localStorage.getItem('veriloan_notifications');
+          const currentNotifs = stored ? JSON.parse(stored) : [];
+          const newNotif = {
+            id: `notif-${Date.now()}`,
+            title: `Correction Notice Dispatched: ${selectedException.loan_id_code}`,
+            message: `Reviewer dispatched remediation notice to servicer for ${selectedException.rule_code}: ${customNotes || defaultNote}`,
+            type: 'warning',
+            read: false,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            loan_id: selectedException.loan_id_code,
+          };
+          localStorage.setItem('veriloan_notifications', JSON.stringify([newNotif, ...currentNotifs]));
+          window.dispatchEvent(new Event('storage'));
+        } catch {
+          // ignore
+        }
+      }
+
       // Reset form input values ONLY AFTER successful API resolution response
       setCustomNotes('');
       setManualPatchValue('');
@@ -203,10 +270,15 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
       const actionText = action === 'ACCEPT_AI' ? 'AI Patch Accepted'
                        : action === 'MANUAL_EDIT' ? 'Custom Manual Edit Applied'
                        : action === 'REJECT' ? 'Loan Rejected'
+                       : action === 'REQUEST_CORRECTION' ? 'Correction Requested from Servicer'
                        : 'Exception Dismissed';
 
+      const successMsg = action === 'REQUEST_CORRECTION'
+        ? `Correction request dispatched to primary servicer for Loan ${selectedException.loan_id_code}. Exception kept in remediation queue & logged to audit ledger.`
+        : `Exception for Loan ${selectedException.loan_id_code} successfully resolved via ${actionText}. Record queued for canonical sealing.`;
+
       setActionStatus({
-        message: `Exception for Loan ${selectedException.loan_id_code} successfully resolved via ${actionText}. Record queued for canonical sealing.`,
+        message: successMsg,
         type: 'success'
       });
 
@@ -284,10 +356,24 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
     }
   };
 
+  // Dynamic client + server search filter
+  const displayedExceptions = exceptions.filter((exc) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      (exc.loan_id_code && exc.loan_id_code.toLowerCase().includes(q)) ||
+      (exc.borrower_id && exc.borrower_id.toLowerCase().includes(q)) ||
+      (exc.rule_code && exc.rule_code.toLowerCase().includes(q)) ||
+      (exc.field_name && exc.field_name.toLowerCase().includes(q)) ||
+      (exc.error_message && exc.error_message.toLowerCase().includes(q)) ||
+      (exc.category && exc.category.toLowerCase().includes(q))
+    );
+  });
+
   // Severity counts
-  const critCount = exceptions.filter((e) => e.severity === 'CRITICAL').length;
-  const highCount = exceptions.filter((e) => e.severity === 'HIGH').length;
-  const medCount = exceptions.filter((e) => e.severity === 'MEDIUM').length;
+  const critCount = displayedExceptions.filter((e) => e.severity === 'CRITICAL').length;
+  const highCount = displayedExceptions.filter((e) => e.severity === 'HIGH').length;
+  const medCount = displayedExceptions.filter((e) => e.severity === 'MEDIUM').length;
 
   return (
     <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8">
@@ -335,7 +421,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-sans mt-0.5 leading-relaxed">
-                {exceptions.length} open exceptions detected across 250 loans. Critical maturity &amp; rate violations prioritized for immediate sign-off.
+                {displayedExceptions.length} open exceptions detected across 250 loans. Critical maturity &amp; rate violations prioritized for immediate sign-off.
               </p>
             </div>
           </div>
@@ -383,14 +469,22 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter by Loan ID, Rule, Field..."
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl py-2 pl-9 pr-4 text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
+                  placeholder="Search Loan ID, Borrower ID (e.g. BOR-20020), Rule..."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl py-2 pl-9 pr-8 text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
                 {[
-                  { id: 'ALL', label: `All (${exceptions.length})` },
+                  { id: 'ALL', label: `All (${displayedExceptions.length})` },
                   { id: 'CRITICAL', label: `Critical (${critCount})` },
                   { id: 'HIGH', label: `High (${highCount})` },
                   { id: 'MEDIUM', label: `Medium (${medCount})` },
@@ -417,14 +511,18 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                   <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
                   <span>Loading exception queue...</span>
                 </div>
-              ) : exceptions.length === 0 ? (
+              ) : displayedExceptions.length === 0 ? (
                 <div className="p-12 text-center rounded-2xl bg-white border border-slate-200 text-slate-500 shadow-sm">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <div className="font-bold text-slate-900 font-sans text-sm">All Exceptions Resolved!</div>
-                  <div className="text-xs text-slate-500 mt-1">Clean records ready for canonical sealing.</div>
+                  <CheckCircle2 className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <div className="font-bold text-slate-900 font-sans text-sm">
+                    {searchQuery ? 'No Matching Exceptions' : 'All Exceptions Resolved!'}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {searchQuery ? `No open exceptions matched "${searchQuery}".` : 'Clean records ready for canonical sealing.'}
+                  </div>
                 </div>
               ) : (
-                exceptions.map((exc) => {
+                displayedExceptions.map((exc) => {
                   const isSelected = selectedException?.id === exc.id;
                   const isCrit = exc.severity === 'CRITICAL';
                   const isHigh = exc.severity === 'HIGH';
@@ -444,6 +542,11 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                           <span className="font-bold text-xs font-mono text-slate-900 truncate">
                             {exc.loan_id_code}
                           </span>
+                          {exc.borrower_id && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200 shrink-0">
+                              {exc.borrower_id}
+                            </span>
+                          )}
                           <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-bold uppercase shrink-0 ${
                             isCrit ? 'bg-red-50 text-red-700 border border-red-200' :
                             isHigh ? 'bg-amber-50 text-amber-800 border border-amber-200' :
@@ -494,6 +597,11 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                       </div>
                       <h2 className="text-base sm:text-lg font-bold font-sans text-slate-900 mt-0.5 flex flex-wrap items-center gap-2">
                         <span>{selectedException.loan_id_code}</span>
+                        {selectedException.borrower_id && (
+                          <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                            Borrower: {selectedException.borrower_id}
+                          </span>
+                        )}
                         <span className="text-slate-500 font-normal text-xs font-mono">• {selectedException.rule_code}</span>
                       </h2>
                     </div>
@@ -745,68 +853,112 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[11px] font-mono uppercase text-slate-600 font-bold mb-1">
-                        Manual Override Value (Optional)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-mono uppercase text-slate-600 font-bold">
+                          Manual Override Value (Required for Custom Edit)
+                        </label>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          Target Field: <code className="text-blue-700 font-bold bg-blue-50 px-1 py-0.5 rounded">{selectedException.field_name || 'value'}</code>
+                        </span>
+                      </div>
                       <input
                         type="text"
                         value={manualPatchValue}
                         onChange={(e) => setManualPatchValue(e.target.value)}
-                        placeholder={`Enter custom value for ${selectedException.field_name}...`}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
+                        placeholder={
+                          NUMERIC_LOAN_FIELDS.some(f => (selectedException.field_name || '').toLowerCase().includes(f))
+                            ? `Enter numeric value for ${selectedException.field_name} (e.g. 500000)...`
+                            : DATE_LOAN_FIELDS.some(f => (selectedException.field_name || '').toLowerCase().includes(f))
+                            ? `Enter date for ${selectedException.field_name} (YYYY-MM-DD)...`
+                            : `Enter custom value for ${selectedException.field_name}...`
+                        }
+                        className={`w-full bg-slate-50 border rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white transition-all ${
+                          manualPatchValue.trim() && !fieldValidation.isValid
+                            ? 'border-red-400 focus:border-red-500 bg-red-50/30'
+                            : manualPatchValue.trim() && fieldValidation.isValid
+                            ? 'border-emerald-400 focus:border-emerald-500 bg-emerald-50/20'
+                            : 'border-slate-300 focus:border-blue-500'
+                        }`}
                       />
+                      {manualPatchValue.trim() && !fieldValidation.isValid && (
+                        <div className="text-[11px] font-sans text-red-600 mt-1 flex items-center gap-1 font-medium animate-fade-in">
+                          <span>⚠️ {fieldValidation.message}</span>
+                        </div>
+                      )}
+                      {manualPatchValue.trim() && fieldValidation.isValid && (
+                        <div className="text-[11px] font-sans text-emerald-700 mt-1 flex items-center gap-1 font-medium animate-fade-in">
+                          <span>✓ Valid format for {selectedException.field_name}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-mono uppercase text-slate-600 font-bold mb-1">
-                        Reviewer Audit Notes / Justification
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-mono uppercase text-slate-600 font-bold">
+                          Reviewer Audit Notes / Justification
+                        </label>
+                        <span className={`text-[10px] font-mono ${customNotes.trim().length >= 5 ? 'text-emerald-700 font-bold' : 'text-slate-400'}`}>
+                          Min 5 chars for [Correction] ({customNotes.trim().length}/5)
+                        </span>
+                      </div>
                       <input
                         type="text"
                         value={customNotes}
                         onChange={(e) => setCustomNotes(e.target.value)}
-                        placeholder="e.g. Verified against physical deed and title policy..."
+                        placeholder="e.g. Verified against physical deed and title policy / Servicer must remediate..."
                         className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                       />
                     </div>
                   </div>
 
-                  {/* Clean 3-Button Action Grid */}
-                  <div className="pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                  {/* Clean 4-Button Diligence Action Grid */}
+                  <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                     {/* Action 1: Accept AI Patch (Green) */}
                     <button
                       onClick={() => handleResolveAction('ACCEPT_AI')}
                       disabled={resolvingAction !== null}
                       title="Explicitly approve recommended AI remediation patch and sign audit trail"
                       aria-label="Accept AI Patch: Explicitly approve recommended AI remediation patch and sign audit trail"
-                      className="w-full py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5"
+                      className="w-full py-3 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      {resolvingAction === 'ACCEPT_AI' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                      <span>[Accept AI Patch]</span>
+                      {resolvingAction === 'ACCEPT_AI' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      <span>[Accept AI]</span>
                     </button>
 
                     {/* Action 2: Custom Edit (Neutral/Slate) */}
                     <button
                       onClick={() => handleResolveAction('MANUAL_EDIT')}
-                      disabled={resolvingAction !== null || (!manualPatchValue && !customNotes)}
-                      title={!manualPatchValue && !customNotes ? "Enter manual override value or audit notes to enable custom edit" : "Submit custom manual field correction and sign audit trail"}
+                      disabled={resolvingAction !== null || !isManualEditValid}
+                      title={!isManualEditValid ? (manualPatchValue.trim() ? fieldValidation.message : `Enter a valid manual override value for ${selectedException.field_name || 'the field'} to enable Custom Edit`) : "Submit custom manual field correction and sign audit trail"}
                       aria-label="Custom Edit: Submit custom manual field correction and sign audit trail"
-                      className="w-full py-3 px-3 rounded-xl bg-[#0b1c30] hover:bg-slate-800 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5"
+                      className="w-full py-3 px-2.5 rounded-xl bg-[#0b1c30] hover:bg-slate-800 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
                     >
-                      {resolvingAction === 'MANUAL_EDIT' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4 text-cyan-400" />}
+                      {resolvingAction === 'MANUAL_EDIT' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />}
                       <span>[Custom Edit]</span>
                     </button>
 
-                    {/* Action 3: Reject/Dismiss (Red) */}
+                    {/* Action 3: Request Correction (Amber/Orange) */}
+                    <button
+                      onClick={() => handleResolveAction('REQUEST_CORRECTION')}
+                      disabled={resolvingAction !== null || !isCorrectionValid}
+                      title={!isCorrectionValid ? "Enter at least 5 characters of remediation instructions in Reviewer Audit Notes before requesting correction" : "Dispatch correction request notice back to primary lender/servicer"}
+                      aria-label="Request Correction: Dispatch correction request notice back to primary lender/servicer"
+                      className="w-full py-3 px-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-35 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {resolvingAction === 'REQUEST_CORRECTION' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                      <span>[Correction]</span>
+                    </button>
+
+                    {/* Action 4: Reject/Dismiss (Red) */}
                     <button
                       onClick={() => handleResolveAction('REJECT')}
                       disabled={resolvingAction !== null}
                       title="Reject loan record from portfolio or dismiss exception with human sign-off"
                       aria-label="Reject/Dismiss: Reject loan record from portfolio or dismiss exception with human sign-off"
-                      className="w-full py-3 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5"
+                      className="w-full py-3 px-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 hover:shadow-lg hover:-translate-y-0.5 text-white font-bold text-[11px] font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      {resolvingAction === 'REJECT' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                      <span>[Reject/Dismiss]</span>
+                      {resolvingAction === 'REJECT' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                      <span>[Reject]</span>
                     </button>
                   </div>
 

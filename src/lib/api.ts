@@ -397,7 +397,7 @@ export const requestAIExplanation = async (exceptionId: string, customInstructio
 
 export const resolveException = async (
   exceptionId: string, 
-  action: 'ACCEPT_AI' | 'MANUAL_EDIT' | 'REJECT' | 'DISMISS', 
+  action: 'ACCEPT_AI' | 'MANUAL_EDIT' | 'REJECT' | 'DISMISS' | 'REQUEST_CORRECTION', 
   correctedData?: Record<string, any>, 
   notes?: string,
   reviewerName?: string
