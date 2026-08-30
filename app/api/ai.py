@@ -63,8 +63,25 @@ def batch_summary_exceptions(payload: AIBatchSummaryRequest, db: Session = Depen
     return AIBatchSummaryResponse(**res)
 
 @router.post("/generate-rule", response_model=AIRuleGenResponse)
-def generate_rule_from_text(payload: AIRuleGenRequest):
+def generate_rule_from_text(payload: AIRuleGenRequest, db: Session = Depends(get_db)):
     if not payload.natural_language_description.strip():
         raise HTTPException(status_code=400, detail="Description cannot be empty.")
     res = AIService.generate_rule_from_text(payload.natural_language_description)
+
+    # Log RULE_CREATED audit event
+    AuditService.log_event(
+        db=db,
+        event_type="RULE_CREATED",
+        actor_id="ai_rule_synthesizer",
+        actor_role="SYSTEM",
+        summary=f"Synthesized new validation rule {res.get('rule_code', 'CUSTOM_RULE')} from natural language prompt.",
+        metadata_json={
+            "rule_code": res.get("rule_code"),
+            "category": res.get("category"),
+            "severity": res.get("severity"),
+            "description": payload.natural_language_description,
+            "python_expression": res.get("python_expression")
+        }
+    )
+
     return AIRuleGenResponse(**res)

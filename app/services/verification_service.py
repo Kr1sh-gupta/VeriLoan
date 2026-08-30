@@ -120,7 +120,7 @@ class VerificationService:
         # Log audit event
         AuditService.log_event(
             db=db,
-            event_type="VERIFIED_RECORD_CREATED",
+            event_type="VERIFICATION_SEALED",
             actor_id=actor_id,
             actor_role=actor_role,
             summary=f"Loan {loan.loan_id} sealed as Verified Record with SHA-256: {record_hash[:16]}...",
@@ -164,10 +164,35 @@ class VerificationService:
                 )
                 verified_count += 1
 
+        if verified_count > 0:
+            AuditService.log_event(
+                db=db,
+                event_type="BATCH_SEALED",
+                actor_id=actor_id,
+                actor_role=actor_role,
+                summary=f"Batch verification sealed {verified_count} clean loans into immutable VerifiedLoan pool by {verified_by}.",
+                metadata_json={"verified_count": verified_count, "verified_by": verified_by}
+            )
+
         return verified_count
 
     @classmethod
-    def verify_hash_integrity(cls, verified_loan: VerifiedLoan) -> Tuple[bool, str]:
+    def verify_hash_integrity(cls, verified_loan: VerifiedLoan, db: Optional[Session] = None) -> Tuple[bool, str]:
         recalculated_hash = cls.compute_hash(verified_loan.canonical_data)
         matches = (recalculated_hash == verified_loan.record_hash)
+        if not matches and db is not None:
+            AuditService.log_event(
+                db=db,
+                event_type="TAMPER_DETECTED",
+                actor_id="SYSTEM_INTEGRITY_CHECK",
+                actor_role="SYSTEM",
+                summary=f"Cryptographic hash tamper detected on Loan {verified_loan.loan_id}! Stored hash != Live recalculated hash.",
+                loan_id=verified_loan.loan_id,
+                metadata_json={
+                    "stored_hash": verified_loan.record_hash,
+                    "recalculated_hash": recalculated_hash,
+                    "loan_id": verified_loan.loan_id,
+                    "verified_id": verified_loan.id
+                }
+            )
         return matches, recalculated_hash

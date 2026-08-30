@@ -3,8 +3,10 @@ import os
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Loan, ValidationException, VerifiedLoan, UploadBatch
+from app.models import Loan, ValidationException, VerifiedLoan, UploadBatch, User
 from app.schemas import SystemSummaryMetrics, IngestionSummaryResponse
+from app.services.audit_service import AuditService
+from app.api.auth import require_role
 
 router = APIRouter(prefix="/summary", tags=["Summary & Metrics"])
 
@@ -63,3 +65,37 @@ def get_validation_rules():
         with open(rules_path, "r", encoding="utf-8") as f:
             return json.load(f)
     return {"rules": []}
+
+@router.post("/rules")
+def create_custom_rule(
+    rule_data: dict,
+    current_user: User = Depends(require_role(["REVIEWER", "ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    rule_code = rule_data.get("rule_code", f"R_CUSTOM")
+    AuditService.log_event(
+        db=db,
+        event_type="RULE_CREATED",
+        actor_id=current_user.id,
+        actor_role=current_user.role,
+        summary=f"Created validation rule '{rule_code}': {rule_data.get('name', 'Custom Rule')}",
+        metadata_json={"rule_code": rule_code, "rule_data": rule_data}
+    )
+    return {"status": "SUCCESS", "message": f"Rule {rule_code} registered", "rule_code": rule_code}
+
+@router.put("/rules/{rule_code}")
+def update_validation_rule(
+    rule_code: str,
+    rule_data: dict,
+    current_user: User = Depends(require_role(["REVIEWER", "ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    AuditService.log_event(
+        db=db,
+        event_type="RULE_UPDATED",
+        actor_id=current_user.id,
+        actor_role=current_user.role,
+        summary=f"Updated validation rule '{rule_code}' parameters/thresholds",
+        metadata_json={"rule_code": rule_code, "updated_fields": rule_data}
+    )
+    return {"status": "SUCCESS", "message": f"Rule {rule_code} updated"}
