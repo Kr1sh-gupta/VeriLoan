@@ -1,5 +1,6 @@
 import json
 import os
+import datetime
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -58,13 +59,28 @@ def get_system_summary(db: Session = Depends(get_db)):
         ]
     )
 
+def _get_rules_file_path() -> str:
+    candidate_paths = [
+        os.path.join(os.path.dirname(__file__), "../../../main/data/validation_rules.json"),
+        os.path.join(os.path.dirname(__file__), "../../../data/validation_rules.json"),
+        os.path.join(os.path.dirname(__file__), "../../data/validation_rules.json"),
+        os.path.abspath(os.path.join(os.getcwd(), "main/data/validation_rules.json")),
+        os.path.abspath(os.path.join(os.getcwd(), "../main/data/validation_rules.json")),
+        os.path.abspath(os.path.join(os.getcwd(), "data/validation_rules.json")),
+    ]
+    for p in candidate_paths:
+        if os.path.exists(p):
+            return p
+    # Default to main/data/validation_rules.json
+    return os.path.join(os.path.dirname(__file__), "../../../main/data/validation_rules.json")
+
 @router.get("/rules")
 def get_validation_rules():
-    rules_path = os.path.join(os.path.dirname(__file__), "../../../data/validation_rules.json")
+    rules_path = _get_rules_file_path()
     if os.path.exists(rules_path):
         with open(rules_path, "r", encoding="utf-8") as f:
             return json.load(f)
-    return {"rules": []}
+    return {"version": "1.0.0", "rules": []}
 
 @router.post("/rules")
 def create_custom_rule(
@@ -72,7 +88,39 @@ def create_custom_rule(
     current_user: User = Depends(require_role(["REVIEWER", "ADMIN"])),
     db: Session = Depends(get_db)
 ):
-    rule_code = rule_data.get("rule_code", f"R_CUSTOM")
+    rule_code = rule_data.get("code") or rule_data.get("rule_code") or f"R_CUSTOM"
+    rules_path = _get_rules_file_path()
+    
+    rules_json = {"version": "1.0.0", "rules": []}
+    if os.path.exists(rules_path):
+        try:
+            with open(rules_path, "r", encoding="utf-8") as f:
+                rules_json = json.load(f)
+        except Exception:
+            pass
+
+    existing_rules = rules_json.get("rules", [])
+    # Replace if exists, else append
+    updated = False
+    for i, r in enumerate(existing_rules):
+        if r.get("code") == rule_code:
+            existing_rules[i] = {**r, **rule_data, "code": rule_code}
+            updated = True
+            break
+    if not updated:
+        new_entry = {**rule_data, "code": rule_code}
+        existing_rules.append(new_entry)
+
+    rules_json["rules"] = existing_rules
+    rules_json["last_updated"] = datetime.datetime.utcnow().isoformat() + "Z"
+
+    try:
+        os.makedirs(os.path.dirname(rules_path), exist_ok=True)
+        with open(rules_path, "w", encoding="utf-8") as f:
+            json.dump(rules_json, f, indent=2)
+    except Exception as e:
+        print(f"[WARN] Failed to write custom rule to {rules_path}: {e}")
+
     AuditService.log_event(
         db=db,
         event_type="RULE_CREATED",
@@ -90,6 +138,36 @@ def update_validation_rule(
     current_user: User = Depends(require_role(["REVIEWER", "ADMIN"])),
     db: Session = Depends(get_db)
 ):
+    rules_path = _get_rules_file_path()
+    rules_json = {"version": "1.0.0", "rules": []}
+    if os.path.exists(rules_path):
+        try:
+            with open(rules_path, "r", encoding="utf-8") as f:
+                rules_json = json.load(f)
+        except Exception:
+            pass
+
+    existing_rules = rules_json.get("rules", [])
+    found = False
+    for i, r in enumerate(existing_rules):
+        if r.get("code") == rule_code:
+            existing_rules[i] = {**r, **rule_data, "code": rule_code}
+            found = True
+            break
+    
+    if not found:
+        existing_rules.append({**rule_data, "code": rule_code})
+
+    rules_json["rules"] = existing_rules
+    rules_json["last_updated"] = datetime.datetime.utcnow().isoformat() + "Z"
+
+    try:
+        os.makedirs(os.path.dirname(rules_path), exist_ok=True)
+        with open(rules_path, "w", encoding="utf-8") as f:
+            json.dump(rules_json, f, indent=2)
+    except Exception as e:
+        print(f"[WARN] Failed to write updated rule to {rules_path}: {e}")
+
     AuditService.log_event(
         db=db,
         event_type="RULE_UPDATED",
@@ -98,4 +176,4 @@ def update_validation_rule(
         summary=f"Updated validation rule '{rule_code}' parameters/thresholds",
         metadata_json={"rule_code": rule_code, "updated_fields": rule_data}
     )
-    return {"status": "SUCCESS", "message": f"Rule {rule_code} updated"}
+    return {"status": "SUCCESS", "message": f"Rule {rule_code} updated", "rule_code": rule_code}

@@ -100,3 +100,60 @@ def test_val_015_repeated_borrower_concentration(db_session):
     assert len(exceptions) >= 3
     assert exceptions[0].severity == "MEDIUM"
     assert "concentration risk" in exceptions[0].error_message.lower()
+
+def test_dynamic_rule_thresholds_override(db_session, monkeypatch):
+    # Test that changing VAL-008 max_value dynamically from 36.0 to 18.0 flags a 22.5% loan
+    custom_rules = {
+        "VAL-008": {
+            "code": "VAL-008",
+            "name": "Interest Rate Bounds",
+            "category": "FINANCIAL",
+            "severity": "HIGH",
+            "enabled": True,
+            "min_value": 2.0,
+            "max_value": 18.0
+        }
+    }
+    monkeypatch.setattr("app.services.validation_service.load_rules_config", lambda: custom_rules)
+
+    loan = Loan(
+        id="row-dynamic-1",
+        loan_id="LN-DYN-008",
+        interest_rate=22.5,
+        original_principal=100000.0,
+        current_balance=95000.0,
+        borrower_state="CA",
+        payment_status="CURRENT"
+    )
+    db_session.add(loan)
+    db_session.commit()
+
+    res = ValidationService.run_all_validations(db_session)
+    assert res["exceptions_raised"] >= 1
+    exc = db_session.query(ValidationException).filter(ValidationException.rule_code == "VAL-008").first()
+    assert exc is not None
+    assert exc.severity == "HIGH"
+    assert "18.0%" in exc.error_message
+
+def test_dynamic_rule_disabled_toggle(db_session, monkeypatch):
+    # Test that disabling VAL-001 skips raising exceptions for missing loan_id
+    custom_rules = {
+        "VAL-001": {
+            "code": "VAL-001",
+            "enabled": False
+        }
+    }
+    monkeypatch.setattr("app.services.validation_service.load_rules_config", lambda: custom_rules)
+
+    loan = Loan(
+        id="row-dynamic-2",
+        loan_id="",
+        original_principal=100000.0,
+        current_balance=95000.0
+    )
+    db_session.add(loan)
+    db_session.commit()
+
+    ValidationService.run_all_validations(db_session)
+    exc = db_session.query(ValidationException).filter(ValidationException.rule_code == "VAL-001").first()
+    assert exc is None
