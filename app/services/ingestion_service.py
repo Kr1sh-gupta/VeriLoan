@@ -137,6 +137,16 @@ class IngestionService:
             metadata_json={"batch_id": batch_id, "filename": filename, "total_rows": len(rows), "file_type": file_type}
         )
 
+        # Log record imported audit event
+        AuditService.log_event(
+            db=db,
+            event_type="RECORD_IMPORTED",
+            actor_id=actor_id,
+            actor_role="OPERATOR",
+            summary=f"Imported {len(rows)} {file_type} records into staging table for batch {batch_id}",
+            metadata_json={"batch_id": batch_id, "record_count": len(rows), "file_type": file_type, "filename": filename}
+        )
+
         validation_stats = None
         if run_validation and file_type in ["LOAN_TAPE", "SERVICER_UPDATE"]:
             validation_stats = ValidationService.run_all_validations(db)

@@ -35,7 +35,7 @@ def get_verified_loan_detail(id: str, db: Session = Depends(get_db)):
     if not verified:
         raise HTTPException(status_code=404, detail="Verified loan record not found.")
 
-    matches, recalculated = VerificationService.verify_hash_integrity(verified)
+    matches, recalculated = VerificationService.verify_hash_integrity(verified, db=db)
     
     return {
         "verified_record": VerifiedLoanSchema.from_orm(verified),
