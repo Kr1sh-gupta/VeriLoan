@@ -161,6 +161,13 @@ class ValidationService:
             r4 = rules_cfg.get("VAL-004", {})
             orig_dt = parse_iso_date(loan.origination_date)
             mat_dt = parse_iso_date(loan.maturity_date)
+            lpd_dt = parse_iso_date(loan.last_payment_date) if loan.last_payment_date else None
+            
+            lua_valid = True
+            if loan.last_updated_at and str(loan.last_updated_at).strip():
+                lua_prefix = str(loan.last_updated_at).strip().split()[0]
+                if not parse_iso_date(lua_prefix):
+                    lua_valid = False
             
             if r4.get("enabled", True):
                 if loan.origination_date and not orig_dt:
@@ -189,6 +196,34 @@ class ValidationService:
                         error_message=f"Invalid date value/format for maturity_date: '{loan.maturity_date}'. Must be valid calendar date in YYYY-MM-DD.",
                         actual_value=str(loan.maturity_date),
                         expected_condition="YYYY-MM-DD",
+                        status="OPEN"
+                    ))
+                if loan.last_payment_date and str(loan.last_payment_date).strip() and not lpd_dt:
+                    loan_exceptions.append(ValidationException(
+                        id=f"exc-{uuid.uuid4().hex[:12]}",
+                        loan_id_ref=loan.id,
+                        loan_id_code=lid,
+                        rule_code="VAL-004",
+                        category=r4.get("category", "FORMAT"),
+                        severity=r4.get("severity", "HIGH"),
+                        field_name="last_payment_date",
+                        error_message=f"Invalid date format for last_payment_date: '{loan.last_payment_date}'. Must be ISO-8601 YYYY-MM-DD.",
+                        actual_value=str(loan.last_payment_date),
+                        expected_condition="YYYY-MM-DD",
+                        status="OPEN"
+                    ))
+                if loan.last_updated_at and str(loan.last_updated_at).strip() and not lua_valid:
+                    loan_exceptions.append(ValidationException(
+                        id=f"exc-{uuid.uuid4().hex[:12]}",
+                        loan_id_ref=loan.id,
+                        loan_id_code=lid,
+                        rule_code="VAL-004",
+                        category=r4.get("category", "FORMAT"),
+                        severity=r4.get("severity", "HIGH"),
+                        field_name="last_updated_at",
+                        error_message=f"Invalid timestamp/date format for last_updated_at: '{loan.last_updated_at}'. Must be ISO-8601 YYYY-MM-DD [HH:MM:SS].",
+                        actual_value=str(loan.last_updated_at),
+                        expected_condition="YYYY-MM-DD or YYYY-MM-DD HH:MM:SS",
                         status="OPEN"
                     ))
 
