@@ -19,6 +19,7 @@ import { fetchSummary, STATIC_USERS, INITIAL_NOTIFICATIONS } from './lib/api';
 const AUTH_STORAGE_KEY = 'veriloan_auth_user';
 const TAB_STORAGE_KEY = 'veriloan_current_tab';
 const ROLE_STORAGE_KEY = 'veriloan_current_role';
+const NOTIFICATIONS_STORAGE_KEY = 'veriloan_notifications';
 
 export function App() {
   // Initialize user from localStorage if present
@@ -80,7 +81,22 @@ export function App() {
   const [loginInitialRole, setLoginInitialRole] = useState<UserRole>('REVIEWER');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [notificationCenterOpen, setNotificationCenterOpen] = useState<boolean>(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+
+  // Notifications State with localStorage persistence
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    try {
+      const stored = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return INITIAL_NOTIFICATIONS;
+  });
 
   const isLanding = currentTab === 'landing';
 
@@ -94,7 +110,7 @@ export function App() {
     }
   };
 
-  // Persist currentRole in localStorage whenever it changes
+  // Persist currentRole and sync currentUser in localStorage whenever it changes
   const handleSetCurrentRole = (role: UserRole) => {
     setCurrentRole(role);
     try {
@@ -102,6 +118,35 @@ export function App() {
     } catch {
       // ignore
     }
+    const matchedUser = STATIC_USERS.find((u) => u.role === role);
+    if (matchedUser) {
+      const { password: _, ...u } = matchedUser;
+      setCurrentUser(u);
+      try {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const saveNotifications = (newNotifications: NotificationItem[]) => {
+    setNotifications(newNotifications);
+    try {
+      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(newNotifications));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleMarkAllNotificationsRead = () => {
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    saveNotifications(updated);
+  };
+
+  const handleMarkNotificationRead = (id: string) => {
+    const updated = notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
+    saveNotifications(updated);
   };
 
   const loadSummary = async () => {
@@ -160,14 +205,10 @@ export function App() {
     setNotificationCenterOpen(false);
   };
 
-  const handleMarkAllNotificationsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
-
   const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col justify-between">
       
       {/* Top Navbar */}
       <Navbar
@@ -230,7 +271,7 @@ export function App() {
         </div>
       ) : (
         /* Dynamic Role-Based Dashboard with Left Sidebar */
-        <div className="flex-1 min-h-screen flex relative bg-[#f8f9fc]">
+        <div className="flex-1 min-h-screen flex relative bg-[#f8f9fc] w-full max-w-full min-w-0 overflow-x-hidden">
           
           {/* Left Burger Menu / Sidebar Navigation */}
           <Sidebar
@@ -257,12 +298,12 @@ export function App() {
           />
 
           {/* Main Dashboard Workspace (Responsive pl-0 on mobile, offset on desktop) */}
-          <main className={`flex-1 flex flex-col justify-between transition-all duration-300 pt-16 sm:pt-20 min-h-screen pl-0 ${
+          <main className={`flex-1 flex flex-col justify-between transition-all duration-300 pt-16 sm:pt-20 min-h-screen pl-0 w-full max-w-full min-w-0 overflow-x-hidden ${
             currentTab === 'api' ? 'bg-[#060913] text-white' : 'bg-[#f8f9fc] text-slate-900'
           } ${
             sidebarOpen ? 'md:pl-64' : 'md:pl-16'
           }`}>
-            <div className="flex-1">
+            <div className="flex-1 w-full max-w-full min-w-0">
               {currentTab === 'ingest' && (
                 <IngestionHub
                   onRefreshSummary={loadSummary}
@@ -311,8 +352,15 @@ export function App() {
                 <ExportCenter />
               )}
 
-              {currentTab === 'admin' && (
-                <AdminConsole />
+              {(currentTab === 'admin' || currentTab.startsWith('admin_')) && (
+                <AdminConsole 
+                  initialTab={
+                    currentTab === 'admin_connectors' ? 'CONNECTORS' :
+                    currentTab === 'admin_rules' ? 'RULES' :
+                    currentTab === 'admin_users' ? 'USERS' :
+                    currentTab === 'admin_audit' ? 'AUDIT' : 'OVERVIEW'
+                  }
+                />
               )}
 
               {currentTab === 'api' && (
@@ -337,6 +385,7 @@ export function App() {
       <CommandPalette
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
+        onOpen={() => setCommandPaletteOpen(true)}
         onNavigate={(tab, role) => {
           if (role) handleSetCurrentRole(role);
           handleSetCurrentTab(tab);
@@ -348,6 +397,7 @@ export function App() {
         onClose={() => setNotificationCenterOpen(false)}
         notifications={notifications}
         onMarkAllAsRead={handleMarkAllNotificationsRead}
+        onMarkAsRead={handleMarkNotificationRead}
         onNavigate={(tab, role) => {
           if (role) handleSetCurrentRole(role);
           handleSetCurrentTab(tab);

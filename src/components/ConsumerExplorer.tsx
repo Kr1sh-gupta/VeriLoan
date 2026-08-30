@@ -8,7 +8,7 @@ import {
   Check
 } from 'lucide-react';
 import type { VerifiedLoan, SystemSummary } from '../types';
-import { fetchVerifiedLoans, fetchSummary } from '../lib/api';
+import { fetchVerifiedLoans, fetchSummary, exportCsvUrl } from '../lib/api';
 import { HashVerifierModal } from './HashVerifierModal';
 import { AuditTrailModal } from './AuditTrailModal';
 import { DataQualityWidget } from './DataQualityWidget';
@@ -23,6 +23,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
   const [verifiedLoans, setVerifiedLoans] = useState<VerifiedLoan[]>([]);
   const [summary, setSummary] = useState<SystemSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<'ALL' | 'AI_ASSISTED' | 'DIRECT'>('ALL');
@@ -34,6 +35,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [loansData, summaryData] = await Promise.all([
         fetchVerifiedLoans(searchQuery || undefined),
         fetchSummary()
@@ -42,6 +44,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
       setSummary(summaryData);
     } catch (err) {
       console.error('Failed to load verified data', err);
+      setError('Could not load verified records. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -58,8 +61,11 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
   };
 
   const handleExportCsv = () => {
-    window.open('http://localhost:8000/api/verified-loans/export/csv', '_blank');
+    window.open(exportCsvUrl(), '_blank');
   };
+
+  const aiAssistedCount = verifiedLoans.filter((l) => l.ai_assisted).length;
+  const directCount = verifiedLoans.filter((l) => !l.ai_assisted).length;
 
   const filteredLoans = verifiedLoans.filter((l) => {
     if (filterMode === 'AI_ASSISTED') return l.ai_assisted;
@@ -68,29 +74,29 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
   });
 
   return (
-    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-6 sm:py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         
         {/* Header Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-200">
           <div className="space-y-1.5">
-            <div className="text-[11px] font-mono tracking-wider text-slate-500 uppercase flex items-center gap-2 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="text-[10px] sm:text-[11px] font-mono tracking-wider text-slate-500 uppercase flex items-center gap-2 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>MODULE E &amp; F • VERIFIED RECORDS &amp; CRYPTOGRAPHY</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
+            <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
               Verified Records Portal
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-xl leading-relaxed">
               Access sealed canonical records, verify SHA-256 integrity, inspect full audit lineage, and export clean datasets.
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 shrink-0">
             {onNavigateToExport ? (
               <button
                 onClick={onNavigateToExport}
-                className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Open Export Center</span>
@@ -98,7 +104,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
             ) : (
               <button
                 onClick={handleExportCsv}
-                className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export Dataset (CSV)</span>
@@ -107,36 +113,52 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
           </div>
         </div>
 
+        {error && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-mono flex items-center justify-between shadow-sm">
+            <span>{error}</span>
+            <button onClick={() => setError(null)}>
+              <Check className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Data Quality Score Widget Component */}
-        <DataQualityWidget 
-          score={summary?.data_quality_score ?? 98.4}
-          totalRecords={summary?.total_loans ?? 250}
-          cleanRecords={summary?.verified_loans ?? 232}
-        />
+        {loading && !summary ? (
+          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm text-center text-slate-400 text-xs font-mono">
+            Loading data quality metrics…
+          </div>
+        ) : (
+          <DataQualityWidget 
+            score={summary?.data_quality_score ?? 0}
+            totalRecords={summary?.total_loans ?? 0}
+            cleanRecords={summary?.verified_loans ?? 0}
+          />
+        )}
 
         {/* Search & Filter Bar */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') loadData(); }}
               placeholder="Search by Loan ID, Borrower, or State..."
               className="w-full bg-slate-50 border border-slate-300 rounded-xl py-2 pl-9 pr-4 text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
             />
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center overflow-x-auto pb-1 gap-2">
             {[
               { id: 'ALL', label: `All (${verifiedLoans.length})` },
-              { id: 'AI_ASSISTED', label: 'AI-Assisted (42)' },
-              { id: 'DIRECT', label: 'Direct Validated (190)' },
+              { id: 'AI_ASSISTED', label: `AI-Assisted (${aiAssistedCount})` },
+              { id: 'DIRECT', label: `Direct Validated (${directCount})` },
             ].map((f) => (
               <button
                 key={f.id}
                 onClick={() => setFilterMode(f.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all whitespace-nowrap ${
                   filterMode === f.id
                     ? 'bg-[#0b1c30] text-white shadow-sm font-bold'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -182,6 +204,8 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
                   filteredLoans.map((v) => {
                     const hash = v.record_hash;
                     const isCopied = copiedHash === hash;
+                    const balance = v.canonical_data?.current_balance;
+                    const displayBalance = balance !== undefined && balance !== null ? Number(balance) : null;
                     return (
                       <tr key={v.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
@@ -194,14 +218,14 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
                         </td>
 
                         <td className="px-6 py-4">
-                          <div className="text-slate-900 font-bold">{v.canonical_data?.borrower_id || 'BW-USER'}</div>
+                          <div className="text-slate-900 font-bold">{v.canonical_data?.borrower_id || '—'}</div>
                           <div className="text-[11px] text-slate-500">
-                            {v.canonical_data?.term_months ? `${v.canonical_data.term_months}M` : '360M'} • {v.canonical_data?.interest_rate ? `${v.canonical_data.interest_rate}%` : '5.15%'} • {v.canonical_data?.borrower_state || 'OH'}
+                            {v.canonical_data?.term_months ? `${v.canonical_data.term_months}M` : '—'} • {v.canonical_data?.interest_rate !== undefined ? `${v.canonical_data.interest_rate}%` : '—'} • {v.canonical_data?.borrower_state || '—'}
                           </div>
                         </td>
 
                         <td className="px-6 py-4 font-bold text-slate-900">
-                          ${Number(v.canonical_data?.current_balance || 204000).toLocaleString()}
+                          {displayBalance !== null ? `$${displayBalance.toLocaleString()}` : '—'}
                         </td>
 
                         <td className="px-6 py-4">

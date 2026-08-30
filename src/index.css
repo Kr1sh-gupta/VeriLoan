@@ -139,3 +139,36 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #38bdf8;
 }
+
+/* ========================================================================= */
+/* Universal High-Contrast Browser Text Selection Engine (Fix for Issue #10) */
+/* ========================================================================= */
+::selection {
+  background-color: #0284c7; /* Vibrant Sky Blue */
+  color: #ffffff;            /* Pure Crisp White Text */
+  text-shadow: none;
+}
+
+::-moz-selection {
+  background-color: #0284c7;
+  color: #ffffff;
+  text-shadow: none;
+}
+
+/* High-Contrast Highlight for Code Blocks, Pre Tags, Inputs, and Textareas */
+pre::selection,
+code::selection,
+input::selection,
+textarea::selection {
+  background-color: #38bdf8; /* High-contrast Cyan Highlight */
+  color: #060913;            /* Solid Deep Navy Text */
+}
+
+pre::-moz-selection,
+code::-moz-selection,
+input::-moz-selection,
+textarea::-moz-selection {
+  background-color: #38bdf8;
+  color: #060913;
+}
+
