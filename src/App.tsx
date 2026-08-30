@@ -14,7 +14,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { NotificationCenter } from './components/NotificationCenter';
 import { Footer } from './components/Footer';
 import type { SystemSummary, UserRole, User, NotificationItem } from './types';
-import { fetchSummary, STATIC_USERS, INITIAL_NOTIFICATIONS } from './lib/api';
+import { fetchSummary, STATIC_USERS, INITIAL_NOTIFICATIONS, isDemoBypassActive, setDemoBypassActive } from './lib/api';
 
 const AUTH_STORAGE_KEY = 'veriloan_auth_user';
 const TAB_STORAGE_KEY = 'veriloan_current_tab';
@@ -38,18 +38,14 @@ export function App() {
   // Initialize role from localStorage or user
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     try {
-      const storedRole = localStorage.getItem(ROLE_STORAGE_KEY) as UserRole;
-      if (storedRole && ['OPERATOR', 'REVIEWER', 'CONSUMER', 'ADMIN'].includes(storedRole)) {
-        return storedRole;
-      }
-      const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (storedUser) {
-        return JSON.parse(storedUser).role || 'REVIEWER';
+      const stored = localStorage.getItem(ROLE_STORAGE_KEY);
+      if (stored && ['OPERATOR', 'REVIEWER', 'CONSUMER', 'ADMIN'].includes(stored)) {
+        return stored as UserRole;
       }
     } catch {
       // ignore
     }
-    return 'REVIEWER';
+    return currentUser?.role || 'REVIEWER';
   });
 
   // Initialize currentTab: if user is logged in and storedTab exists, stay on that dashboard tab!
@@ -151,12 +147,27 @@ export function App() {
     saveNotifications(updated);
   };
 
+  const [backendConnected, setBackendConnected] = useState<boolean>(true);
+  const [backendError, setBackendError] = useState<string | null>(null);
+  const [isDemoBypass, setIsDemoBypass] = useState<boolean>(() => isDemoBypassActive());
+
+  const handleToggleBypass = () => {
+    const nextVal = !isDemoBypass;
+    setDemoBypassActive(nextVal);
+    setIsDemoBypass(nextVal);
+    loadSummary();
+  };
+
   const loadSummary = async () => {
     try {
       const data = await fetchSummary();
       setSummary(data);
-    } catch (err) {
-      console.error('Failed to load system summary', err);
+      setBackendConnected(true);
+      setBackendError(null);
+    } catch (err: any) {
+      console.error('Failed to load system summary from backend', err);
+      setBackendConnected(false);
+      setBackendError(err?.message || 'Database and Backend API server are inaccessible.');
     }
   };
 
@@ -211,7 +222,6 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col justify-between">
-      
       {/* Top Navbar */}
       <Navbar
         currentTab={currentTab}
@@ -239,6 +249,41 @@ export function App() {
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         sidebarOpen={sidebarOpen}
       />
+
+      {/* Floating Glassmorphic Backend & Database Offline Alert Banner */}
+      {!backendConnected && !isDemoBypass && (
+        <div className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 px-4 py-2.5 rounded-2xl bg-[#13070b]/95 border border-rose-500/60 shadow-[0_10px_35px_rgba(244,63,94,0.35)] backdrop-blur-xl text-xs font-mono text-rose-200 max-w-[94vw] sm:max-w-2xl animate-fade-in">
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+            </span>
+            <div className="truncate">
+              <span className="font-bold text-white tracking-wide">
+                Database &amp; Engine Inaccessible
+              </span>
+              <span className="hidden sm:inline text-rose-300/80 ml-2">
+                {backendError ? `(${backendError})` : '(API at http://localhost:8000 unreachable)'}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 shrink-0">
+            <button 
+              onClick={loadSummary} 
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+            >
+              Retry ⟳
+            </button>
+            <button 
+              onClick={handleToggleBypass} 
+              className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 border border-amber-400/60 text-[11px] font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+              title="Activate offline demo mode with verified preloaded financial fixtures"
+            >
+              Bypass DB ⚡
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main View Area */}
       {isLanding ? (
@@ -297,6 +342,8 @@ export function App() {
             setCurrentTab={handleSetCurrentTab}
             currentUser={currentUser}
             onLogout={handleLogout}
+            isDemoBypass={isDemoBypass}
+            onToggleBypass={handleToggleBypass}
           />
 
           {/* Main Dashboard Workspace (Responsive pl-0 on mobile, offset on desktop) */}
