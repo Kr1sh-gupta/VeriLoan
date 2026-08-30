@@ -7,72 +7,41 @@ import {
   FileSpreadsheet, 
   Code2, 
   Layers, 
-  History 
+  History,
+  Info
 } from 'lucide-react';
 import type { ExportRequestRecord } from '../types';
+import { exportCsvUrl } from '../lib/api';
 
 export const ExportCenter: React.FC = () => {
   const [selectedFormat, setSelectedFormat] = useState<'CSV' | 'JSON' | 'PARQUET'>('CSV');
   const [includeAuditTrail, setIncludeAuditTrail] = useState<boolean>(true);
   const [dateFilter, setDateFilter] = useState<string>('ALL');
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [exportHistory, setExportHistory] = useState<ExportRequestRecord[]>([
-    {
-      id: 'exp-001',
-      datasetName: 'Verified_Canonical_Loans_Q3_2026.csv',
-      format: 'CSV',
-      recordCount: 232,
-      includeAuditTrail: true,
-      status: 'READY',
-      requestedBy: 'Sarah Chen (Data Consumer)',
-      requestedAt: '2026-08-29 10:15 UTC',
-      fileSize: '1.4 MB',
-      downloadUrl: 'http://localhost:8000/api/verified-loans/export/csv'
-    },
-    {
-      id: 'exp-002',
-      datasetName: 'Global_Audit_Compliance_Trail_August.json',
-      format: 'JSON',
-      recordCount: 540,
-      includeAuditTrail: true,
-      status: 'READY',
-      requestedBy: 'Alex Rivera (Admin)',
-      requestedAt: '2026-08-28 16:30 UTC',
-      fileSize: '3.8 MB',
-      downloadUrl: 'http://localhost:8000/api/audit/export/json'
-    },
-    {
-      id: 'exp-003',
-      datasetName: 'Fannie_Mae_Delivery_Package.csv',
-      format: 'CSV',
-      recordCount: 180,
-      includeAuditTrail: false,
-      status: 'READY',
-      requestedBy: 'Sarah Chen (Data Consumer)',
-      requestedAt: '2026-08-27 11:20 UTC',
-      fileSize: '980 KB',
-      downloadUrl: 'http://localhost:8000/api/verified-loans/export/csv'
-    }
-  ]);
+  // NOTE: this history is local-only for this browser session — there is no
+  // backend endpoint yet to persist or fetch real export history. Flagged to
+  // the team; not fixed here since it needs a new backend feature.
+  const [exportHistory, setExportHistory] = useState<ExportRequestRecord[]>([]);
 
   const handleTriggerExport = () => {
+    if (selectedFormat !== 'CSV') return; // guarded by disabled buttons below, safety net
     setIsExporting(true);
     setTimeout(() => {
       const newRecord: ExportRequestRecord = {
-        id: `exp-00${exportHistory.length + 1}`,
-        datasetName: `Verified_Loans_Export_${new Date().toISOString().slice(0, 10)}.${selectedFormat.toLowerCase()}`,
-        format: selectedFormat,
-        recordCount: 232,
+        id: `exp-session-${exportHistory.length + 1}`,
+        datasetName: `Verified_Loans_Export_${new Date().toISOString().slice(0, 10)}.csv`,
+        format: 'CSV',
+        recordCount: null as any,
         includeAuditTrail,
         status: 'READY',
-        requestedBy: 'Sarah Chen (Data Consumer)',
-        requestedAt: new Date().toLocaleTimeString() + ' UTC',
-        fileSize: selectedFormat === 'CSV' ? '1.4 MB' : '2.9 MB',
-        downloadUrl: 'http://localhost:8000/api/verified-loans/export/csv'
+        requestedBy: 'You (this session)',
+        requestedAt: new Date().toLocaleTimeString(),
+        fileSize: '—',
+        downloadUrl: exportCsvUrl()
       };
       setExportHistory([newRecord, ...exportHistory]);
       setIsExporting(false);
-      window.open('http://localhost:8000/api/verified-loans/export/csv', '_blank');
+      window.open(exportCsvUrl(), '_blank');
     }, 800);
   };
 
@@ -139,44 +108,46 @@ export const ExportCenter: React.FC = () => {
 
                 <button
                   onClick={() => setSelectedFormat('JSON')}
-                  className={`p-3 rounded-xl border text-xs font-mono font-bold transition-all flex flex-col items-center gap-1.5 ${
-                    selectedFormat === 'JSON'
-                      ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                  }`}
+                  disabled
+                  title="JSON export is not available yet"
+                  className="p-3 rounded-xl border text-xs font-mono font-bold transition-all flex flex-col items-center gap-1.5 bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed"
                 >
                   <Code2 className="w-4 h-4" />
                   <span>JSON</span>
+                  <span className="text-[8px] normal-case font-medium">Coming Soon</span>
                 </button>
 
                 <button
                   onClick={() => setSelectedFormat('PARQUET')}
-                  className={`p-3 rounded-xl border text-xs font-mono font-bold transition-all flex flex-col items-center gap-1.5 ${
-                    selectedFormat === 'PARQUET'
-                      ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                  }`}
+                  disabled
+                  title="PARQUET export is not available yet"
+                  className="p-3 rounded-xl border text-xs font-mono font-bold transition-all flex flex-col items-center gap-1.5 bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed"
                 >
                   <Layers className="w-4 h-4" />
                   <span>PARQUET</span>
+                  <span className="text-[8px] normal-case font-medium">Coming Soon</span>
                 </button>
               </div>
             </div>
 
             {/* Scope / Filter */}
+            {/* NOTE: this dropdown's counts are placeholder and selecting a
+                scope does not currently filter the export — no backend
+                support for scoped export yet. Flagged to the team. */}
             <div className="space-y-2">
-              <label className="block text-xs font-mono uppercase text-slate-600 font-bold">
+              <label className="block text-xs font-mono uppercase text-slate-600 font-bold flex items-center gap-1.5">
                 2. Verification Scope
+                <span title="Scope filtering is not yet supported by the backend">
+                  <Info className="w-3 h-3 text-slate-400" />
+                </span>
               </label>
               <select 
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white font-medium"
+                disabled
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs font-mono text-slate-400 cursor-not-allowed font-medium"
               >
-                <option value="ALL">All Sealed Verified Loans (232 records)</option>
-                <option value="TODAY">Verified Today (14 records)</option>
-                <option value="WEEK">Verified This Week (85 records)</option>
-                <option value="AI_RESOLVED">AI-Assisted Resolutions Only (42 records)</option>
+                <option value="ALL">All Sealed Verified Loans</option>
               </select>
             </div>
 
@@ -213,7 +184,7 @@ export const ExportCenter: React.FC = () => {
               className="px-6 py-3 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
-              <span>{isExporting ? 'Generating Package...' : 'Download Export Package'}</span>
+              <span>{isExporting ? 'Generating Package...' : 'Download Export Package (CSV)'}</span>
             </button>
           </div>
         </div>
@@ -222,51 +193,59 @@ export const ExportCenter: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 uppercase tracking-wider font-bold">
             <History className="w-4 h-4 text-blue-600" />
-            <span>Export History &amp; Compliance Logs</span>
+            <span>Export History (This Session)</span>
           </div>
 
           <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left text-xs font-mono border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px]">
-                  <th className="px-6 py-3.5 font-bold">Dataset Name</th>
-                  <th className="px-6 py-3.5 font-bold">Format</th>
-                  <th className="px-6 py-3.5 font-bold">Records</th>
-                  <th className="px-6 py-3.5 font-bold">Requested By</th>
-                  <th className="px-6 py-3.5 font-bold">Timestamp</th>
-                  <th className="px-6 py-3.5 font-bold text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {exportHistory.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span>{item.datasetName}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">
-                        {item.format}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-700">{item.recordCount}</td>
-                    <td className="px-6 py-4 text-slate-500">{item.requestedBy}</td>
-                    <td className="px-6 py-4 text-slate-500">{item.requestedAt}</td>
-                    <td className="px-6 py-4 text-right">
-                      <a
-                        href={item.downloadUrl || 'http://localhost:8000/api/verified-loans/export/csv'}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center space-x-1 px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-all"
-                      >
-                        <Download className="w-3 h-3" />
-                        <span>Download</span>
-                      </a>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono border-collapse min-w-[640px]">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px]">
+                    <th className="px-6 py-3.5 font-bold">Dataset Name</th>
+                    <th className="px-6 py-3.5 font-bold">Format</th>
+                    <th className="px-6 py-3.5 font-bold">Requested By</th>
+                    <th className="px-6 py-3.5 font-bold">Timestamp</th>
+                    <th className="px-6 py-3.5 font-bold text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {exportHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-xs">
+                        No exports generated yet this session.
+                      </td>
+                    </tr>
+                  ) : (
+                    exportHistory.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                          <span>{item.datasetName}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">
+                            {item.format}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-500">{item.requestedBy}</td>
+                        <td className="px-6 py-4 text-slate-500">{item.requestedAt}</td>
+                        <td className="px-6 py-4 text-right">
+                          <a
+                            href={item.downloadUrl || exportCsvUrl()}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center space-x-1 px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-all"
+                          >
+                            <Download className="w-3 h-3" />
+                            <span>Download</span>
+                          </a>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
