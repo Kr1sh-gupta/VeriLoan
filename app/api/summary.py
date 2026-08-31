@@ -61,18 +61,17 @@ def get_system_summary(db: Session = Depends(get_db)):
 
 def _get_rules_file_path() -> str:
     candidate_paths = [
+        os.path.join(os.path.dirname(__file__), "../../data/validation_rules.json"),
         os.path.join(os.path.dirname(__file__), "../../../main/data/validation_rules.json"),
         os.path.join(os.path.dirname(__file__), "../../../data/validation_rules.json"),
-        os.path.join(os.path.dirname(__file__), "../../data/validation_rules.json"),
-        os.path.abspath(os.path.join(os.getcwd(), "main/data/validation_rules.json")),
-        os.path.abspath(os.path.join(os.getcwd(), "../main/data/validation_rules.json")),
         os.path.abspath(os.path.join(os.getcwd(), "data/validation_rules.json")),
+        os.path.abspath(os.path.join(os.getcwd(), "backend/data/validation_rules.json")),
+        os.path.abspath(os.path.join(os.getcwd(), "main/data/validation_rules.json")),
     ]
     for p in candidate_paths:
         if os.path.exists(p):
             return p
-    # Default to main/data/validation_rules.json
-    return os.path.join(os.path.dirname(__file__), "../../../main/data/validation_rules.json")
+    return os.path.join(os.path.dirname(__file__), "../../data/validation_rules.json")
 
 @router.get("/rules")
 def get_validation_rules():

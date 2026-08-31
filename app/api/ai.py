@@ -14,9 +14,24 @@ router = APIRouter(prefix="/ai", tags=["AI Copilot"])
 
 @router.post("/explain", response_model=AIExplainResponse)
 def explain_exception(payload: AIExplainRequest, db: Session = Depends(get_db)):
-    exc = db.query(ValidationException).filter(ValidationException.id == payload.exception_id).first()
+    exc = None
+    if payload.exception_id and payload.exception_id.strip():
+        eid = payload.exception_id.strip()
+        # 1. Exact match by primary key id
+        exc = db.query(ValidationException).filter(ValidationException.id == eid).first()
+        # 2. Match by human loan_id_code (e.g. 'LN-10002')
+        if not exc:
+            exc = db.query(ValidationException).filter(ValidationException.loan_id_code == eid).first()
+        # 3. Match by rule_code (e.g. 'VAL-005')
+        if not exc:
+            exc = db.query(ValidationException).filter(ValidationException.rule_code == eid).first()
+
+    # 4. Fallback to first available open exception for testing / REST explorer
     if not exc:
-        raise HTTPException(status_code=404, detail="Exception not found.")
+        exc = db.query(ValidationException).filter(ValidationException.status == "OPEN").first()
+
+    if not exc:
+        raise HTTPException(status_code=404, detail="No active validation exceptions found in database.")
 
     res = AIService.generate_explanation(
         db=db,

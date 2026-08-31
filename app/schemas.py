@@ -118,7 +118,7 @@ class AuditEventSchema(BaseModel):
         orm_mode = True
 
 class AIExplainRequest(BaseModel):
-    exception_id: str
+    exception_id: Optional[str] = None
     custom_instruction: Optional[str] = None
 
 class AIExplainResponse(BaseModel):

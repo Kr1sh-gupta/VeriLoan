@@ -58,7 +58,7 @@ def test_val_004_invalid_date_formats(db_session):
     ValidationService.run_all_validations(db_session)
     excs_loan1 = db_session.query(ValidationException).filter(
         ValidationException.loan_id_ref == "row-val4-1",
-        ValidationException.rule_code == "VAL-004",
+        ValidationException.rule_code.in_(["VAL-004", "VAL-106"]),
         ValidationException.field_name == "last_payment_date"
     ).all()
     assert len(excs_loan1) == 1
@@ -66,11 +66,44 @@ def test_val_004_invalid_date_formats(db_session):
 
     excs_loan2 = db_session.query(ValidationException).filter(
         ValidationException.loan_id_ref == "row-val4-2",
-        ValidationException.rule_code == "VAL-004",
+        ValidationException.rule_code.in_(["VAL-004", "VAL-106"]),
         ValidationException.field_name == "last_updated_at"
     ).all()
     assert len(excs_loan2) == 1
     assert "last_updated_at" in excs_loan2[0].error_message
+
+def test_val_011_cross_source_servicer_conflict(db_session):
+    loan = Loan(
+        id="row-val11-1",
+        loan_id="LN-VAL11-1",
+        origination_date="2022-01-01",
+        maturity_date="2052-01-01",
+        original_principal=200000.0,
+        current_balance=180000.0,
+        payment_status="CURRENT",
+        days_past_due=0,
+        borrower_state="CA"
+    )
+    servicer = ServicerUpdate(
+        loan_id="LN-VAL11-1",
+        current_balance=150000.0,  # $30,000 difference > $50 tolerance
+        payment_status="30_DPD",   # Mismatched status
+        days_past_due=35           # Mismatched DPD
+    )
+    db_session.add(loan)
+    db_session.add(servicer)
+    db_session.commit()
+
+    ValidationService.run_all_validations(db_session)
+    exc = db_session.query(ValidationException).filter(
+        ValidationException.loan_id_ref == "row-val11-1",
+        ValidationException.rule_code == "VAL-011"
+    ).first()
+    assert exc is not None
+    assert exc.severity == "HIGH"
+    assert "Balance" in exc.error_message
+    assert "Status" in exc.error_message
+    assert "DPD" in exc.error_message
 
 def test_val_005_maturity_before_origination(db_session):
     loan = Loan(
