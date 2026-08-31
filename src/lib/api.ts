@@ -13,6 +13,28 @@ import type {
   NotificationItem,
   VerifiedLoanDetailResponse
 } from '../types';
+import {
+  DEMO_SUMMARY,
+  DEMO_RULES,
+  DEMO_LOANS,
+  DEMO_EXCEPTIONS,
+  DEMO_VERIFIED_LOANS,
+  DEMO_AUDIT_TRAIL
+} from './demoFixtures';
+
+export const isDemoBypassActive = (): boolean => {
+  return typeof window !== 'undefined' && localStorage.getItem('veriloan_demo_bypass') === 'true';
+};
+
+export const setDemoBypassActive = (active: boolean) => {
+  if (typeof window !== 'undefined') {
+    if (active) {
+      localStorage.setItem('veriloan_demo_bypass', 'true');
+    } else {
+      localStorage.removeItem('veriloan_demo_bypass');
+    }
+  }
+};
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
 
@@ -142,35 +164,28 @@ export const loginUser = async (username: string, password: string): Promise<{ u
   }
 };
 
+export const formatApiError = (err: any): Error => {
+  if (err?.response?.data?.detail) {
+    const detail = err.response.data.detail;
+    return new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+  }
+  if (err?.code === 'ERR_NETWORK' || !err?.response) {
+    return new Error('Database and Backend API server are inaccessible at http://localhost:8000. Please ensure the server is running.');
+  }
+  return new Error(err?.message || 'An unexpected API communication error occurred.');
+};
+
 export const fetchSummary = async (): Promise<SystemSummary> => {
   try {
     const { data } = await api.get<SystemSummary>('/summary');
     return data;
-  } catch {
-    return {
-      total_loans: 250,
-      total_exceptions: 18,
-      open_exceptions: 14,
-      resolved_exceptions: 4,
-      verified_loans: 232,
-      critical_exceptions: 4,
-      high_exceptions: 6,
-      medium_exceptions: 3,
-      low_exceptions: 1,
-      data_quality_score: 98.4,
-      recent_batches: [
-        {
-          batch_id: 'batch-001',
-          filename: 'loan_tape.csv',
-          file_type: 'LOAN_TAPE',
-          total_rows: 250,
-          valid_rows: 232,
-          exception_count: 18,
-          status: 'PROCESSED',
-          created_at: new Date().toISOString()
-        }
-      ]
-    };
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      console.warn('[Offline Demo Bypass Active] Serving preloaded summary fixture.');
+      return DEMO_SUMMARY;
+    }
+    console.error('[API Error: fetchSummary]', err);
+    throw formatApiError(err);
   }
 };
 
@@ -204,16 +219,13 @@ export const fetchValidationRules = async (): Promise<ValidationRuleItem[]> => {
       lastUpdatedAt: '2026-08-30 00:00',
       affectedRecordsCount: 1 + (idx % 6)
     }));
-  } catch {
-    return [
-      { code: 'R01_MATURITY_ORIGINATION', name: 'Maturity Date Boundary', description: 'Maturity date must be strictly after origination date', category: 'SANITY', severity: 'CRITICAL', field: 'maturity_date', operator: '>', targetValue: 'origination_date', enabled: true, version: 2, lastUpdatedBy: 'Alex Rivera', lastUpdatedAt: '2026-08-28 14:00', affectedRecordsCount: 3 },
-      { code: 'R02_INTEREST_RATE_RANGE', name: 'Interest Rate Limits', description: 'Interest rate must be between 0.5% and 36.0%', category: 'SANITY', severity: 'CRITICAL', field: 'interest_rate', operator: '<=', targetValue: '36.0', enabled: true, version: 1, lastUpdatedBy: 'Alex Rivera', lastUpdatedAt: '2026-08-20 10:00', affectedRecordsCount: 1 },
-      { code: 'R03_PRINCIPAL_POSITIVE', name: 'Positive Principal Requirement', description: 'Original principal amount must be strictly greater than $0', category: 'MATHEMATICAL', severity: 'CRITICAL', field: 'original_principal', operator: '>', targetValue: '0', enabled: true, version: 1, lastUpdatedBy: 'Alex Rivera', lastUpdatedAt: '2026-08-20 10:00', affectedRecordsCount: 2 },
-      { code: 'R04_CURRENT_BALANCE_CAP', name: 'Balance Exceeds Principal', description: 'Current balance cannot exceed original principal without negative amortization', category: 'MATHEMATICAL', severity: 'HIGH', field: 'current_balance', operator: '<=', targetValue: 'original_principal', enabled: true, version: 1, lastUpdatedBy: 'Alex Rivera', lastUpdatedAt: '2026-08-20 10:00', affectedRecordsCount: 4 },
-      { code: 'R05_DPD_PAYMENT_STATUS', name: 'DPD Payment Status Alignment', description: 'If days past due > 30, payment status cannot be CURRENT', category: 'LOGICAL', severity: 'HIGH', field: 'days_past_due', operator: '<=', targetValue: '30', enabled: true, version: 3, lastUpdatedBy: 'Alex Rivera', lastUpdatedAt: '2026-08-29 09:30', affectedRecordsCount: 5 },
-      { code: 'R06_DOC_STATUS_MANDATORY', name: 'Document Manifest Verification', description: 'Document status must be verified and present', category: 'DOCUMENT', severity: 'MEDIUM', field: 'document_status', operator: 'NOT_NULL', targetValue: '', enabled: true, version: 1, lastUpdatedBy: 'Alex Rivera', lastUpdatedAt: '2026-08-20 10:00', affectedRecordsCount: 2 },
-      { code: 'R07_STATE_CODE_VALIDITY', name: 'US State Code Format', description: 'Borrower state must be a valid 2-letter US postal abbreviation', category: 'COMPLIANCE', severity: 'LOW', field: 'borrower_state', operator: 'IN', targetValue: 'US_STATES', enabled: true, version: 1, lastUpdatedBy: 'Alex Rivera', lastUpdatedAt: '2026-08-20 10:00', affectedRecordsCount: 1 }
-    ];
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      console.warn('[Offline Demo Bypass Active] Serving preloaded validation rules fixture.');
+      return DEMO_RULES;
+    }
+    console.error('[API Error: fetchValidationRules]', err);
+    throw formatApiError(err);
   }
 };
 
@@ -221,7 +233,8 @@ export const fetchUsers = async (): Promise<User[]> => {
   try {
     const { data } = await api.get<User[]>('/auth/users');
     return data;
-  } catch {
+  } catch (err: any) {
+    console.error('[API Warning: fetchUsers fallback to static users]', err);
     return STATIC_USERS.map(({ password: _, ...u }) => u);
   }
 };
@@ -233,14 +246,19 @@ export const fetchLoans = async (status?: string, search?: string, limit: number
     if (search) params.search = search;
     const { data } = await api.get<LoanRecord[]>('/loans', { params });
     return data;
-  } catch {
-    return [
-      { id: '1', loan_id: 'LN-29384-A', borrower_id: 'BW-9012', loan_type: 'Conventional 30Y', origination_date: '2022-05-15', maturity_date: '2021-05-15', original_principal: 450000, current_balance: 432000, interest_rate: 6.25, term_months: 360, borrower_state: 'CA', loan_purpose: 'Purchase', credit_grade: 'A', employment_length: '5 years', income_band: '$100k-$150k', payment_status: 'CURRENT', days_past_due: 0, servicer_name: 'Encompass Servicing', status: 'FLAGGED', source_system: 'loan_tape.csv' },
-      { id: '2', loan_id: 'LN-88210-B', borrower_id: 'BW-4412', loan_type: 'FHA Fixed', origination_date: '2023-01-10', maturity_date: '2053-01-10', original_principal: 320000, current_balance: 315000, interest_rate: 42.5, term_months: 360, borrower_state: 'TX', loan_purpose: 'Refinance', credit_grade: 'B', employment_length: '2 years', income_band: '$75k-$100k', payment_status: 'CURRENT', days_past_due: 0, servicer_name: 'Wells Fargo', status: 'FLAGGED', source_system: 'loan_tape.csv' },
-      { id: '3', loan_id: 'LN-10092-C', borrower_id: 'BW-8821', loan_type: 'VA 15Y', origination_date: '2021-08-01', maturity_date: '2036-08-01', original_principal: 580000, current_balance: 620000, interest_rate: 5.75, term_months: 180, borrower_state: 'FL', loan_purpose: 'Purchase', credit_grade: 'A', employment_length: '8 years', income_band: '$150k+', payment_status: '30_DPD', days_past_due: 45, servicer_name: 'Freedom Mortgage', status: 'FLAGGED', source_system: 'loan_tape.csv' },
-      { id: '4', loan_id: 'LN-55412-D', borrower_id: 'BW-1109', loan_type: 'Jumbo Prime', origination_date: '2023-04-12', maturity_date: '2053-04-12', original_principal: 850000, current_balance: 835000, interest_rate: 6.85, term_months: 360, borrower_state: 'NY', loan_purpose: 'Purchase', credit_grade: 'A+', employment_length: '10 years', income_band: '$200k+', payment_status: 'CURRENT', days_past_due: 60, servicer_name: 'Chase Home', status: 'FLAGGED', source_system: 'loan_tape.csv' },
-      { id: '5', loan_id: 'LN-99123-E', borrower_id: 'BW-6654', loan_type: 'USDA Fixed', origination_date: '2022-11-20', maturity_date: '2052-11-20', original_principal: 210000, current_balance: 204000, interest_rate: 5.15, term_months: 360, borrower_state: 'OH', loan_purpose: 'Purchase', credit_grade: 'B', employment_length: '4 years', income_band: '$50k-$75k', payment_status: 'CURRENT', days_past_due: 0, servicer_name: 'PennyMac', status: 'VERIFIED', source_system: 'loan_tape.csv' }
-    ];
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      console.warn('[Offline Demo Bypass Active] Serving preloaded loans fixture.');
+      let filtered = [...DEMO_LOANS];
+      if (status && status !== 'ALL') filtered = filtered.filter(l => l.status === status);
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter(l => l.loan_id?.toLowerCase().includes(q) || l.borrower_id?.toLowerCase().includes(q));
+      }
+      return filtered;
+    }
+    console.error('[API Error: fetchLoans]', err);
+    throw formatApiError(err);
   }
 };
 
@@ -248,51 +266,19 @@ export const fetchLoanDetail = async (id: string): Promise<any> => {
   try {
     const { data } = await api.get(`/loans/${id}`);
     return data;
-  } catch {
-    return {
-      loan: {
-        id,
-        loan_id: 'LN-29384-A',
-        borrower_id: 'BW-9012',
-        loan_type: 'Conventional 30Y',
-        origination_date: '2022-05-15',
-        maturity_date: '2021-05-15',
-        original_principal: 450000,
-        current_balance: 432000,
-        interest_rate: 6.25,
-        term_months: 360,
-        borrower_state: 'CA',
-        loan_purpose: 'Purchase',
-        payment_status: 'CURRENT',
-        days_past_due: 0,
-        servicer_name: 'Encompass Servicing',
-        status: 'FLAGGED'
-      },
-      servicer_update: {
-        loan_id: 'LN-29384-A',
-        current_balance: 431850,
-        payment_status: 'CURRENT',
-        days_past_due: 0,
-        last_payment_date: '2026-08-01'
-      },
-      doc_manifest: {
-        loan_id: 'LN-29384-A',
-        document_type: 'NOTE',
-        document_status: 'VERIFIED',
-        page_count: 14,
-        ocr_confidence: 0.98
-      },
-      exceptions: [
-        {
-          id: 'exc-1',
-          rule_code: 'R01_MATURITY_ORIGINATION',
-          severity: 'CRITICAL',
-          error_message: 'Maturity date (2021-05-15) precedes origination date (2022-05-15).',
-          actual_value: '2021-05-15',
-          expected_condition: '> 2022-05-15'
-        }
-      ]
-    };
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      console.warn(`[Offline Demo Bypass Active] Serving preloaded loan detail fixture for ${id}.`);
+      const match = DEMO_LOANS.find(l => l.loan_id === id || l.id === id) || DEMO_LOANS[0];
+      return {
+        loan: match,
+        servicer_update: { loan_id: match.loan_id, current_balance: match.current_balance, payment_status: match.payment_status, days_past_due: match.days_past_due, last_payment_date: '2026-08-01' },
+        doc_manifest: { loan_id: match.loan_id, document_type: 'NOTE', document_status: 'VERIFIED', page_count: 14, ocr_confidence: 0.98 },
+        exceptions: DEMO_EXCEPTIONS.filter(e => e.loan_id_code === match.loan_id)
+      };
+    }
+    console.error(`[API Error: fetchLoanDetail(${id})]`, err);
+    throw formatApiError(err);
   }
 };
 
@@ -300,8 +286,12 @@ export const updateLoanFields = async (id: string, fields: Record<string, any>, 
   try {
     const { data } = await api.put(`/loans/${id}`, fields, { params: { reviewer_name: reviewerName } });
     return data;
-  } catch {
-    return { success: true, message: 'Loan fields updated successfully' };
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      return { success: true, message: `Loan fields for ${id} patched (Offline Demo Bypass).` };
+    }
+    console.error(`[API Error: updateLoanFields(${id})]`, err);
+    throw formatApiError(err);
   }
 };
 
@@ -312,98 +302,44 @@ export const fetchExceptions = async (severity?: string, status: string = 'OPEN'
     if (search) params.search = search;
     const { data } = await api.get<ValidationException[]>('/exceptions', { params });
     return data;
-  } catch {
-    return [
-      {
-        id: 'exc-1',
-        loan_id_ref: '1',
-        loan_id_code: 'LN-29384-A',
-        rule_code: 'R01_MATURITY_ORIGINATION',
-        category: 'SANITY',
-        severity: 'CRITICAL',
-        field_name: 'maturity_date',
-        error_message: 'Maturity date (2021-05-15) is chronologically prior to origination date (2022-05-15).',
-        actual_value: '2021-05-15',
-        expected_condition: 'maturity_date > 2022-05-15 (Expected: 2052-05-15)',
-        status: 'OPEN',
-        ai_explanation: 'The loan term is specified as 360 months (30 years) with origination date 2022-05-15. The recorded maturity date of 2021-05-15 indicates a typographical transcription error where 2052 was entered as 2021.',
-        ai_suggested_patch: { maturity_date: '2052-05-15' },
-        ai_confidence: 0.99,
-        ai_model: 'gemini-1.5-pro-preview',
-        ai_prompt: 'System rule: Verify maturity_date == origination_date + term_months.',
-        ai_generated_at: '2026-08-29T10:14:00Z',
-        source_system: 'loan_tape.csv',
-        assignee: 'Alex Rivera',
-        created_at: '2026-08-29T08:30:00Z'
-      },
-      {
-        id: 'exc-2',
-        loan_id_ref: '2',
-        loan_id_code: 'LN-88210-B',
-        rule_code: 'R02_INTEREST_RATE_RANGE',
-        category: 'SANITY',
-        severity: 'CRITICAL',
-        field_name: 'interest_rate',
-        error_message: 'Interest rate of 42.5% exceeds statutory regulatory ceiling (36.0%).',
-        actual_value: '42.5%',
-        expected_condition: '0.5% <= interest_rate <= 36.0%',
-        status: 'OPEN',
-        ai_explanation: 'Standard FHA fixed loan rates in 2023 were around 4.25%. The value 42.5 is a known decimal shift transposition during servicer CSV export.',
-        ai_suggested_patch: { interest_rate: 4.25 },
-        ai_confidence: 0.96,
-        ai_model: 'gemini-1.5-pro-preview',
-        source_system: 'loan_tape.csv',
-        created_at: '2026-08-29T08:32:00Z'
-      },
-      {
-        id: 'exc-3',
-        loan_id_ref: '3',
-        loan_id_code: 'LN-10092-C',
-        rule_code: 'R04_CURRENT_BALANCE_CAP',
-        category: 'MATHEMATICAL',
-        severity: 'HIGH',
-        field_name: 'current_balance',
-        error_message: 'Current balance ($620,000) exceeds original principal balance ($580,000).',
-        actual_value: '$620,000',
-        expected_condition: 'current_balance <= $580,000',
-        status: 'OPEN',
-        ai_explanation: 'Cross-referencing servicer_update.csv shows active balance of $558,200. The tape value appears to have concatenated a fee buffer.',
-        ai_suggested_patch: { current_balance: 558200 },
-        ai_confidence: 0.91,
-        ai_model: 'gemini-1.5-pro-preview',
-        source_system: 'loan_tape.csv',
-        assignee: 'Marcus Vance',
-        created_at: '2026-08-29T08:35:00Z'
-      },
-      {
-        id: 'exc-4',
-        loan_id_ref: '4',
-        loan_id_code: 'LN-55412-D',
-        rule_code: 'R05_DPD_PAYMENT_STATUS',
-        category: 'LOGICAL',
-        severity: 'HIGH',
-        field_name: 'payment_status',
-        error_message: 'Payment status is marked CURRENT but Days Past Due is 60.',
-        actual_value: 'CURRENT (DPD: 60)',
-        expected_condition: 'payment_status == 60_DPD when DPD >= 60',
-        status: 'OPEN',
-        ai_explanation: 'Servicer feed indicates borrower missed July and August payments. Status should be synchronized to 60_DPD in accordance with CFPB guidelines.',
-        ai_suggested_patch: { payment_status: '60_DPD' },
-        ai_confidence: 0.94,
-        ai_model: 'gemini-1.5-pro-preview',
-        source_system: 'servicer_update.csv',
-        created_at: '2026-08-29T08:40:00Z'
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      console.warn('[Offline Demo Bypass Active] Serving preloaded exceptions fixture.');
+      let filtered = [...DEMO_EXCEPTIONS];
+      if (severity && severity !== 'ALL') filtered = filtered.filter(e => e.severity === severity);
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter(e => e.loan_id_code?.toLowerCase().includes(q) || e.rule_code?.toLowerCase().includes(q));
       }
-    ];
+      return filtered;
+    }
+    console.error('[API Error: fetchExceptions]', err);
+    throw formatApiError(err);
   }
 };
 
 export const requestAIExplanation = async (exceptionId: string, customInstruction?: string): Promise<AIExplainResponse> => {
-  const { data } = await api.post<AIExplainResponse>('/ai/explain', {
-    exception_id: exceptionId,
-    custom_instruction: customInstruction,
-  });
-  return data;
+  try {
+    const { data } = await api.post<AIExplainResponse>('/ai/explain', {
+      exception_id: exceptionId,
+      custom_instruction: customInstruction,
+    });
+    return data;
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      return {
+        exception_id: exceptionId,
+        explanation: 'Offline FinTech Heuristic Analysis: Cross-field chronological and mathematical boundary comparison confirms transcription transposition error.',
+        suggested_patch: { maturity_date: '2053-01-10', interest_rate: 4.25 },
+        confidence: 0.97,
+        model: 'Offline FinTech Heuristic Copilot (Demo Bypass)',
+        prompt: 'System rule boundary check',
+        timestamp: new Date().toISOString()
+      };
+    }
+    console.error(`[API Error: requestAIExplanation(${exceptionId})]`, err);
+    throw formatApiError(err);
+  }
 };
 
 export const resolveException = async (
@@ -421,8 +357,12 @@ export const resolveException = async (
       reviewer_name: reviewerName || 'Marcus Vance (Reviewer)',
     });
     return data;
-  } catch {
-    return { success: true, message: `Exception ${exceptionId} resolved with action ${action}.` };
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      return { success: true, message: `Exception ${exceptionId} resolved with action ${action} (Demo Bypass).` };
+    }
+    console.error(`[API Error: resolveException(${exceptionId})]`, err);
+    throw formatApiError(err);
   }
 };
 
@@ -431,11 +371,19 @@ export const addExceptionComment = async (
   comment: string,
   reviewerName?: string
 ): Promise<{ message: string; exception_id: string; resolution_notes: string }> => {
-  const { data } = await api.post(`/exceptions/${exceptionId}/comment`, {
-    comment,
-    reviewer_name: reviewerName || 'Marcus Vance (Reviewer)',
-  });
-  return data;
+  try {
+    const { data } = await api.post(`/exceptions/${exceptionId}/comment`, {
+      comment,
+      reviewer_name: reviewerName || 'Marcus Vance (Reviewer)',
+    });
+    return data;
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      return { message: 'Comment appended (Demo Bypass)', exception_id: exceptionId, resolution_notes: comment };
+    }
+    console.error(`[API Error: addExceptionComment(${exceptionId})]`, err);
+    throw formatApiError(err);
+  }
 };
 
 export const fetchVerifiedLoans = async (search?: string, limit: number = 100): Promise<VerifiedLoan[]> => {
@@ -444,57 +392,18 @@ export const fetchVerifiedLoans = async (search?: string, limit: number = 100): 
     if (search) params.search = search;
     const { data } = await api.get<VerifiedLoan[]>('/verified-loans', { params });
     return data;
-  } catch {
-    return [
-      {
-        id: 'v-01',
-        loan_id_ref: '5',
-        loan_id: 'LN-99123-E',
-        canonical_data: {
-          loan_id: 'LN-99123-E',
-          borrower_id: 'BW-6654',
-          original_principal: 210000,
-          current_balance: 204000,
-          interest_rate: 5.15,
-          term_months: 360,
-          borrower_state: 'OH',
-          payment_status: 'CURRENT',
-          days_past_due: 0,
-          status: 'VERIFIED'
-        },
-        record_hash: '8f7e2a9b1c4d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f',
-        raw_hash: '1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b',
-        source_file: 'loan_tape.csv',
-        verified_by: 'Auto-Verification Pipeline v2.4',
-        verified_at: '2026-08-29T08:30:12Z',
-        ai_assisted: false,
-        quality_score: 100.0
-      },
-      {
-        id: 'v-02',
-        loan_id_ref: '6',
-        loan_id: 'LN-77412-K',
-        canonical_data: {
-          loan_id: 'LN-77412-K',
-          borrower_id: 'BW-3321',
-          original_principal: 420000,
-          current_balance: 412000,
-          interest_rate: 6.12,
-          term_months: 360,
-          borrower_state: 'WA',
-          payment_status: 'CURRENT',
-          days_past_due: 0,
-          status: 'VERIFIED'
-        },
-        record_hash: '4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e',
-        raw_hash: '9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e',
-        source_file: 'loan_tape.csv',
-        verified_by: 'Marcus Vance (Reviewer)',
-        verified_at: '2026-08-29T09:12:45Z',
-        ai_assisted: true,
-        quality_score: 99.2
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      console.warn('[Offline Demo Bypass Active] Serving preloaded verified loans fixture.');
+      let filtered = [...DEMO_VERIFIED_LOANS];
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter(v => v.loan_id.toLowerCase().includes(q) || v.record_hash.toLowerCase().includes(q));
       }
-    ];
+      return filtered;
+    }
+    console.error('[API Error: fetchVerifiedLoans]', err);
+    throw formatApiError(err);
   }
 };
 
@@ -502,37 +411,21 @@ export const fetchVerifiedLoanDetail = async (id: string): Promise<VerifiedLoanD
   try {
     const { data } = await api.get<VerifiedLoanDetailResponse>(`/verified-loans/${id}`);
     return data;
-  } catch {
-    return {
-      verified_record: {
-        id,
-        loan_id_ref: id,
-        loan_id: id,
-        canonical_data: {
-          loan_id: id,
-          borrower_id: 'BW-9012',
-          original_principal: 450000,
-          current_balance: 432000,
-          interest_rate: 6.25,
-          term_months: 360,
-          borrower_state: 'CA',
-          payment_status: 'CURRENT',
-          days_past_due: 0
-        },
-        record_hash: '8f7e2a9b1c4d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f',
-        raw_hash: '1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b',
-        source_file: 'loan_tape.csv',
-        verified_by: 'Auto-Verification Pipeline v2.4',
-        verified_at: '2026-08-29T08:30:12Z',
-        ai_assisted: false
-      },
-      hash_verification: {
-        is_valid: true,
-        stored_hash: '8f7e2a9b1c4d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f',
-        recalculated_hash: '8f7e2a9b1c4d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f',
-        tamper_detected: false
-      }
-    };
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      const match = DEMO_VERIFIED_LOANS.find(v => v.id === id || v.loan_id === id) || DEMO_VERIFIED_LOANS[0];
+      return {
+        verified_record: match,
+        hash_verification: {
+          is_valid: true,
+          stored_hash: match.record_hash,
+          recalculated_hash: match.record_hash,
+          tamper_detected: false
+        }
+      };
+    }
+    console.error(`[API Error: fetchVerifiedLoanDetail(${id})]`, err);
+    throw formatApiError(err);
   }
 };
 
@@ -544,45 +437,13 @@ export const fetchAuditTrail = async (loanId?: string, limit: number = 50): Prom
     }
     const { data } = await api.get<AuditEvent[]>('/audit', { params: { limit } });
     return data;
-  } catch {
-    return [
-      {
-        id: 'aud-1',
-        loan_id: 'LN-29384-A',
-        event_type: 'VALIDATION_FAILED',
-        actor_id: 'SYSTEM_RULES_ENGINE',
-        actor_role: 'SYSTEM',
-        summary: 'Flagged rule violation: R01_MATURITY_ORIGINATION (Maturity before origination date)',
-        timestamp: '2026-08-29T08:30:00Z'
-      },
-      {
-        id: 'aud-2',
-        loan_id: 'LN-29384-A',
-        event_type: 'AI_RECOMMENDATION_GENERATED',
-        actor_id: 'gemini-1.5-pro',
-        actor_role: 'AI_COPILOT',
-        summary: 'Suggested maturity_date correction to 2052-05-15 (Confidence: 99%)',
-        timestamp: '2026-08-29T08:30:05Z'
-      },
-      {
-        id: 'aud-3',
-        loan_id: 'LN-77412-K',
-        event_type: 'AI_PATCH_ACCEPTED',
-        actor_id: 'usr-rv-02',
-        actor_role: 'REVIEWER',
-        summary: 'Reviewer Marcus Vance approved AI suggested balance correction ($412,000)',
-        timestamp: '2026-08-29T09:12:40Z'
-      },
-      {
-        id: 'aud-4',
-        loan_id: 'LN-77412-K',
-        event_type: 'RECORD_SEALED',
-        actor_id: 'CRYPTO_SEALER',
-        actor_role: 'SYSTEM',
-        summary: 'Record canonicalized and sealed with SHA-256: 4d3e2f1a0b9c8d7e...',
-        timestamp: '2026-08-29T09:12:45Z'
-      }
-    ];
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      console.warn('[Offline Demo Bypass Active] Serving preloaded audit trail fixture.');
+      return DEMO_AUDIT_TRAIL;
+    }
+    console.error('[API Error: fetchAuditTrail]', err);
+    throw formatApiError(err);
   }
 };
 
@@ -599,15 +460,19 @@ export const uploadCsvFile = async (file: File, fileType: string, uploadedBy?: s
       },
     });
     return data;
-  } catch {
-    return {
-      filename: file.name,
-      file_type: fileType,
-      total_rows: 250,
-      valid_rows: 232,
-      exception_count: 18,
-      status: 'PROCESSED'
-    };
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      return {
+        filename: file.name,
+        file_type: fileType,
+        total_rows: 1200,
+        valid_rows: 1114,
+        exception_count: 86,
+        status: 'PROCESSED (Demo Bypass)'
+      };
+    }
+    console.error('[API Error: uploadCsvFile]', err);
+    throw formatApiError(err);
   }
 };
 
@@ -617,8 +482,12 @@ export const verifyAllCleanLoans = async (verifiedBy?: string): Promise<any> => 
       params: { verified_by: verifiedBy }
     });
     return data;
-  } catch {
-    return { success: true, message: 'All clean loans successfully verified and sealed with SHA-256.' };
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      return { success: true, message: '1,114 clean loans verified and sealed with SHA-256 (Demo Bypass Mode).' };
+    }
+    console.error('[API Error: verifyAllCleanLoans]', err);
+    throw formatApiError(err);
   }
 };
 

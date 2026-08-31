@@ -31,6 +31,8 @@ interface SidebarProps {
   setCurrentTab: (tab: string) => void;
   currentUser: User | null;
   onLogout: () => void;
+  isDemoBypass?: boolean;
+  onToggleBypass?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -42,6 +44,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCurrentTab,
   currentUser,
   onLogout,
+  isDemoBypass = false,
+  onToggleBypass,
 }) => {
   // Define strict role-specific navigation menu items
   const roleMenus: Record<UserRole, { id: string; label: string; icon: any; category: string }[]> = {
@@ -205,6 +209,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-3 border-t border-slate-800/80 bg-slate-950/40 space-y-2">
           {isOpen ? (
             <>
+              {/* Offline Demo Simulation Mode Badge (Above Persona Switcher) */}
+              {isDemoBypass && (
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-mono space-y-1.5 animate-fade-in shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1.5 font-bold tracking-tight text-amber-200">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                      <span>OFFLINE DEMO MODE</span>
+                    </div>
+                    <span className="text-[9px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold uppercase">
+                      Preloaded
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-amber-300/80 leading-relaxed font-sans">
+                    DB disconnected • Serving verified preloaded fixtures.
+                  </div>
+                  {onToggleBypass && (
+                    <button
+                      onClick={onToggleBypass}
+                      className="w-full text-center py-1 px-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-[10px] font-bold transition-all cursor-pointer"
+                    >
+                      Exit Bypass / Reconnect DB ⟳
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Simple Switch Role Dropdown */}
               <div className="space-y-1">
                 <label className="block text-[10px] font-mono uppercase text-slate-400 flex items-center gap-1">
@@ -249,6 +279,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </>
           ) : (
             <div className="flex flex-col items-center gap-2">
+              {isDemoBypass && (
+                <div 
+                  className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 cursor-pointer"
+                  title="Offline Demo Mode Active (Preloaded Data)"
+                  onClick={onToggleBypass}
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                </div>
+              )}
               <button
                 onClick={onLogout}
                 className="p-2.5 rounded-xl text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"

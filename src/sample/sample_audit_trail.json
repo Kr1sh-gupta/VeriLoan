@@ -1,0 +1,38 @@
+[
+  {
+    "id": "aud-001",
+    "loan_id": "LN-10001",
+    "event_type": "RECORD_IMPORTED",
+    "actor_id": "SYSTEM_INGEST",
+    "actor_role": "SYSTEM",
+    "summary": "Loan tape ingested: batch-bat-75fe02bd81d6 row 1 registered.",
+    "timestamp": "2026-08-30T08:00:00Z"
+  },
+  {
+    "id": "aud-002",
+    "loan_id": "LN-10002",
+    "event_type": "EXCEPTION_RAISED",
+    "actor_id": "RULES_ENGINE",
+    "actor_role": "SYSTEM",
+    "summary": "VAL-005 flagged: Maturity date precedes origination date.",
+    "timestamp": "2026-08-30T08:00:02Z"
+  },
+  {
+    "id": "aud-003",
+    "loan_id": "LN-10002",
+    "event_type": "AI_SUGGESTION_GENERATED",
+    "actor_id": "gemini-2.5-flash",
+    "actor_role": "AI_COPILOT",
+    "summary": "Copilot suggested maturity_date patch to 2053-01-10 (Confidence: 99%).",
+    "timestamp": "2026-08-30T08:00:05Z"
+  },
+  {
+    "id": "aud-004",
+    "loan_id": "LN-10001",
+    "event_type": "VERIFICATION_SEALED",
+    "actor_id": "CRYPTO_SEALER",
+    "actor_role": "SYSTEM",
+    "summary": "Canonical SHA-256 seal computed for LN-10001: 01f90b058893562b5857...",
+    "timestamp": "2026-08-30T08:30:12Z"
+  }
+]
