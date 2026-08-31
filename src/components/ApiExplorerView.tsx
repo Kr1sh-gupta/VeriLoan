@@ -28,12 +28,12 @@ export const ApiExplorerView: React.FC = () => {
     { path: '/api/exceptions?severity=CRITICAL', method: 'GET', desc: 'Filter critical validation exceptions' },
     { path: '/api/verified-loans?limit=5', method: 'GET', desc: 'List cryptographically verified loan records' },
     { path: '/api/audit?limit=5', method: 'GET', desc: 'Immutable global audit trail stream' },
-    { path: '/api/summary/rules', method: 'GET', desc: 'All 14 configurable validation rules' },
+    { path: '/api/summary/rules', method: 'GET', desc: 'All 15 configurable validation rules' },
     { 
       path: '/api/ai/explain', 
       method: 'POST', 
       desc: 'Request Gemini AI explanation & patch suggestion',
-      defaultBody: JSON.stringify({ exception_id: 'exc-1', custom_instruction: 'Verify maturity chronology' }, null, 2)
+      defaultBody: JSON.stringify({ exception_id: 'LN-10002', custom_instruction: 'Verify loan chronological bounds and suggest verified patch' }, null, 2)
     },
   ];
 
@@ -63,6 +63,10 @@ export const ApiExplorerView: React.FC = () => {
 
     try {
       let res: any;
+      const token = localStorage.getItem('veriloan_auth_token') || 'jwt-mock-token-usr-002-reviewer';
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       if (method === 'POST') {
         let parsedBody = {};
         try {
@@ -73,9 +77,9 @@ export const ApiExplorerView: React.FC = () => {
           setResponseJson({ error: 'Request body contains invalid JSON formatting.' });
           return;
         }
-        res = await axios.post(`http://localhost:8000${path}`, parsedBody);
+        res = await axios.post(`http://localhost:8000${path}`, parsedBody, { headers });
       } else {
-        res = await axios.get(`http://localhost:8000${path}`);
+        res = await axios.get(`http://localhost:8000${path}`, { headers });
       }
 
       const duration = Math.round(performance.now() - startTime);
