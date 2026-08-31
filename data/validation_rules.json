@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "last_updated": "2026-08-30T18:41:37.428921Z",
+  "last_updated": "2026-08-31T04:17:27.861074Z",
   "rules": [
     {
       "code": "VAL-001",
@@ -151,6 +151,15 @@
       "enabled": true,
       "max_loan_count": 3,
       "description": "Flags borrowers appearing across 3 or more distinct loans in the portfolio tape to detect borrower concentration risk."
+    },
+    {
+      "code": "VAL-106",
+      "name": "ISO-8601 Extended Date Format Validation",
+      "category": "FORMAT",
+      "severity": "HIGH",
+      "field": "origination_date, maturity_date, last_payment_date, last_updated_at",
+      "enabled": true,
+      "description": "Dates must adhere strictly to standard ISO-8601 YYYY-MM-DD format (origination_date, maturity_date, last_payment_date, last_updated_at)."
     }
   ]
 }
