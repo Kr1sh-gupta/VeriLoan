@@ -271,38 +271,45 @@
     /* Screenshot Showcase Frame */
     .screenshot-frame {
       position: relative;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: #000000;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(15, 23, 42, 0.5);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
       height: 100%;
       max-height: 470px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      padding: 14px;
+      backdrop-filter: blur(8px);
     }
 
     .screenshot-frame img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: top center;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      display: block;
     }
 
     .screenshot-badge {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(15, 23, 42, 0.85);
+      top: 12px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.9);
       border: 1px solid rgba(255, 255, 255, 0.15);
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.68rem;
       padding: 3px 8px;
-      border-radius: 14px;
+      border-radius: 12px;
       color: #38BDF8;
       backdrop-filter: blur(8px);
       font-weight: 600;
+      z-index: 10;
     }
 
     /* Key Points List */
@@ -548,6 +555,47 @@
     .btn-primary:hover {
       background: #4338CA;
     }
+
+    /* Print & PDF Export Formatting */
+    @media print {
+      @page {
+        size: 16in 9in;
+        margin: 0;
+      }
+      body {
+        overflow: visible !important;
+        background: #0B0F17 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      header, footer, .progress-track, .nav-hints, .btn-group {
+        display: none !important;
+      }
+      .deck-container {
+        padding: 0 !important;
+        height: auto !important;
+        position: static !important;
+      }
+      .slide {
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 16in !important;
+        height: 9in !important;
+        min-height: 9in !important;
+        max-height: 9in !important;
+        opacity: 1 !important;
+        display: flex !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        padding: 40px 60px !important;
+        transform: none !important;
+        transition: none !important;
+        box-sizing: border-box !important;
+      }
+    }
   </style>
 </head>
 
@@ -577,13 +625,16 @@
           <h3 style="font-size: 1.1rem; font-weight: 700; color: #E2E8F0; margin-bottom: 8px; line-height: 1.35;">
             AI-Assisted Loan Tape Verification &amp; Cryptographic Audit Platform
           </h3>
-          <p class="card-desc" style="margin-bottom: 16px; font-size: 0.9rem; color: var(--text-muted); line-height: 1.45;">
-            Autonomous multi-modal financial intake, deterministic 15-rule constraint checking, zero-silent-write AI remediation, and SHA-256 sealed audit trails.
+          <p class="card-desc"
+            style="margin-bottom: 16px; font-size: 0.9rem; color: var(--text-muted); line-height: 1.45;">
+            Autonomous multi-modal financial intake, deterministic 15-rule constraint checking, zero-silent-write AI
+            remediation, and SHA-256 sealed audit trails.
           </p>
 
           <!-- Contributors Section -->
           <div>
-            <div style="font-size: 0.72rem; font-family: 'JetBrains Mono'; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">
+            <div
+              style="font-size: 0.72rem; font-family: 'JetBrains Mono'; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">
               Contributors
             </div>
             <div class="contributors-card" style="margin-top: 0; padding: 10px 14px; gap: 10px;">
@@ -605,18 +656,30 @@
           </div>
 
           <div style="display: flex; gap: 12px; align-items: center; margin-top: 20px;">
-            <a href="https://veri-loan.vercel.app/" target="_blank" style="text-decoration: none;" class="btn btn-primary">
+            <a href="https://veri-loan.vercel.app/" target="_blank" style="text-decoration: none;"
+              class="btn btn-primary">
               🌐 Live Web App
             </a>
-            <a href="https://veriloan-production-5628.up.railway.app/docs" target="_blank" style="text-decoration: none;" class="btn">
+            <a href="https://veriloan-production-5628.up.railway.app/docs" target="_blank"
+              style="text-decoration: none;" class="btn">
               📜 API Swagger Docs
             </a>
           </div>
         </div>
 
-        <div class="screenshot-frame">
-          <div class="screenshot-badge">Live Platform • Hero View</div>
-          <img src="images/hero_section.png" alt="VeriLoan Hero Section" />
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+          <div style="position: relative; max-width: 480px; width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 30px rgba(79, 70, 229, 0.15); background: #0C101A;">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+              <div style="display: flex; gap: 6px;">
+                <span style="width: 9px; height: 9px; border-radius: 50%; background: #EF4444; opacity: 0.8;"></span>
+                <span style="width: 9px; height: 9px; border-radius: 50%; background: #F59E0B; opacity: 0.8;"></span>
+                <span style="width: 9px; height: 9px; border-radius: 50%; background: #10B981; opacity: 0.8;"></span>
+              </div>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #94A3B8;">veri-loan.vercel.app</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: #38BDF8; background: rgba(56, 189, 248, 0.12); padding: 2px 7px; border-radius: 5px; border: 1px solid rgba(56, 189, 248, 0.25);">SHA-256</span>
+            </div>
+            <img src="images/hero_section.png" alt="VeriLoan Hero Section" style="width: 100%; height: auto; display: block; object-fit: contain;" />
+          </div>
         </div>
       </div>
     </section>

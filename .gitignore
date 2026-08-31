@@ -1,5 +1,6 @@
 # Documentation files
 *.pdf
+!docs/presentation.pdf
 *.docx
 *.doc
 
