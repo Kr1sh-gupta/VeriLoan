@@ -36,7 +36,23 @@ export const setDemoBypassActive = (active: boolean) => {
   }
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
+const getNormalizedApiBase = (): string => {
+  const envBase = import.meta.env.VITE_API_BASE;
+  let base = (envBase && typeof envBase === 'string' && envBase.trim().length > 0)
+    ? envBase.trim()
+    : 'http://localhost:8000/api';
+
+  // Remove trailing slashes
+  base = base.replace(/\/+$/, '');
+
+  // If the user supplied root domain without /api (e.g. https://xxxx.up.railway.app), append /api
+  if (!base.endsWith('/api')) {
+    base = `${base}/api`;
+  }
+  return base;
+};
+
+const API_BASE = getNormalizedApiBase();
 
 export const exportCsvUrl = () => `${API_BASE}/verified-loans/export/csv`;
 
