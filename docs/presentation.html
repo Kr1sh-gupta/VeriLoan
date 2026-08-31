@@ -1,24 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VeriLoan — Presentation Deck | AI Financial Diligence & Verification</title>
+  <title>VeriLoan — Presentation Deck | Team Trustmint</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
   <style>
     :root {
-      --bg-dark: #070B14;
-      --card-bg: rgba(15, 23, 42, 0.85);
-      --card-border: rgba(255, 255, 255, 0.1);
-      --primary-blue: #3B82F6;
-      --cyan: #06B6D4;
-      --purple: #8B5CF6;
+      --bg-dark: #0B0F17;
+      --card-bg: rgba(18, 24, 38, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #4F46E5;
+      --sky: #38BDF8;
       --emerald: #10B981;
       --amber: #F59E0B;
-      --text-main: #F8FAFC;
+      --purple: #8B5CF6;
+      --text-main: #F1F5F9;
       --text-muted: #94A3B8;
+      --text-sub: #64748B;
     }
 
     * {
@@ -29,7 +33,7 @@
 
     body {
       font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: radial-gradient(circle at 10% 20%, #0d1a30 0%, #070B14 80%);
+      background: radial-gradient(circle at 50% 10%, #151C2C 0%, #0B0F17 90%);
       color: var(--text-main);
       overflow: hidden;
       height: 100vh;
@@ -51,8 +55,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(7, 11, 20, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(11, 15, 23, 0.85);
       backdrop-filter: blur(16px);
       z-index: 100;
     }
@@ -68,12 +72,12 @@
 
     .brand-badge {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      padding: 3px 8px;
+      font-size: 0.75rem;
+      padding: 3px 10px;
       border-radius: 6px;
-      background: rgba(59, 130, 246, 0.15);
-      color: #60A5FA;
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: rgba(79, 70, 229, 0.12);
+      color: #818CF8;
+      border: 1px solid rgba(79, 70, 229, 0.25);
       font-weight: 600;
     }
 
@@ -81,15 +85,15 @@
       position: absolute;
       bottom: 0;
       left: 0;
-      height: 3px;
-      background: rgba(255, 255, 255, 0.06);
+      height: 2px;
+      background: rgba(255, 255, 255, 0.05);
       width: 100%;
     }
 
     .progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, #3B82F6, #06B6D4);
-      width: 12.5%;
+      background: linear-gradient(90deg, #4F46E5, #38BDF8);
+      width: 11.11%;
       transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -122,8 +126,8 @@
       justify-content: center;
       opacity: 0;
       pointer-events: none;
-      transform: translateX(40px) scale(0.98);
-      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateX(30px) scale(0.99);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .slide.active {
@@ -135,42 +139,40 @@
     /* Slide Typography */
     .eyebrow {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      color: var(--cyan);
+      color: var(--sky);
       font-weight: 700;
       margin-bottom: 8px;
     }
 
     h1 {
-      font-size: 3rem;
+      font-size: 2.8rem;
       font-weight: 900;
       letter-spacing: -0.03em;
       line-height: 1.15;
-      background: linear-gradient(135deg, #FFFFFF 30%, #94A3B8 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 16px;
+      color: #FFFFFF;
+      margin-bottom: 14px;
     }
 
     h2 {
-      font-size: 2.2rem;
+      font-size: 2.1rem;
       font-weight: 800;
       letter-spacing: -0.02em;
-      margin-bottom: 12px;
+      color: #FFFFFF;
+      margin-bottom: 10px;
     }
 
     p.subtitle {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       color: var(--text-muted);
       max-width: 850px;
       line-height: 1.6;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
 
-    /* Card Layouts */
+    /* Grid Layouts */
     .grid-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -183,47 +185,48 @@
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      gap: 18px;
     }
 
     .grid-4 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 18px;
+      gap: 16px;
     }
 
     .feature-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 18px;
-      padding: 24px;
+      border-radius: 14px;
+      padding: 22px;
       backdrop-filter: blur(12px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       height: 100%;
-      transition: border-color 0.3s ease;
+      transition: all 0.25s ease;
     }
 
     .feature-card:hover {
-      border-color: rgba(59, 130, 246, 0.4);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-2px);
     }
 
     .card-icon {
-      font-size: 1.8rem;
-      margin-bottom: 14px;
+      font-size: 1.6rem;
+      margin-bottom: 12px;
     }
 
     .card-title {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       color: #FFFFFF;
     }
 
     .card-desc {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       color: var(--text-muted);
       line-height: 1.5;
     }
@@ -233,29 +236,48 @@
       align-items: center;
       gap: 6px;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      padding: 4px 10px;
-      border-radius: 8px;
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 6px;
       font-weight: 600;
-      margin-top: 14px;
+      margin-top: 12px;
       width: fit-content;
     }
 
-    .pill-blue { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3); }
-    .pill-amber { background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3); }
-    .pill-emerald { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .pill-purple { background: rgba(139, 92, 246, 0.15); color: #C084FC; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .pill-blue {
+      background: rgba(79, 70, 229, 0.12);
+      color: #818CF8;
+      border: 1px solid rgba(79, 70, 229, 0.25);
+    }
+
+    .pill-amber {
+      background: rgba(245, 158, 11, 0.12);
+      color: #FBBF24;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .pill-emerald {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .pill-sky {
+      background: rgba(56, 189, 248, 0.12);
+      color: #38BDF8;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
 
     /* Screenshot Showcase Frame */
     .screenshot-frame {
       position: relative;
-      border-radius: 16px;
+      border-radius: 14px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       background: #000000;
-      box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(59, 130, 246, 0.15);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
       height: 100%;
-      max-height: 480px;
+      max-height: 470px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -270,14 +292,14 @@
 
     .screenshot-badge {
       position: absolute;
-      top: 12px;
-      right: 12px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      top: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      padding: 4px 10px;
-      border-radius: 20px;
+      font-size: 0.68rem;
+      padding: 3px 8px;
+      border-radius: 14px;
       color: #38BDF8;
       backdrop-filter: blur(8px);
       font-weight: 600;
@@ -287,76 +309,170 @@
     .point-list {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .point-item {
       display: flex;
       align-items: flex-start;
-      gap: 14px;
-      background: rgba(15, 23, 42, 0.5);
+      gap: 12px;
+      background: rgba(18, 24, 38, 0.5);
       border: 1px solid rgba(255, 255, 255, 0.06);
-      padding: 16px 20px;
-      border-radius: 14px;
+      padding: 14px 18px;
+      border-radius: 12px;
     }
 
     .point-num {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 800;
-      color: var(--cyan);
-      background: rgba(6, 182, 212, 0.12);
-      border-radius: 8px;
-      padding: 4px 8px;
+      color: var(--sky);
+      background: rgba(56, 189, 248, 0.1);
+      border-radius: 6px;
+      padding: 3px 7px;
       flex-shrink: 0;
     }
 
     .point-content strong {
       display: block;
       color: #FFFFFF;
-      font-size: 0.95rem;
-      margin-bottom: 3px;
+      font-size: 0.92rem;
+      margin-bottom: 2px;
     }
 
     .point-content span {
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       color: var(--text-muted);
       line-height: 1.4;
+    }
+
+    /* Architecture Flow Box Styles */
+    .arch-flow-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+    }
+
+    .arch-stage {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .arch-stage-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #FFFFFF;
+    }
+
+    .arch-stage-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(79, 70, 229, 0.15);
+      color: #818CF8;
+      border: 1px solid rgba(79, 70, 229, 0.3);
+    }
+
+    .arch-stage-items {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .arch-item {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: var(--text-muted);
+    }
+
+    .arch-item strong {
+      color: #F1F5F9;
+    }
+
+    /* Contributors Card */
+    .contributors-card {
+      display: flex;
+      gap: 14px;
+      margin-top: 24px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      width: fit-content;
+    }
+
+    .contributor-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .contributor-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #1E293B;
+      color: var(--sky);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 800;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     /* Tech Stack Grid */
     .tech-pill-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
+      gap: 14px;
     }
 
     .tech-box {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 18px;
+      border-radius: 12px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
     .tech-box-header {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--cyan);
+      font-size: 0.72rem;
+      color: var(--sky);
       text-transform: uppercase;
       font-weight: 700;
     }
 
     .tech-box-title {
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: 800;
       color: #FFFFFF;
     }
 
     .tech-box-desc {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
       line-height: 1.4;
     }
@@ -372,8 +488,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(7, 11, 20, 0.85);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(11, 15, 23, 0.85);
       backdrop-filter: blur(16px);
       z-index: 100;
     }
@@ -382,70 +498,71 @@
       display: flex;
       align-items: center;
       gap: 16px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
+      font-size: 0.78rem;
+      color: var(--text-sub);
       font-family: 'JetBrains Mono', monospace;
     }
 
     .key-badge {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       color: #FFFFFF;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
     }
 
     .btn-group {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       color: #FFFFFF;
-      padding: 8px 18px;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
       font-family: 'Plus Jakarta Sans', sans-serif;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       transition: all 0.2s ease;
     }
 
     .btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
     .btn-primary {
-      background: var(--primary-blue);
-      border-color: #60A5FA;
+      background: var(--primary);
+      border-color: #6366F1;
     }
 
     .btn-primary:hover {
-      background: #2563EB;
+      background: #4338CA;
     }
   </style>
 </head>
+
 <body>
 
   <!-- Top Header & Progress Bar -->
   <header>
     <div class="brand">
-      <span>🛡️ VeriLoan</span>
-      <span class="brand-badge">FinTech Diligence 2026</span>
+      <span>VeriLoan</span>
+      <span class="brand-badge">Intain FinTech Diligence 2026</span>
     </div>
     <div class="progress-track">
       <div class="progress-bar" id="progressBar"></div>
     </div>
-    <div class="slide-counter" id="slideCounter">01 / 08</div>
+    <div class="slide-counter" id="slideCounter">01 / 09</div>
   </header>
 
   <!-- Slide Deck Container -->
@@ -453,19 +570,53 @@
 
     <!-- SLIDE 1: Title & Hero -->
     <section class="slide active" id="slide-1">
-      <div style="max-width: 900px;">
-        <div class="eyebrow">Institutional Loan Diligence Engine</div>
-        <h1>VeriLoan: AI-Assisted Loan Tape Verification & Cryptographic Audit Platform</h1>
-        <p class="subtitle">
-          Autonomous multi-modal financial intake, deterministic 15-rule constraint checking, zero-silent-write AI remediation, and SHA-256 sealed audit trails.
-        </p>
-        <div style="display: flex; gap: 16px; align-items: center; margin-top: 10px;">
-          <a href="https://veri-loan.vercel.app/" target="_blank" style="text-decoration: none;" class="btn btn-primary">
-            🌐 Open Live Web App
-          </a>
-          <span style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #64748B;">
-            Vercel + Railway • Monorepo Architecture
-          </span>
+      <div class="grid-2">
+        <div>
+          <div class="eyebrow">Team Trustmint • FinTech Diligence 2026</div>
+          <h1 style="font-size: 2.2rem; margin-bottom: 8px;">VeriLoan</h1>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #E2E8F0; margin-bottom: 8px; line-height: 1.35;">
+            AI-Assisted Loan Tape Verification &amp; Cryptographic Audit Platform
+          </h3>
+          <p class="card-desc" style="margin-bottom: 16px; font-size: 0.9rem; color: var(--text-muted); line-height: 1.45;">
+            Autonomous multi-modal financial intake, deterministic 15-rule constraint checking, zero-silent-write AI remediation, and SHA-256 sealed audit trails.
+          </p>
+
+          <!-- Contributors Section -->
+          <div>
+            <div style="font-size: 0.72rem; font-family: 'JetBrains Mono'; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">
+              Contributors
+            </div>
+            <div class="contributors-card" style="margin-top: 0; padding: 10px 14px; gap: 10px;">
+              <div class="contributor-item">
+                <div class="contributor-avatar">KG</div>
+                <span>Krish Gupta</span>
+              </div>
+              <div style="color: rgba(255,255,255,0.2);">|</div>
+              <div class="contributor-item">
+                <div class="contributor-avatar">RR</div>
+                <span>Radha Rani</span>
+              </div>
+              <div style="color: rgba(255,255,255,0.2);">|</div>
+              <div class="contributor-item">
+                <div class="contributor-avatar">GV</div>
+                <span title="G V Mani Prabha Viswanadhula">G V Mani Prabha</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; align-items: center; margin-top: 20px;">
+            <a href="https://veri-loan.vercel.app/" target="_blank" style="text-decoration: none;" class="btn btn-primary">
+              🌐 Live Web App
+            </a>
+            <a href="https://veriloan-production-5628.up.railway.app/docs" target="_blank" style="text-decoration: none;" class="btn">
+              📜 API Swagger Docs
+            </a>
+          </div>
+        </div>
+
+        <div class="screenshot-frame">
+          <div class="screenshot-badge">Live Platform • Hero View</div>
+          <img src="images/hero_section.png" alt="VeriLoan Hero Section" />
         </div>
       </div>
     </section>
@@ -474,72 +625,118 @@
     <section class="slide" id="slide-2">
       <div class="eyebrow">Industry Challenge</div>
       <h2>The $12 Trillion Secondary Mortgage Dilemma</h2>
-      <p class="subtitle">Manual spreadsheet audits lead to high operational costs, fraud leakage, and zero auditability.</p>
-      
+      <p class="subtitle">Manual spreadsheet audits lead to high operational costs, fraud leakage, and zero
+        auditability.</p>
+
       <div class="grid-4">
         <div class="feature-card">
           <div class="card-icon">📑</div>
           <div class="card-title">Dirty Loan Tapes</div>
-          <div class="card-desc">Missing IDs, malformed dates, negative balances, and non-standard field headers across servicers.</div>
+          <div class="card-desc">Missing IDs, malformed dates, negative balances, and non-standard field headers across
+            servicers.</div>
           <div class="pill pill-amber">Data Anarchy</div>
         </div>
 
         <div class="feature-card">
           <div class="card-icon">🔄</div>
           <div class="card-title">Servicer Drift</div>
-          <div class="card-desc">Silent balance discrepancies, conflicting Days Past Due (DPD), and missing collateral documents.</div>
+          <div class="card-desc">Silent balance discrepancies, conflicting Days Past Due (DPD), and missing collateral
+            documents.</div>
           <div class="pill pill-amber">Reconciliation Lag</div>
         </div>
 
         <div class="feature-card">
           <div class="card-icon">⏳</div>
           <div class="card-title">Reviewer Fatigue</div>
-          <div class="card-desc">Analysts manually cross-referencing rows in Excel, taking hours per portfolio tape.</div>
+          <div class="card-desc">Analysts manually cross-referencing rows in Excel, taking hours per portfolio tape.
+          </div>
           <div class="pill pill-amber">Human Bottleneck</div>
         </div>
 
         <div class="feature-card">
           <div class="card-icon">🔏</div>
           <div class="card-title">Zero Proof of State</div>
-          <div class="card-desc">No cryptographic guarantee that approved records weren't tampered with post-verification.</div>
+          <div class="card-desc">No cryptographic guarantee that approved records weren't tampered with
+            post-verification.</div>
           <div class="pill pill-amber">Audit Risk</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 3: Architecture & Core Solution -->
+    <!-- SLIDE 3: Architecture Flow Diagram (NEW SLIDE) -->
     <section class="slide" id="slide-3">
-      <div class="eyebrow">System Architecture</div>
-      <h2>Deterministic Rigor Meets Generative Intelligence</h2>
-      <p class="subtitle">A 4-stage pipeline that automates 95% of diligence while enforcing strict human-in-the-loop governance.</p>
-      
-      <div class="grid-4">
-        <div class="feature-card">
-          <div class="card-icon">📥</div>
-          <div class="card-title">1. Multi-Modal Intake</div>
-          <div class="card-desc">1-click financial datasets, drag-and-drop CSVs, OCR vision simulator, and live API connectors.</div>
-          <div class="pill pill-blue">Auto-Schema Match</div>
+      <div class="eyebrow">End-to-End System Blueprint</div>
+      <h2>Architecture & Data Flow Diagram</h2>
+      <p class="subtitle" style="margin-bottom: 20px;">A 5-stage automated diligence lifecycle ensuring mathematical
+        precision and strict human-in-the-loop governance.</p>
+
+      <div class="arch-flow-container">
+        <!-- Stage 1 -->
+        <div class="arch-stage">
+          <div class="arch-stage-header">
+            <span class="arch-stage-badge">Stage 1</span>
+            <span>Intake Layer</span>
+          </div>
+          <div class="arch-stage-items">
+            <div class="arch-item"><strong>Primary Loan Tapes</strong> (.csv, .xlsx)</div>
+            <div class="arch-item"><strong>Servicer Updates</strong> (Monthly DPD / Balance)</div>
+            <div class="arch-item"><strong>Document Manifests</strong> (Custodial Vault)</div>
+            <div class="arch-item"><strong>Schema Normalizer</strong> (Automated Header Mapping)</div>
+          </div>
         </div>
 
-        <div class="feature-card">
-          <div class="card-icon">⚡</div>
-          <div class="card-title">2. 15-Rule Engine</div>
-          <div class="card-desc">Deterministic checks covering mandatory fields, ISO dates, balance logic, servicer delta, and concentration.</div>
-          <div class="pill pill-emerald">100% Deterministic</div>
+        <!-- Stage 2 -->
+        <div class="arch-stage">
+          <div class="arch-stage-header">
+            <span class="arch-stage-badge">Stage 2</span>
+            <span>15-Rule Engine</span>
+          </div>
+          <div class="arch-stage-items">
+            <div class="arch-item"><strong>Mandatory & Uniqueness</strong> (VAL-001 / 002 / 003)</div>
+            <div class="arch-item"><strong>ISO-8601 Date Integrity</strong> (VAL-106)</div>
+            <div class="arch-item"><strong>Financial Logic Bounds</strong> (VAL-005 - 008)</div>
+            <div class="arch-item"><strong>Servicer Reconciliation</strong> (VAL-011)</div>
+            <div class="arch-item"><strong>Concentration Risk</strong> (VAL-015)</div>
+          </div>
         </div>
 
-        <div class="feature-card">
-          <div class="card-icon">🤖</div>
-          <div class="card-title">3. AI Copilot (Gemini)</div>
-          <div class="card-desc">Root-cause explainability and patch synthesis with Zero Silent Write governance.</div>
-          <div class="pill pill-purple">Human-in-the-Loop</div>
+        <!-- Stage 3 -->
+        <div class="arch-stage">
+          <div class="arch-stage-header">
+            <span class="arch-stage-badge">Stage 3</span>
+            <span>AI Copilot & Triage</span>
+          </div>
+          <div class="arch-stage-items">
+            <div class="arch-item"><strong>Google Gemini 2.5 Flash</strong> (Root-Cause Explainability)</div>
+            <div class="arch-item"><strong>Zero Silent Writes</strong> (Candidate Patches Only)</div>
+            <div class="arch-item"><strong>Reviewer Actions</strong> [Accept] [Edit] [Remediate] [Reject]</div>
+          </div>
         </div>
 
-        <div class="feature-card">
-          <div class="card-icon">🔐</div>
-          <div class="card-title">4. Cryptographic Proof</div>
-          <div class="card-desc">Canonical JSON serialization and SHA-256 hash sealing with tamper-evident audit history.</div>
-          <div class="pill pill-emerald">Tamper-Proof</div>
+        <!-- Stage 4 -->
+        <div class="arch-stage">
+          <div class="arch-stage-header">
+            <span class="arch-stage-badge">Stage 4</span>
+            <span>Cryptographic Proof</span>
+          </div>
+          <div class="arch-stage-items">
+            <div class="arch-item"><strong>Deterministic Canonical JSON</strong> (sort_keys=True)</div>
+            <div class="arch-item"><strong>SHA-256 Hash Sealing</strong> (Tamper Verification)</div>
+            <div class="arch-item"><strong>7-Event Audit Trail</strong> (Append-Only Event Ledger)</div>
+          </div>
+        </div>
+
+        <!-- Stage 5 -->
+        <div class="arch-stage">
+          <div class="arch-stage-header">
+            <span class="arch-stage-badge">Stage 5</span>
+            <span>Delivery & Export</span>
+          </div>
+          <div class="arch-stage-items">
+            <div class="arch-item"><strong>Verified Records Portal</strong> (Live Hash Recalculation)</div>
+            <div class="arch-item"><strong>Institutional CSV Export</strong> (Compliance Ready)</div>
+            <div class="arch-item"><strong>REST API Suite</strong> (FastAPI Swagger Integration)</div>
+          </div>
         </div>
       </div>
     </section>
@@ -550,22 +747,25 @@
         <div>
           <div class="eyebrow">Module A • Multi-Modal Intake</div>
           <h2>Ingestion Command Center</h2>
-          <p class="card-desc" style="margin-bottom: 20px; font-size: 1rem;">
-            Operators can ingest full portfolios with 1-click preloaded datasets or custom files, featuring real-time stream visualizers.
+          <p class="card-desc" style="margin-bottom: 20px; font-size: 0.95rem;">
+            Operators can ingest full portfolios with 1-click preloaded datasets or custom files, featuring real-time
+            stream visualizers.
           </p>
           <div class="point-list">
             <div class="point-item">
               <div class="point-num">01</div>
               <div class="point-content">
                 <strong>3 Distinct Preloaded Financial Datasets</strong>
-                <span>Fannie/Freddie Standard (1,200 loans), Multi-Source Delta (398 rows), and Document Vault (1,194 records).</span>
+                <span>Fannie/Freddie Standard (1,200 loans), Multi-Source Delta (398 rows), and Document Vault (1,194
+                  records).</span>
               </div>
             </div>
             <div class="point-item">
               <div class="point-num">02</div>
               <div class="point-content">
                 <strong>Real Server Metrics & Progress Stepper</strong>
-                <span>Instant breakdown of total rows, verified clean loans, and quarantined anomalies without fake hardcoded counts.</span>
+                <span>Instant breakdown of total rows, verified clean loans, and quarantined anomalies without fake
+                  hardcoded counts.</span>
               </div>
             </div>
           </div>
@@ -583,8 +783,9 @@
         <div>
           <div class="eyebrow">Module B • AI Exception Resolution</div>
           <h2>Reviewer Workbench & Governance</h2>
-          <p class="card-desc" style="margin-bottom: 20px; font-size: 1rem;">
-            Zero Silent Modification policy: AI generates explanations and candidate patches, but human reviewers maintain 100% decision authority.
+          <p class="card-desc" style="margin-bottom: 20px; font-size: 0.95rem;">
+            Zero Silent Modification policy: AI generates explanations and candidate patches, but human reviewers
+            maintain 100% decision authority.
           </p>
           <div class="point-list">
             <div class="point-item">
@@ -616,22 +817,25 @@
         <div>
           <div class="eyebrow">Module C • Cryptographic Sealing</div>
           <h2>Immutable Proof & Audit Trail</h2>
-          <p class="card-desc" style="margin-bottom: 20px; font-size: 1rem;">
-            Every clean loan and resolved anomaly is cryptographically hashed with SHA-256 and registered in an append-only audit trail.
+          <p class="card-desc" style="margin-bottom: 20px; font-size: 0.95rem;">
+            Every clean loan and resolved anomaly is cryptographically hashed with SHA-256 and registered in an
+            append-only audit trail.
           </p>
           <div class="point-list">
             <div class="point-item">
               <div class="point-num">SHA</div>
               <div class="point-content">
                 <strong>Deterministic Canonical JSON</strong>
-                <span>Ensures identical key-order serialization (`sort_keys=True`) for mathematical reproducibility.</span>
+                <span>Ensures identical key-order serialization (`sort_keys=True`) for mathematical
+                  reproducibility.</span>
               </div>
             </div>
             <div class="point-item">
               <div class="point-num">LOG</div>
               <div class="point-content">
                 <strong>Comprehensive 7-Event Audit Trail</strong>
-                <span>Logs imports, validation runs, AI suggestions, reviewer overrides, rule updates, and hash sealings.</span>
+                <span>Logs imports, validation runs, AI suggestions, reviewer overrides, rule updates, and hash
+                  sealings.</span>
               </div>
             </div>
           </div>
@@ -648,12 +852,13 @@
       <div class="eyebrow">Engineering Foundation</div>
       <h2>Production-Grade Modern Tech Stack</h2>
       <p class="subtitle">Designed for speed, modularity, and high cryptographic reliability.</p>
-      
+
       <div class="tech-pill-grid">
         <div class="tech-box">
           <div class="tech-box-header">Frontend Web App</div>
           <div class="tech-box-title">React 19 + Vite</div>
-          <div class="tech-box-desc">Tailwind CSS v4, Lucide Icons, Axios, JetBrains Mono & Plus Jakarta Sans typography.</div>
+          <div class="tech-box-desc">Tailwind CSS v4, Lucide Icons, Axios, JetBrains Mono & Plus Jakarta Sans
+            typography.</div>
         </div>
 
         <div class="tech-box">
@@ -665,37 +870,43 @@
         <div class="tech-box">
           <div class="tech-box-header">AI Engine</div>
           <div class="tech-box-title">Google Gemini 2.5 Flash</div>
-          <div class="tech-box-desc">Structured financial prompt engineering, multi-attribute anomaly matching, zero-silent-write governance.</div>
+          <div class="tech-box-desc">Structured financial prompt engineering, multi-attribute anomaly matching,
+            zero-silent-write governance.</div>
         </div>
 
         <div class="tech-box">
           <div class="tech-box-header">Database & Storage</div>
           <div class="tech-box-title">SQLite / PostgreSQL</div>
-          <div class="tech-box-desc">Standalone data isolation bundle, PRAGMA foreign keys, canonical JSON serialization.</div>
+          <div class="tech-box-desc">Standalone data isolation bundle, PRAGMA foreign keys, canonical JSON
+            serialization.</div>
         </div>
 
         <div class="tech-box">
           <div class="tech-box-header">Cloud Frontend</div>
           <div class="tech-box-title">Vercel Global Edge</div>
-          <div class="tech-box-desc">Automated CI/CD git integration, global CDN deployment at `veri-loan.vercel.app`.</div>
+          <div class="tech-box-desc">Automated CI/CD git integration, global CDN deployment at `veri-loan.vercel.app`.
+          </div>
         </div>
 
         <div class="tech-box">
           <div class="tech-box-header">Cloud Backend</div>
           <div class="tech-box-title">Railway.app PaaS</div>
-          <div class="tech-box-desc">Containerized Linux runtime, dynamic `$PORT` routing, auto-renewed HTTPS endpoint.</div>
+          <div class="tech-box-desc">Containerized Linux runtime, dynamic `$PORT` routing, auto-renewed HTTPS endpoint.
+          </div>
         </div>
 
         <div class="tech-box">
           <div class="tech-box-header">Security & Hashing</div>
           <div class="tech-box-title">SHA-256 + RBAC</div>
-          <div class="tech-box-desc">Role-based authentication (Operator, Reviewer, Consumer, Admin), ISO-8601 date standard.</div>
+          <div class="tech-box-desc">Role-based authentication (Operator, Reviewer, Consumer, Admin), ISO-8601 date
+            standard.</div>
         </div>
 
         <div class="tech-box">
           <div class="tech-box-header">Quality Assurance</div>
           <div class="tech-box-title">Pytest (43/43 Passing)</div>
-          <div class="tech-box-desc">100% test coverage across validation, audit logging, RBAC guards, and hash verification.</div>
+          <div class="tech-box-desc">100% test coverage across validation, audit logging, RBAC guards, and hash
+            verification.</div>
         </div>
       </div>
     </section>
@@ -703,17 +914,20 @@
     <!-- SLIDE 8: Summary & Live Links -->
     <section class="slide" id="slide-8">
       <div style="text-align: center; max-width: 800px; margin: 0 auto;">
-        <div class="eyebrow" style="margin-bottom: 12px;">Conclusion & Deployment</div>
-        <h2 style="font-size: 2.8rem; margin-bottom: 20px;">Ready for Institutional Diligence</h2>
-        <p class="subtitle" style="margin: 0 auto 36px auto;">
-          VeriLoan transforms multi-day manual loan tape reviews into a 60-second deterministic and cryptographically verified process.
+        <div class="eyebrow" style="margin-bottom: 10px;">Conclusion & Deployment</div>
+        <h2 style="font-size: 2.6rem; margin-bottom: 16px;">Ready for Institutional Diligence</h2>
+        <p class="subtitle" style="margin: 0 auto 32px auto;">
+          VeriLoan transforms multi-day manual loan tape reviews into a 60-second deterministic and cryptographically
+          verified process.
         </p>
 
-        <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-          <a href="https://veri-loan.vercel.app/" target="_blank" style="text-decoration: none;" class="btn btn-primary">
+        <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+          <a href="https://veri-loan.vercel.app/" target="_blank" style="text-decoration: none;"
+            class="btn btn-primary">
             🌐 Live Web Application (Vercel)
           </a>
-          <a href="https://veriloan-production-5628.up.railway.app/docs" target="_blank" style="text-decoration: none;" class="btn">
+          <a href="https://veriloan-production-5628.up.railway.app/docs" target="_blank" style="text-decoration: none;"
+            class="btn">
             📜 REST API Swagger Docs (Railway)
           </a>
           <a href="https://github.com/Kr1sh-gupta/VeriLoan" target="_blank" style="text-decoration: none;" class="btn">
@@ -728,7 +942,8 @@
   <!-- Bottom Navigation Controls -->
   <footer>
     <div class="nav-hints">
-      <span>Navigate: <span class="key-badge">←</span> <span class="key-badge">→</span> or <span class="key-badge">Space</span></span>
+      <span>Navigate: <span class="key-badge">←</span> <span class="key-badge">→</span> or <span
+          class="key-badge">Space</span></span>
       <span>Fullscreen: <span class="key-badge">F</span></span>
     </div>
     <div class="btn-group">
@@ -750,11 +965,11 @@
       slides.forEach((s, i) => {
         s.classList.toggle('active', i === index);
       });
-      
+
       const progress = ((index + 1) / totalSlides) * 100;
       progressBar.style.width = `${progress}%`;
       slideCounter.textContent = `${String(index + 1).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
-      
+
       prevBtn.disabled = index === 0;
       nextBtn.textContent = index === totalSlides - 1 ? 'Finish 🚀' : 'Next →';
     }
@@ -781,9 +996,9 @@
         prevSlide();
       } else if (e.key.toLowerCase() === 'f') {
         if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(() => {});
+          document.documentElement.requestFullscreen().catch(() => { });
         } else {
-          document.exitFullscreen().catch(() => {});
+          document.exitFullscreen().catch(() => { });
         }
       }
     });
@@ -791,4 +1006,5 @@
     updateSlide(0);
   </script>
 </body>
+
 </html>
