@@ -353,7 +353,7 @@ export function App() {
             sidebarOpen ? 'md:pl-64' : 'md:pl-16'
           }`}>
             <div className="flex-1 w-full max-w-full min-w-0">
-              {currentTab === 'ingest' && (
+              {(currentTab === 'ingest') && (
                 <IngestionHub
                   onRefreshSummary={loadSummary}
                   onNavigateToReviewer={() => {
@@ -367,7 +367,7 @@ export function App() {
                 />
               )}
 
-              {currentTab === 'operator' && (
+              {(currentTab === 'operator' || currentTab === 'operator_records') && (
                 <OperatorView
                   onRefreshSummary={loadSummary}
                   onNavigateToReviewer={() => {
@@ -381,7 +381,7 @@ export function App() {
                 />
               )}
 
-              {currentTab === 'reviewer' && (
+              {(currentTab === 'reviewer' || currentTab === 'reviewer_conflicts' || currentTab === 'reviewer_copilot') && (
                 <ReviewerWorkbench
                   onRefreshSummary={loadSummary}
                   onNavigateToConsumer={() => {
@@ -391,7 +391,7 @@ export function App() {
                 />
               )}
 
-              {currentTab === 'consumer' && (
+              {(currentTab === 'consumer' || currentTab === 'consumer_quality') && (
                 <ConsumerExplorer
                   onNavigateToExport={() => handleSetCurrentTab('export')}
                 />
@@ -414,6 +414,37 @@ export function App() {
 
               {currentTab === 'api' && (
                 <ApiExplorerView />
+              )}
+
+              {/* Graceful Fallback if currentTab is completely unknown */}
+              {!['ingest', 'operator', 'operator_records', 'reviewer', 'reviewer_conflicts', 'reviewer_copilot', 'consumer', 'consumer_quality', 'export', 'admin', 'api'].includes(currentTab) && !currentTab.startsWith('admin_') && (
+                currentRole === 'OPERATOR' ? (
+                  <IngestionHub
+                    onRefreshSummary={loadSummary}
+                    onNavigateToReviewer={() => {
+                      handleSetCurrentRole('REVIEWER');
+                      handleSetCurrentTab('reviewer');
+                    }}
+                    onNavigateToOperator={() => {
+                      handleSetCurrentRole('OPERATOR');
+                      handleSetCurrentTab('operator');
+                    }}
+                  />
+                ) : currentRole === 'REVIEWER' ? (
+                  <ReviewerWorkbench
+                    onRefreshSummary={loadSummary}
+                    onNavigateToConsumer={() => {
+                      handleSetCurrentRole('CONSUMER');
+                      handleSetCurrentTab('consumer');
+                    }}
+                  />
+                ) : currentRole === 'CONSUMER' ? (
+                  <ConsumerExplorer
+                    onNavigateToExport={() => handleSetCurrentTab('export')}
+                  />
+                ) : (
+                  <AdminConsole initialTab="OVERVIEW" />
+                )
               )}
             </div>
 

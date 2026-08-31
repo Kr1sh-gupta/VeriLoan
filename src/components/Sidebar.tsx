@@ -2,17 +2,11 @@ import React from 'react';
 import { 
   Layers, 
   FileSpreadsheet, 
-  Table, 
   AlertTriangle, 
-  GitCompare, 
-  Sparkles, 
   ShieldCheck, 
-  TrendingUp, 
   Download, 
   Activity, 
-  Network, 
   Sliders, 
-  Users, 
   Code2, 
   ShieldAlert, 
   UserCheck, 
@@ -47,30 +41,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isDemoBypass = false,
   onToggleBypass,
 }) => {
-  // Define strict role-specific navigation menu items
+  // Define strict role-specific navigation menu items mapped 1:1 to real functional views
   const roleMenus: Record<UserRole, { id: string; label: string; icon: any; category: string }[]> = {
     OPERATOR: [
       { id: 'ingest', label: 'Ingestion Hub', icon: Layers, category: 'Data Intake' },
       { id: 'operator', label: 'Batch Lineage & History', icon: FileSpreadsheet, category: 'Operations' },
-      { id: 'operator_records', label: 'Normalized Loans', icon: Table, category: 'Operations' },
     ],
     REVIEWER: [
-      { id: 'reviewer', label: 'Reviewer Workbench', icon: AlertTriangle, category: 'Exception Triage' },
-      { id: 'reviewer_conflicts', label: 'Multi-Source Diffs', icon: GitCompare, category: 'Investigation' },
-      { id: 'reviewer_copilot', label: 'AI Diligence Copilot', icon: Sparkles, category: 'AI Intelligence' },
+      { id: 'reviewer', label: 'Reviewer Workbench & AI', icon: AlertTriangle, category: 'Exception Triage' },
     ],
     CONSUMER: [
       { id: 'consumer', label: 'Verified Records Portal', icon: ShieldCheck, category: 'Data Access' },
-      { id: 'consumer_quality', label: 'Data Quality Analytics', icon: TrendingUp, category: 'Metrics' },
-      { id: 'export', label: 'Export Center', icon: Download, category: 'Delivery' },
+      { id: 'export', label: 'Export & Compliance Center', icon: Download, category: 'Data Delivery' },
     ],
     ADMIN: [
       { id: 'admin', label: 'System Telemetry', icon: Activity, category: 'Governance' },
-      { id: 'admin_connectors', label: 'Connectors & API Keys', icon: Network, category: 'Integration' },
       { id: 'admin_rules', label: 'Validation Rule Builder', icon: Sliders, category: 'Rules Engine' },
-      { id: 'admin_users', label: 'Users & Permissions', icon: Users, category: 'Access Control' },
-      { id: 'api', label: 'REST API Playground', icon: Code2, category: 'Developer Tools' },
       { id: 'admin_audit', label: 'Compliance Audit Trail', icon: ShieldAlert, category: 'Audit' },
+      { id: 'api', label: 'REST API Playground', icon: Code2, category: 'Developer Tools' },
     ],
   };
 
