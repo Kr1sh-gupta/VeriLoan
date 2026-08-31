@@ -1,191 +1,118 @@
-# VeriLoan — Loan Data Verification Copilot
+<div align="center">
 
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%7C%20Python%203.11-009688.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/Frontend-React%2018%20%7C%20TypeScript-61DAFB.svg?style=flat&logo=react)](https://reactjs.org)
-[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS%20v4-38B2AC.svg?style=flat&logo=tailwind-css)](https://tailwindcss.com)
-[![Security](https://img.shields.io/badge/Cryptography-SHA--256%20Canonical%20Seal-0ea5e9.svg?style=flat)](https://github.com/Kr1sh-gupta/VeriLoan)
+  <h1>VeriLoan</h1>
+  <p><strong>AI-Assisted Financial Diligence & Cryptographic Verification Platform</strong></p>
 
-A full-stack financial diligence platform that ingests multi-source loan tapes, executes a 14-rule validation engine, assists reviewers via an explainable AI Copilot with human-in-the-loop controls (zero silent writes), and produces cryptographically verified records with SHA-256 hashes and an immutable audit trail.
+  <p align="center">
+    <a href="https://veri-loan.vercel.app/" target="_blank">
+      <img src="https://img.shields.io/badge/Live_Web_App-Vercel-black?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel Deployment" />
+    </a>
+    <a href="https://veriloan-production-5628.up.railway.app/docs" target="_blank">
+      <img src="https://img.shields.io/badge/REST_API_Docs-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="Swagger API Docs" />
+    </a>
+    <a href="https://github.com/Kr1sh-gupta/VeriLoan" target="_blank">
+      <img src="https://img.shields.io/badge/Monorepo-GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo" />
+    </a>
+  </p>
+
+  <p align="center">
+    <img src="https://img.shields.io/badge/FastAPI-Python_3.11-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/React_19-TypeScript-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 19" />
+    <img src="https://img.shields.io/badge/Tailwind_CSS_v4-38B2AC?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS v4" />
+    <img src="https://img.shields.io/badge/Gemini_2.5_Flash-8E75B2?style=flat-square&logo=googlegemini&logoColor=white" alt="Gemini AI" />
+    <img src="https://img.shields.io/badge/SHA--256-Sealed-0ea5e9?style=flat-square&logo=lock&logoColor=white" alt="SHA-256" />
+    <img src="https://img.shields.io/badge/Tests-43%2F43_Passing-10B981?style=flat-square&logo=pytest&logoColor=white" alt="Pytest Passing" />
+  </p>
+
+</div>
 
 ---
 
-## 🏗️ Architecture & Features
+## 📌 Overview
 
-- **Multi-Source Ingestion**: Streaming parser for primary loan tapes, secondary servicer updates, and document manifests with raw schema lineage tracking.
-- **14-Rule Validation Engine**: High-performance validation covering balance bounds, date sequence logic, duplicates, rate anomalies, payment status vs. DPD mismatches, document status, and cross-source conflict reconciliation.
-- **AI Review Assistant (Copilot)**: Dual-mode engine (Google Gemini API + deterministic local financial heuristic engine for 100% offline resilience) providing root-cause explanations and suggested data patches.
-- **Cryptographic Verification**: Deterministic canonical JSON serialization and SHA-256 record hashing with on-the-fly tamper verification.
-- **Role-Based Workspaces**: Tailored interfaces for Data Operator (ingestion & batch lineage), Reviewer (exception queue & AI drawer), and Data Consumer (verified records & CSV export).
-- **REST API Suite**: Complete REST endpoints with automated Swagger OpenAPI documentation.
+**VeriLoan** is an institutional financial diligence engine for secondary mortgage markets. It automates portfolio tape intake, executes deterministic financial constraint validation, assists analysts via an explainable AI Copilot, and seals clean records with cryptographic SHA-256 hashes.
 
----
-
-## 🚀 Running Locally (Native Setup)
-
-### Prerequisites
-- **Python 3.11+**
-- **Node.js 18+** and **npm**
+### Key Highlights
+* **Multi-Modal Intake**: 1-click preloaded financial datasets (`loan_tape.csv`, `servicer_update.csv`, `document_manifest.csv`), drag-and-drop custom tapes, and OCR simulators.
+* **15-Rule Validation Engine**: Real-time deterministic validation covering mandatory IDs, duplicate detection, ISO-8601 dates, balance bounds, DPD consistency, servicer reconciliation, and borrower concentration.
+* **Zero-Silent-Write AI Copilot**: Context-aware Google Gemini assistant suggesting root-cause explanations and candidate patches with 100% human reviewer oversight.
+* **Cryptographic Proof Vault**: Deterministic canonical JSON serialization (`sort_keys=True`) and SHA-256 hash sealing with an immutable 7-event audit trail.
 
 ---
 
-### Step 1: Start the Backend Service
+## 📊 Presentation Deck
 
-Open a terminal and run:
+An interactive 8-slide slide deck is included in the repository:
+* **File**: [`docs/presentation.html`](docs/presentation.html)
+* **How to Open**: Double-click `docs/presentation.html` in your browser. Supports fullscreen (`F`) and arrow key navigation (`←` / `→`).
+
+---
+
+## ⚡ Quick Start
+
+### Option 1: Local Development
 
 ```bash
-# Navigate to the backend directory
+# 1. Backend (FastAPI)
 cd backend
-
-# Install Python dependencies
 pip install -r requirements.txt
-
-# (Optional) Run test suite to verify installation
-python -m pytest tests/ -v
-
-# Start the FastAPI server
 python -m uvicorn app.main:app --reload --port 8000
-```
+# API running at http://localhost:8000 (Swagger docs at /docs)
 
-- **Backend API**: `http://localhost:8000`
-- **Swagger Interactive API Docs**: `http://localhost:8000/docs`
-- **ReDoc Documentation**: `http://localhost:8000/redoc`
-
----
-
-### Step 2: Start the Frontend Application
-
-Open a second terminal and run:
-
-```bash
-# Navigate to the frontend directory
+# 2. Frontend (React + Vite) — in a new terminal
 cd frontend
-
-# Install Node dependencies
 npm install
-
-# Start the Vite development server
 npm run dev
+# Web app running at http://localhost:5173
 ```
 
-- **Frontend Application**: `http://localhost:5173`
+### Option 2: Docker Compose
 
----
-
-## 🐳 Running with Docker & Docker Compose
-
-To spin up both the backend and frontend in isolated containers:
-
-### 1. Build and Start Services
 ```bash
-# From the project root (where docker-compose.yml is located)
 docker compose up --build
 ```
 
-### 2. Access the Applications
-- **Frontend UI**: `http://localhost:5173`
-- **Backend API**: `http://localhost:8000`
-- **Swagger API Docs**: `http://localhost:8000/docs`
+---
 
-### 3. Stop Services
+## 🔑 Pre-Configured Test Accounts
+
+| Role | Username | Password | Access & Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **Data Operator** | `operator` | `operator123!` | Portfolio intake, 1-click datasets, batch lineage |
+| **Senior Reviewer** | `reviewer` | `reviewer123!` | Exception queue, AI patch approval, custom overrides |
+| **Data Consumer** | `consumer` | `consumer123!` | Verified records portal, SHA-256 tamper checks, CSV export |
+| **System Admin** | `admin` | `admin123!` | Dynamic 15-rule configuration, REST API explorer |
+
+---
+
+## 🛠️ Tech Stack
+
+* **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Lucide Icons, Plus Jakarta Sans & JetBrains Mono fonts.
+* **Backend**: FastAPI (Python 3.11), SQLAlchemy ORM, SQLite / PostgreSQL, Pydantic v2.
+* **AI Intelligence**: Google Gemini 2.5 Flash API with local heuristic fallback.
+* **Security & Diligence**: SHA-256 deterministic hashing, RBAC authentication, 7-event append-only audit trail.
+* **Cloud Deployments**: Vercel Global Edge (Frontend) + Railway.app (Cloud API).
+
+---
+
+## 🧪 Testing & Quality Assurance
+
 ```bash
-docker compose down
+cd backend
+pytest tests/ -v
+# 43 / 43 tests passing (100% pass rate)
 ```
 
 ---
 
-## 🔑 Pre-Configured Test Personas
-
-You can switch between test accounts using the persona selector in the top navigation bar:
-
-| Role | Persona Name | Username | Password | Permissions |
-|---|---|---|---|---|
-| **Data Operator** | Elena Rostova | `operator` | `operator123!` | CSV upload, schema inspection, batch verification |
-| **Reviewer** | Marcus Vance | `reviewer` | `reviewer123!` | Exception queue, AI copilot, patch approval / edit |
-| **Data Consumer** | Sarah Chen | `consumer` | `consumer123!` | Verified records, SHA-256 hash validation, audit history, CSV export |
-
----
-
-## 📡 REST API Reference
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/summary` | Real-time system health, exception counts, and quality metrics |
-| `GET` | `/api/loans` | Paginated raw and normalized loan records with filters |
-| `GET` | `/api/loans/:id` | Detailed loan record with cross-source references |
-| `PUT` | `/api/loans/:id` | Manual field adjustment with audit trail logging |
-| `GET` | `/api/exceptions` | Filterable exception queue with AI recommendations |
-| `POST` | `/api/exceptions/:id/resolve` | Resolve exception (`ACCEPT_AI`, `MANUAL_EDIT`, `DISMISS`, `REJECT`) |
-| `POST` | `/api/ai/explain` | Generate AI root-cause explanation and suggested patch |
-| `GET` | `/api/verified-loans` | Paginated verified records with SHA-256 hashes |
-| `GET` | `/api/verified-loans/:id` | Verified record with live SHA-256 tamper recalculation |
-| `POST` | `/api/verified-loans/verify-all-clean` | Batch seal all clean loans that passed validation |
-| `GET` | `/api/verified-loans/export/csv` | Download canonical verified dataset in CSV format |
-| `GET` | `/api/audit/:loanId` | Immutable chronological event history for a loan |
-
----
-
-## ⚙️ Environment Variables
-
-Create a `.env` file in `backend/` if you wish to configure optional settings:
-
-```env
-# Database connection string (defaults to SQLite: sqlite:///./copilot.db)
-DATABASE_URL=sqlite:///./copilot.db
-
-# Optional Google Gemini API Key for live LLM inference (fallback heuristic is used if omitted)
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Backend host and port
-HOST=0.0.0.0
-PORT=8000
-```
-
----
-
-## 📂 Project Structure
+## 📜 Monorepo Layout
 
 ```
 .
-├── backend/
-│   ├── app/
-│   │   ├── api/             # REST route handlers (auth, loans, exceptions, ai, audit)
-│   │   ├── services/        # Business logic (validation, verification, AI, ingestion)
-│   │   ├── config.py        # Settings & environment variables
-│   │   ├── database.py      # SQLAlchemy database session setup
-│   │   ├── models.py        # SQLAlchemy ORM database models
-│   │   ├── schemas.py       # Pydantic data validation schemas
-│   │   └── main.py          # FastAPI application entrypoint & startup seeder
-│   ├── tests/               # Pytest unit and integration test suite
-│   ├── Dockerfile           # Backend container build specification
-│   └── requirements.txt     # Python dependencies
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # UI components (Hero, Operator, Reviewer, Consumer, API)
-│   │   ├── lib/             # Axios API client
-│   │   ├── types/           # TypeScript interfaces
-│   │   ├── App.tsx          # Main application router and state
-│   │   └── main.tsx         # React root entrypoint
-│   ├── Dockerfile           # Frontend container build specification
-│   └── package.json         # Node.js dependencies
-│
-├── data/                    # Synthetic seed datasets & validation rules
-├── docker-compose.yml       # Multi-container orchestration configuration
-└── README.md                # Project documentation
-```
-
----
-
-## 🧪 Testing
-
-Run backend test suite:
-```bash
-cd backend
-python -m pytest tests/ -v
-```
-
-Run frontend production build verification:
-```bash
-cd frontend
-npm run build
+├── backend/          # FastAPI REST API service & database models
+├── frontend/         # React 19 + Vite web application
+├── main/             # Monorepo root, CI/CD workflows, and documentation
+│   ├── docs/         # Presentation deck (presentation.html), architecture & logs
+│   └── README.md     # Project overview & quickstart
+└── docker-compose.yml
 ```
