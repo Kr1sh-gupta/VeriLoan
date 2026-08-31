@@ -1,5 +1,4 @@
-# Ignore documentation from main git push
-docs/
+# Documentation files
 *.pdf
 *.docx
 *.doc

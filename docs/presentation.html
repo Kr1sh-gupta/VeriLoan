@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VeriLoan — Presentation Deck | AI Financial Diligence & Verification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #070B14;
+      --card-bg: rgba(15, 23, 42, 0.85);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --primary-blue: #3B82F6;
+      --cyan: #06B6D4;
+      --purple: #8B5CF6;
+      --emerald: #10B981;
+      --amber: #F59E0B;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 10% 20%, #0d1a30 0%, #070B14 80%);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Progress & Header */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(7, 11, 20, 0.85);
+      backdrop-filter: blur(16px);
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      font-weight: 600;
+    }
+
+    .progress-track {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      width: 100%;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #3B82F6, #06B6D4);
+      width: 12.5%;
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Deck Slides Container */
+    .deck-container {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      padding-top: 60px;
+      padding-bottom: 70px;
+    }
+
+    .slide {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      width: 100%;
+      height: calc(100vh - 130px);
+      padding: 40px 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(40px) scale(0.98);
+      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0) scale(1);
+    }
+
+    /* Slide Typography */
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #FFFFFF 30%, #94A3B8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    p.subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 850px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    /* Card Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: center;
+      height: 100%;
+      max-height: 520px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 24px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      transition: border-color 0.3s ease;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    .card-icon {
+      font-size: 1.8rem;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #FFFFFF;
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-top: 14px;
+      width: fit-content;
+    }
+
+    .pill-blue { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .pill-amber { background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .pill-emerald { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .pill-purple { background: rgba(139, 92, 246, 0.15); color: #C084FC; border: 1px solid rgba(139, 92, 246, 0.3); }
+
+    /* Screenshot Showcase Frame */
+    .screenshot-frame {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: #000000;
+      box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(59, 130, 246, 0.15);
+      height: 100%;
+      max-height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .screenshot-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+    }
+
+    .screenshot-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      color: #38BDF8;
+      backdrop-filter: blur(8px);
+      font-weight: 600;
+    }
+
+    /* Key Points List */
+    .point-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .point-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 16px 20px;
+      border-radius: 14px;
+    }
+
+    .point-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--cyan);
+      background: rgba(6, 182, 212, 0.12);
+      border-radius: 8px;
+      padding: 4px 8px;
+      flex-shrink: 0;
+    }
+
+    .point-content strong {
+      display: block;
+      color: #FFFFFF;
+      font-size: 0.95rem;
+      margin-bottom: 3px;
+    }
+
+    .point-content span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Tech Stack Grid */
+    .tech-pill-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .tech-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tech-box-header {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--cyan);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .tech-box-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #FFFFFF;
+    }
+
+    .tech-box-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Bottom Control Bar */
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(7, 11, 20, 0.85);
+      backdrop-filter: blur(16px);
+      z-index: 100;
+    }
+
+    .nav-hints {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .key-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #FFFFFF;
+      font-size: 0.75rem;
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #FFFFFF;
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-primary {
+      background: var(--primary-blue);
+      border-color: #60A5FA;
+    }
+
+    .btn-primary:hover {
+      background: #2563EB;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header & Progress Bar -->
+  <header>
+    <div class="brand">
+      <span>🛡️ VeriLoan</span>
+      <span class="brand-badge">FinTech Diligence 2026</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="slide-counter" id="slideCounter">01 / 08</div>
+  </header>
+
+  <!-- Slide Deck Container -->
+  <main class="deck-container">
+
+    <!-- SLIDE 1: Title & Hero -->
+    <section class="slide active" id="slide-1">
+      <div style="max-width: 900px;">
+        <div class="eyebrow">Institutional Loan Diligence Engine</div>
+        <h1>VeriLoan: AI-Assisted Loan Tape Verification & Cryptographic Audit Platform</h1>
+        <p class="subtitle">
+          Autonomous multi-modal financial intake, deterministic 15-rule constraint checking, zero-silent-write AI remediation, and SHA-256 sealed audit trails.
+        </p>
+        <div style="display: flex; gap: 16px; align-items: center; margin-top: 10px;">
+          <a href="https://veri-loan.vercel.app/" target="_blank" style="text-decoration: none;" class="btn btn-primary">
+            🌐 Open Live Web App
+          </a>
+          <span style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #64748B;">
+            Vercel + Railway • Monorepo Architecture
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: The Core Problem -->
+    <section class="slide" id="slide-2">
+      <div class="eyebrow">Industry Challenge</div>
+      <h2>The $12 Trillion Secondary Mortgage Dilemma</h2>
+      <p class="subtitle">Manual spreadsheet audits lead to high operational costs, fraud leakage, and zero auditability.</p>
+      
+      <div class="grid-4">
+        <div class="feature-card">
+          <div class="card-icon">📑</div>
+          <div class="card-title">Dirty Loan Tapes</div>
+          <div class="card-desc">Missing IDs, malformed dates, negative balances, and non-standard field headers across servicers.</div>
+          <div class="pill pill-amber">Data Anarchy</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🔄</div>
+          <div class="card-title">Servicer Drift</div>
+          <div class="card-desc">Silent balance discrepancies, conflicting Days Past Due (DPD), and missing collateral documents.</div>
+          <div class="pill pill-amber">Reconciliation Lag</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">⏳</div>
+          <div class="card-title">Reviewer Fatigue</div>
+          <div class="card-desc">Analysts manually cross-referencing rows in Excel, taking hours per portfolio tape.</div>
+          <div class="pill pill-amber">Human Bottleneck</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🔏</div>
+          <div class="card-title">Zero Proof of State</div>
+          <div class="card-desc">No cryptographic guarantee that approved records weren't tampered with post-verification.</div>
+          <div class="pill pill-amber">Audit Risk</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: Architecture & Core Solution -->
+    <section class="slide" id="slide-3">
+      <div class="eyebrow">System Architecture</div>
+      <h2>Deterministic Rigor Meets Generative Intelligence</h2>
+      <p class="subtitle">A 4-stage pipeline that automates 95% of diligence while enforcing strict human-in-the-loop governance.</p>
+      
+      <div class="grid-4">
+        <div class="feature-card">
+          <div class="card-icon">📥</div>
+          <div class="card-title">1. Multi-Modal Intake</div>
+          <div class="card-desc">1-click financial datasets, drag-and-drop CSVs, OCR vision simulator, and live API connectors.</div>
+          <div class="pill pill-blue">Auto-Schema Match</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">⚡</div>
+          <div class="card-title">2. 15-Rule Engine</div>
+          <div class="card-desc">Deterministic checks covering mandatory fields, ISO dates, balance logic, servicer delta, and concentration.</div>
+          <div class="pill pill-emerald">100% Deterministic</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🤖</div>
+          <div class="card-title">3. AI Copilot (Gemini)</div>
+          <div class="card-desc">Root-cause explainability and patch synthesis with Zero Silent Write governance.</div>
+          <div class="pill pill-purple">Human-in-the-Loop</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🔐</div>
+          <div class="card-title">4. Cryptographic Proof</div>
+          <div class="card-desc">Canonical JSON serialization and SHA-256 hash sealing with tamper-evident audit history.</div>
+          <div class="pill pill-emerald">Tamper-Proof</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: Ingestion Hub Showcase -->
+    <section class="slide" id="slide-4">
+      <div class="grid-2">
+        <div>
+          <div class="eyebrow">Module A • Multi-Modal Intake</div>
+          <h2>Ingestion Command Center</h2>
+          <p class="card-desc" style="margin-bottom: 20px; font-size: 1rem;">
+            Operators can ingest full portfolios with 1-click preloaded datasets or custom files, featuring real-time stream visualizers.
+          </p>
+          <div class="point-list">
+            <div class="point-item">
+              <div class="point-num">01</div>
+              <div class="point-content">
+                <strong>3 Distinct Preloaded Financial Datasets</strong>
+                <span>Fannie/Freddie Standard (1,200 loans), Multi-Source Delta (398 rows), and Document Vault (1,194 records).</span>
+              </div>
+            </div>
+            <div class="point-item">
+              <div class="point-num">02</div>
+              <div class="point-content">
+                <strong>Real Server Metrics & Progress Stepper</strong>
+                <span>Instant breakdown of total rows, verified clean loans, and quarantined anomalies without fake hardcoded counts.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="screenshot-frame">
+          <div class="screenshot-badge">Live Platform Capture</div>
+          <img src="images/ingestion_hub.png" alt="Ingestion Hub Screen" />
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: Reviewer Workbench Showcase -->
+    <section class="slide" id="slide-5">
+      <div class="grid-2">
+        <div>
+          <div class="eyebrow">Module B • AI Exception Resolution</div>
+          <h2>Reviewer Workbench & Governance</h2>
+          <p class="card-desc" style="margin-bottom: 20px; font-size: 1rem;">
+            Zero Silent Modification policy: AI generates explanations and candidate patches, but human reviewers maintain 100% decision authority.
+          </p>
+          <div class="point-list">
+            <div class="point-item">
+              <div class="point-num">AI</div>
+              <div class="point-content">
+                <strong>Context-Aware Gemini Copilot</strong>
+                <span>Generates instant root-cause diagnostics, confidence scores, and proposed JSON patches.</span>
+              </div>
+            </div>
+            <div class="point-item">
+              <div class="point-num">RBAC</div>
+              <div class="point-content">
+                <strong>Explicit Reviewer Actions</strong>
+                <span>Reviewers choose [Accept AI Patch], [Custom Edit], [Request Correction], or [Reject Loan].</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="screenshot-frame">
+          <div class="screenshot-badge">Live Platform Capture</div>
+          <img src="images/reviewer_workbench.png" alt="Reviewer Workbench Screen" />
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: Verification & Audit Trail -->
+    <section class="slide" id="slide-6">
+      <div class="grid-2">
+        <div>
+          <div class="eyebrow">Module C • Cryptographic Sealing</div>
+          <h2>Immutable Proof & Audit Trail</h2>
+          <p class="card-desc" style="margin-bottom: 20px; font-size: 1rem;">
+            Every clean loan and resolved anomaly is cryptographically hashed with SHA-256 and registered in an append-only audit trail.
+          </p>
+          <div class="point-list">
+            <div class="point-item">
+              <div class="point-num">SHA</div>
+              <div class="point-content">
+                <strong>Deterministic Canonical JSON</strong>
+                <span>Ensures identical key-order serialization (`sort_keys=True`) for mathematical reproducibility.</span>
+              </div>
+            </div>
+            <div class="point-item">
+              <div class="point-num">LOG</div>
+              <div class="point-content">
+                <strong>Comprehensive 7-Event Audit Trail</strong>
+                <span>Logs imports, validation runs, AI suggestions, reviewer overrides, rule updates, and hash sealings.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="screenshot-frame">
+          <div class="screenshot-badge">Live Platform Capture</div>
+          <img src="images/verified_records.png" alt="Verified Records Screen" />
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: Complete Tech Stack -->
+    <section class="slide" id="slide-7">
+      <div class="eyebrow">Engineering Foundation</div>
+      <h2>Production-Grade Modern Tech Stack</h2>
+      <p class="subtitle">Designed for speed, modularity, and high cryptographic reliability.</p>
+      
+      <div class="tech-pill-grid">
+        <div class="tech-box">
+          <div class="tech-box-header">Frontend Web App</div>
+          <div class="tech-box-title">React 19 + Vite</div>
+          <div class="tech-box-desc">Tailwind CSS v4, Lucide Icons, Axios, JetBrains Mono & Plus Jakarta Sans typography.</div>
+        </div>
+
+        <div class="tech-box">
+          <div class="tech-box-header">Backend API Service</div>
+          <div class="tech-box-title">FastAPI + Python 3.11</div>
+          <div class="tech-box-desc">Async REST architecture, Pydantic v2 schemas, SQLAlchemy ORM, Uvicorn server.</div>
+        </div>
+
+        <div class="tech-box">
+          <div class="tech-box-header">AI Engine</div>
+          <div class="tech-box-title">Google Gemini 2.5 Flash</div>
+          <div class="tech-box-desc">Structured financial prompt engineering, multi-attribute anomaly matching, zero-silent-write governance.</div>
+        </div>
+
+        <div class="tech-box">
+          <div class="tech-box-header">Database & Storage</div>
+          <div class="tech-box-title">SQLite / PostgreSQL</div>
+          <div class="tech-box-desc">Standalone data isolation bundle, PRAGMA foreign keys, canonical JSON serialization.</div>
+        </div>
+
+        <div class="tech-box">
+          <div class="tech-box-header">Cloud Frontend</div>
+          <div class="tech-box-title">Vercel Global Edge</div>
+          <div class="tech-box-desc">Automated CI/CD git integration, global CDN deployment at `veri-loan.vercel.app`.</div>
+        </div>
+
+        <div class="tech-box">
+          <div class="tech-box-header">Cloud Backend</div>
+          <div class="tech-box-title">Railway.app PaaS</div>
+          <div class="tech-box-desc">Containerized Linux runtime, dynamic `$PORT` routing, auto-renewed HTTPS endpoint.</div>
+        </div>
+
+        <div class="tech-box">
+          <div class="tech-box-header">Security & Hashing</div>
+          <div class="tech-box-title">SHA-256 + RBAC</div>
+          <div class="tech-box-desc">Role-based authentication (Operator, Reviewer, Consumer, Admin), ISO-8601 date standard.</div>
+        </div>
+
+        <div class="tech-box">
+          <div class="tech-box-header">Quality Assurance</div>
+          <div class="tech-box-title">Pytest (43/43 Passing)</div>
+          <div class="tech-box-desc">100% test coverage across validation, audit logging, RBAC guards, and hash verification.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: Summary & Live Links -->
+    <section class="slide" id="slide-8">
+      <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+        <div class="eyebrow" style="margin-bottom: 12px;">Conclusion & Deployment</div>
+        <h2 style="font-size: 2.8rem; margin-bottom: 20px;">Ready for Institutional Diligence</h2>
+        <p class="subtitle" style="margin: 0 auto 36px auto;">
+          VeriLoan transforms multi-day manual loan tape reviews into a 60-second deterministic and cryptographically verified process.
+        </p>
+
+        <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+          <a href="https://veri-loan.vercel.app/" target="_blank" style="text-decoration: none;" class="btn btn-primary">
+            🌐 Live Web Application (Vercel)
+          </a>
+          <a href="https://veriloan-production-5628.up.railway.app/docs" target="_blank" style="text-decoration: none;" class="btn">
+            📜 REST API Swagger Docs (Railway)
+          </a>
+          <a href="https://github.com/Kr1sh-gupta/VeriLoan" target="_blank" style="text-decoration: none;" class="btn">
+            💻 GitHub Monorepo
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation Controls -->
+  <footer>
+    <div class="nav-hints">
+      <span>Navigate: <span class="key-badge">←</span> <span class="key-badge">→</span> or <span class="key-badge">Space</span></span>
+      <span>Fullscreen: <span class="key-badge">F</span></span>
+    </div>
+    <div class="btn-group">
+      <button class="btn" id="prevBtn" onclick="prevSlide()">← Prev</button>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextSlide()">Next →</button>
+    </div>
+  </footer>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const progressBar = document.getElementById('progressBar');
+    const slideCounter = document.getElementById('slideCounter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    let currentSlide = 0;
+    const totalSlides = slides.length;
+
+    function updateSlide(index) {
+      slides.forEach((s, i) => {
+        s.classList.toggle('active', i === index);
+      });
+      
+      const progress = ((index + 1) / totalSlides) * 100;
+      progressBar.style.width = `${progress}%`;
+      slideCounter.textContent = `${String(index + 1).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
+      
+      prevBtn.disabled = index === 0;
+      nextBtn.textContent = index === totalSlides - 1 ? 'Finish 🚀' : 'Next →';
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        currentSlide++;
+        updateSlide(currentSlide);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide(currentSlide);
+      }
+    }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+        prevSlide();
+      } else if (e.key.toLowerCase() === 'f') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    });
+
+    updateSlide(0);
+  </script>
+</body>
+</html>
