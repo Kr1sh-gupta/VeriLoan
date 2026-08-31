@@ -42,6 +42,11 @@ const getNormalizedApiBase = (): string => {
     ? envBase.trim()
     : 'http://localhost:8000/api';
 
+  // Ensure protocol is present
+  if (!base.startsWith('http://') && !base.startsWith('https://')) {
+    base = `https://${base}`;
+  }
+
   // Remove trailing slashes
   base = base.replace(/\/+$/, '');
 
