@@ -11,14 +11,16 @@ import {
   ArrowRight, 
   RefreshCw, 
   Check, 
-  RotateCcw, 
   Sparkles, 
   X, 
   ShieldCheck, 
-  Zap 
+  Zap,
+  Database,
+  CheckCheck
 } from 'lucide-react';
 import type { IngestionPipelineItem, SchemaFieldMapping, OcrExtractedField } from '../types';
 import { uploadCsvFile } from '../lib/api';
+import { PRELOADED_DATASETS, type PreloadedTapeMeta } from '../sample/sampleTapes';
 
 interface IngestionHubProps {
   onRefreshSummary: () => void;
@@ -31,69 +33,87 @@ export const IngestionHub: React.FC<IngestionHubProps> = ({
   onNavigateToReviewer,
   onNavigateToOperator,
 }) => {
-  const [activeModal, setActiveModal] = useState<'NONE' | 'CSV_MAPPING' | 'OCR_EXTRACT' | 'CONNECTOR_WIZARD' | 'MANUAL_ENTRY' | 'PASTE_DATA'>('NONE');
+  const [activeModal, setActiveModal] = useState<'NONE' | 'CSV_MAPPING' | 'OCR_EXTRACT' | 'CONNECTOR_WIZARD' | 'MANUAL_ENTRY' | 'PASTE_DATA' | 'RESULT_MODAL'>('NONE');
   
-  // Pipeline Ticker State
+  // Tab for CSV Ingestion Modal (Preloaded Sample vs Custom Upload)
+  const [csvIntakeTab, setCsvIntakeTab] = useState<'PRELOADED' | 'CUSTOM_FILE'>('PRELOADED');
+  const [selectedPreloaded, setSelectedPreloaded] = useState<PreloadedTapeMeta>(PRELOADED_DATASETS[0]);
+
+  // Ingestion Pipeline Ticker State
   const [pipelineItems] = useState<IngestionPipelineItem[]>([
     {
       id: 'pipe-1',
-      name: 'Q3_Mortgage_Batch_v2.csv',
-      system: 'Encompass • 250 Records',
+      name: 'loan_tape.csv',
+      system: 'Fannie/Freddie • 1,200 Records',
       sourceType: 'CSV',
-      recordCount: 250,
-      status: 'NORMALIZING',
-      progress: 68,
-      timestamp: '2m ago'
+      recordCount: 1200,
+      status: 'COMPLETED',
+      progress: 100,
+      timestamp: 'Active Stream'
     },
     {
       id: 'pipe-2',
-      name: 'scan_ledger_income_0912.pdf',
-      system: 'Mobile OCR • 1 Record',
-      sourceType: 'OCR',
-      recordCount: 1,
-      status: 'FLAGGED',
+      name: 'servicer_update.csv',
+      system: 'Beacon / Citadel • 398 Records',
+      sourceType: 'API',
+      recordCount: 398,
+      status: 'COMPLETED',
       progress: 100,
       timestamp: '5m ago'
     },
     {
       id: 'pipe-3',
-      name: 'API_Sync_Salesforce_Auto',
-      system: 'Salesforce API • 1,204 Records',
-      sourceType: 'API',
-      recordCount: 1204,
-      status: 'COMPLETED',
+      name: 'promissory_note_vance.pdf',
+      system: 'Mobile Vision OCR • 1 Record',
+      sourceType: 'OCR',
+      recordCount: 1,
+      status: 'FLAGGED',
       progress: 100,
       timestamp: '12m ago'
     },
     {
       id: 'pipe-4',
-      name: 'Auto_Loan_App_Raw.json',
-      system: 'Webhook • 1 Record',
-      sourceType: 'CLIPBOARD',
-      recordCount: 1,
-      status: 'PARSING',
-      progress: 25,
-      timestamp: 'Just now'
+      name: 'document_manifest.csv',
+      system: 'Custodial Vault • 1,194 Records',
+      sourceType: 'CSV',
+      recordCount: 1194,
+      status: 'COMPLETED',
+      progress: 100,
+      timestamp: '20m ago'
     }
   ]);
 
   // CSV Upload & Schema Mapping State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFileType, setSelectedFileType] = useState<string>('LOAN_TAPE');
   const [schemaMappings, setSchemaMappings] = useState<SchemaFieldMapping[]>([
-    { incomingColumn: 'loan_identifier', targetField: 'loan_id', sampleValue: 'LN-29384-A', confidence: 0.99 },
-    { incomingColumn: 'cust_id', targetField: 'borrower_id', sampleValue: 'BW-9012', confidence: 0.95 },
-    { incomingColumn: 'orig_date', targetField: 'origination_date', sampleValue: '2022-05-15', confidence: 0.98 },
-    { incomingColumn: 'maturity_dt', targetField: 'maturity_date', sampleValue: '2052-05-15', confidence: 0.97 },
-    { incomingColumn: 'orig_principal_amt', targetField: 'original_principal', sampleValue: '$450,000', confidence: 0.99 },
-    { incomingColumn: 'curr_principal_bal', targetField: 'current_balance', sampleValue: '$432,000', confidence: 0.96 },
-    { incomingColumn: 'note_rate', targetField: 'interest_rate', sampleValue: '6.25%', confidence: 0.98 },
-    { incomingColumn: 'loan_term_m', targetField: 'term_months', sampleValue: '360', confidence: 0.99 },
-    { incomingColumn: 'borrower_state_cd', targetField: 'borrower_state', sampleValue: 'CA', confidence: 0.94 },
-    { incomingColumn: 'pay_status', targetField: 'payment_status', sampleValue: 'CURRENT', confidence: 0.99 }
+    { incomingColumn: 'loan_id', targetField: 'loan_id', sampleValue: 'LN-10001', confidence: 1.0 },
+    { incomingColumn: 'borrower_id', targetField: 'borrower_id', sampleValue: 'BOR-20001', confidence: 0.99 },
+    { incomingColumn: 'loan_type', targetField: 'loan_type', sampleValue: 'Conventional_15Y', confidence: 0.98 },
+    { incomingColumn: 'origination_date', targetField: 'origination_date', sampleValue: '2023-01-30', confidence: 1.0 },
+    { incomingColumn: 'maturity_date', targetField: 'maturity_date', sampleValue: '2037-11-12', confidence: 1.0 },
+    { incomingColumn: 'original_principal', targetField: 'original_principal', sampleValue: '$242,520.52', confidence: 1.0 },
+    { incomingColumn: 'current_balance', targetField: 'current_balance', sampleValue: '$211,447.88', confidence: 0.99 },
+    { incomingColumn: 'interest_rate', targetField: 'interest_rate', sampleValue: '6.985%', confidence: 1.0 },
+    { incomingColumn: 'term_months', targetField: 'term_months', sampleValue: '180', confidence: 1.0 },
+    { incomingColumn: 'borrower_state', targetField: 'borrower_state', sampleValue: 'MT', confidence: 0.97 },
+    { incomingColumn: 'payment_status', targetField: 'payment_status', sampleValue: 'DELINQUENT_60', confidence: 0.99 },
+    { incomingColumn: 'days_past_due', targetField: 'days_past_due', sampleValue: '60', confidence: 0.99 }
   ]);
-  const [templateName] = useState<string>('Encompass Standard Loan Tape Template');
+
   const [isCommitting, setIsCommitting] = useState<boolean>(false);
-  const [undoSeconds, setUndoSeconds] = useState<number | null>(null);
+  const [pipelineProgressStage, setPipelineProgressStage] = useState<number>(0);
+  const [ingestionResult, setIngestionResult] = useState<{
+    batch_id: string;
+    filename: string;
+    file_type: string;
+    total_rows: number;
+    valid_rows: number;
+    exception_count: number;
+    status: string;
+  } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // OCR Extraction State
@@ -112,6 +132,7 @@ export const IngestionHub: React.FC<IngestionHubProps> = ({
   const [manualForm, setManualForm] = useState({
     loan_id: 'LN-50012-M',
     borrower_id: 'BW-7741',
+    loan_type: 'Conventional_30Y',
     original_principal: 420000,
     current_balance: 412000,
     interest_rate: 6.5,
@@ -125,9 +146,9 @@ export const IngestionHub: React.FC<IngestionHubProps> = ({
 
   // Paste Data State
   const [pastedText, setPastedText] = useState<string>(
-`loan_id\tborrower_id\torigination_date\tmaturity_date\tprincipal\tbalance\trate\tterm\tstate\tstatus
-LN-1001\tBW-4412\t2023-01-10\t2053-01-10\t320000\t315000\t6.25\t360\tTX\tCURRENT
-LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT`
+`loan_id,borrower_id,loan_type,origination_date,maturity_date,original_principal,current_balance,interest_rate,term_months,borrower_state,payment_status,days_past_due
+LN-10001,BOR-20001,Conventional_15Y,2023-01-30,2037-11-12,242520.52,211447.88,6.985,180,MT,DELINQUENT_60,60
+LN-10002,BOR-20002,Auto_Loan,2023-01-04,2037-10-17,504919.11,383370.18,4.018,180,ID,CURRENT,0`
   );
 
   useEffect(() => {
@@ -145,6 +166,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       setSelectedFile(file);
+      setCsvIntakeTab('CUSTOM_FILE');
       setActiveModal('CSV_MAPPING');
     }
   };
@@ -153,66 +175,147 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedFile(file);
+      setCsvIntakeTab('CUSTOM_FILE');
       setActiveModal('CSV_MAPPING');
     }
   };
 
-  const handleCommitCsv = async () => {
+  const handleExecuteCsvIngestion = async () => {
     setIsCommitting(true);
-    try {
-      if (selectedFile) {
-        await uploadCsvFile(selectedFile, 'LOAN_TAPE', 'Elena Rostova (Operator)');
-      }
-      setIsCommitting(false);
-      setActiveModal('NONE');
-      setUndoSeconds(10);
-      onRefreshSummary();
+    setUploadError(null);
+    setPipelineProgressStage(1); // 1: Parsing & Ingesting Stream
 
-      const interval = setInterval(() => {
-        setUndoSeconds((prev) => {
-          if (prev && prev > 1) return prev - 1;
-          clearInterval(interval);
-          return null;
-        });
-      }, 1000);
-    } catch {
+    try {
+      let fileToUpload: File;
+      let targetFileType = selectedFileType;
+
+      if (csvIntakeTab === 'PRELOADED') {
+        fileToUpload = new File(
+          [selectedPreloaded.csvContent], 
+          selectedPreloaded.filename, 
+          { type: 'text/csv' }
+        );
+        targetFileType = selectedPreloaded.fileType;
+      } else if (selectedFile) {
+        fileToUpload = selectedFile;
+      } else {
+        fileToUpload = new File(
+          [selectedPreloaded.csvContent], 
+          selectedPreloaded.filename, 
+          { type: 'text/csv' }
+        );
+        targetFileType = selectedPreloaded.fileType;
+      }
+
+      // Progress animation simulation across 3 stages
+      setTimeout(() => setPipelineProgressStage(2), 600); // Stage 2: Evaluating 15 Rules
+      setTimeout(() => setPipelineProgressStage(3), 1200); // Stage 3: Sealing & Quarantining
+
+      const res = await uploadCsvFile(fileToUpload, targetFileType, 'Elena Rostova (Operator)');
+      
+      setTimeout(() => {
+        setIsCommitting(false);
+        setPipelineProgressStage(4);
+        setIngestionResult(res);
+        setActiveModal('RESULT_MODAL');
+        onRefreshSummary();
+      }, 1600);
+
+    } catch (err: any) {
+      console.error('Ingestion failed:', err);
       setIsCommitting(false);
-      setActiveModal('NONE');
+      setPipelineProgressStage(0);
+      setUploadError(err.message || 'CSV ingestion failed. Verify data format.');
+    }
+  };
+
+  const handleExecutePasteIngestion = async () => {
+    setIsCommitting(true);
+    setUploadError(null);
+
+    try {
+      // Normalize tabs to commas if TSV
+      let normalizedCsv = pastedText.trim();
+      if (normalizedCsv.includes('\t')) {
+        normalizedCsv = normalizedCsv.split('\n').map(line => line.split('\t').join(',')).join('\n');
+      }
+
+      const fileToUpload = new File([normalizedCsv], 'pasted_loan_tape.csv', { type: 'text/csv' });
+      const res = await uploadCsvFile(fileToUpload, 'LOAN_TAPE', 'Elena Rostova (Operator)');
+
+      setIsCommitting(false);
+      setIngestionResult(res);
+      setActiveModal('RESULT_MODAL');
+      onRefreshSummary();
+    } catch (err: any) {
+      setIsCommitting(false);
+      setUploadError(err.message || 'Pasted data upload failed.');
+    }
+  };
+
+  const handleExecuteManualIngestion = async () => {
+    setIsCommitting(true);
+    setUploadError(null);
+
+    try {
+      const csvHeader = 'loan_id,borrower_id,loan_type,origination_date,maturity_date,original_principal,current_balance,interest_rate,term_months,borrower_state,payment_status,days_past_due\n';
+      const csvRow = `${manualForm.loan_id},${manualForm.borrower_id},${manualForm.loan_type},${manualForm.origination_date},${manualForm.maturity_date},${manualForm.original_principal},${manualForm.current_balance},${manualForm.interest_rate},${manualForm.term_months},${manualForm.borrower_state},${manualForm.payment_status},${manualForm.days_past_due}\n`;
+      const fullCsv = csvHeader + csvRow;
+
+      const fileToUpload = new File([fullCsv], `single_${manualForm.loan_id}.csv`, { type: 'text/csv' });
+      const res = await uploadCsvFile(fileToUpload, 'LOAN_TAPE', 'Elena Rostova (Operator)');
+
+      setIsCommitting(false);
+      setIngestionResult(res);
+      setActiveModal('RESULT_MODAL');
+      onRefreshSummary();
+    } catch (err: any) {
+      setIsCommitting(false);
+      setUploadError(err.message || 'Manual record ingestion failed.');
     }
   };
 
   return (
-    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8">
+    <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8 font-sans">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
 
-        {/* Undo Toast Notification */}
-        {undoSeconds !== null && (
-          <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-fade-in">
-            <div className="flex items-center space-x-3 text-xs font-mono">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>
-                Batch imported successfully! 250 records routed to validation engine.
-              </span>
+        {/* 1. Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 sm:pb-6 border-b border-slate-200">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="text-[10px] sm:text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-2 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
+              <span>MODULE A • MULTI-MODAL INTAKE &amp; DATA INGESTION</span>
             </div>
-            <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
-              <button 
-                onClick={() => setUndoSeconds(null)}
-                className="px-3 py-1 rounded bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-xs font-mono flex items-center gap-1 transition-all"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Undo Import ({undoSeconds}s)</span>
-              </button>
-              <button 
-                onClick={onNavigateToReviewer}
-                className="px-3 py-1 rounded bg-emerald-600 text-white text-xs font-bold font-mono transition-all hover:bg-emerald-700 shadow-sm"
-              >
-                Open Exceptions →
-              </button>
-            </div>
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Ingestion Command Center
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+              Ingest messy loan tapes, monthly servicer reconciliations, and document manifests through deterministic schema normalization and real-time rule evaluation.
+            </p>
           </div>
-        )}
 
-        {/* 1. Active Intake Live Pipeline Ticker */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setCsvIntakeTab('PRELOADED');
+                setActiveModal('CSV_MAPPING');
+              }}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center gap-2"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>Upload / Ingest Tape</span>
+            </button>
+            <button
+              onClick={onNavigateToOperator}
+              className="px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-xs font-mono text-slate-800 font-bold transition-all shadow-sm flex items-center gap-1.5"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+              <span>Batch Lineage</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Active Intake Stream Pipeline Ticker */}
         <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -220,17 +323,13 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600" />
               </span>
-              <span className="text-xs font-mono uppercase tracking-widest text-slate-700 font-bold truncate">
-                Active Intake Stream Pipeline
+              <span className="text-xs font-mono uppercase tracking-widest text-slate-700 font-bold">
+                Active Ingestion Pipeline Channels
               </span>
             </div>
-            <button 
-              onClick={onNavigateToOperator}
-              className="text-xs font-mono text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 shrink-0"
-            >
-              <span>View Batch Lineage</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            <span className="text-xs font-mono text-slate-500">
+              Deterministic 15-Rule Validation Engine
+            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -247,7 +346,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                       <div className="text-xs font-mono font-bold text-slate-900 truncate">
                         {item.name}
                       </div>
-                      <div className="text-[11px] font-sans text-slate-500 truncate">
+                      <div className="text-[11px] text-slate-500 truncate">
                         {item.system}
                       </div>
                     </div>
@@ -262,7 +361,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
 
                   <div className="mt-3 space-y-1.5">
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 uppercase">
-                      <span>{item.status}...</span>
+                      <span>{item.status}</span>
                       <span className="font-bold text-slate-800">{item.progress}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
@@ -280,97 +379,137 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
           </div>
         </div>
 
-        {/* 2. Main Ingestion Hub Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 sm:pb-6 border-b border-slate-200">
-          <div className="space-y-1.5 sm:space-y-2">
-            <div className="text-[10px] sm:text-[11px] font-mono tracking-widest text-slate-500 uppercase flex items-center gap-2 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
-              <span>MULTI-MODAL INGESTION HUB • MODULE A</span>
-            </div>
-            <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-sans">
-              Ingestion Hub
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-600 font-sans max-w-2xl leading-relaxed">
-              One hub, multiple doors, zero dead ends. Choose any ingestion channel below to ingest raw loan data with automated schema mapping, OCR extraction, and deterministic validation.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={onNavigateToOperator}
-              className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-xs font-mono text-slate-800 font-bold transition-all shadow-sm"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-blue-600" />
-              <span>Import History</span>
-            </button>
-          </div>
-        </div>
-
         {/* 3. 5 Multi-Modal Ingestion Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* Method 1: Bulk CSV / Spreadsheet Upload */}
+          {/* Method 1: Bulk CSV / Spreadsheet Upload (Primary Functional Hub) */}
           <div 
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleFileDrop}
-            className="lg:col-span-2 lg:row-span-2 p-8 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 transition-all shadow-sm flex flex-col justify-between group relative overflow-hidden"
+            className="lg:col-span-2 lg:row-span-2 p-7 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 transition-all shadow-sm flex flex-col justify-between group relative overflow-hidden"
           >
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start justify-between mb-5">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
                   <UploadCloud className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold text-slate-900 font-sans">
-                      Bulk Spreadsheet &amp; Tape Upload
+                    <h3 className="text-xl font-bold text-slate-900">
+                      Bulk Loan Tape &amp; Portfolio Ingestion
                     </h3>
                     <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase font-bold">
                       Primary Channel
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 font-sans mt-0.5">
-                    CSV, XLSX, XML, or Pipe-Delimited Loan Tapes (Supports up to 500MB)
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    1-Click Pre-loaded Financial Datasets or Custom CSV/XLSX Uploads (Up to 500MB)
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Drag & Drop Target */}
+            {/* Distinct 3 Preloaded Dataset Cards (Fannie Standard, Multi-Source Delta, Document Integrity) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              {PRELOADED_DATASETS.map((ds) => {
+                const isBlue = ds.badgeColor === 'blue';
+                const isAmber = ds.badgeColor === 'amber';
+                return (
+                  <div 
+                    key={ds.id}
+                    onClick={() => {
+                      setSelectedPreloaded(ds);
+                      setSelectedFileType(ds.fileType);
+                      setCsvIntakeTab('PRELOADED');
+                      setActiveModal('CSV_MAPPING');
+                    }}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between group/card shadow-xs hover:shadow-md ${
+                      isBlue 
+                        ? 'bg-gradient-to-br from-blue-50/90 to-indigo-50/60 border-blue-200 hover:border-blue-500 text-slate-900' 
+                        : isAmber 
+                        ? 'bg-gradient-to-br from-amber-50/90 to-orange-50/60 border-amber-200 hover:border-amber-500 text-slate-900'
+                        : 'bg-gradient-to-br from-purple-50/90 to-violet-50/60 border-purple-200 hover:border-purple-500 text-slate-900'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-bold uppercase shadow-2xs ${
+                          isBlue ? 'bg-blue-600 text-white' :
+                          isAmber ? 'bg-amber-600 text-white' : 'bg-purple-600 text-white'
+                        }`}>
+                          {ds.badge}
+                        </span>
+                        <span className={`text-[10px] font-mono font-bold ${
+                          isBlue ? 'text-blue-800' : isAmber ? 'text-amber-800' : 'text-purple-800'
+                        }`}>
+                          {ds.recordCount} rows
+                        </span>
+                      </div>
+                      <div className={`text-xs font-extrabold line-clamp-1 ${
+                        isBlue ? 'text-blue-950 group-hover/card:text-blue-700' :
+                        isAmber ? 'text-amber-950 group-hover/card:text-amber-700' :
+                        'text-purple-950 group-hover/card:text-purple-700'
+                      }`}>
+                        {ds.name}
+                      </div>
+                      <div className={`text-[11px] mt-1 line-clamp-2 leading-tight ${
+                        isBlue ? 'text-blue-900/70' : isAmber ? 'text-amber-900/70' : 'text-purple-900/70'
+                      }`}>
+                        {ds.description}
+                      </div>
+                    </div>
+                    <div className={`mt-3 pt-2 border-t flex items-center justify-between text-[11px] font-mono font-bold ${
+                      isBlue ? 'border-blue-200 text-blue-700' :
+                      isAmber ? 'border-amber-200 text-amber-700' :
+                      'border-purple-200 text-purple-700'
+                    }`}>
+                      <span>1-Click Ingest</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover/card:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Drag & Drop Target for Custom Files */}
             <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-1 min-h-[220px] border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50/70 hover:bg-blue-50/50 hover:border-blue-500 transition-all p-8 flex flex-col items-center justify-center text-center cursor-pointer group/zone"
+              onClick={() => {
+                setCsvIntakeTab('CUSTOM_FILE');
+                fileInputRef.current?.click();
+              }}
+              className="flex-1 min-h-[120px] border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/70 hover:bg-blue-50/40 hover:border-blue-500 transition-all p-4 flex flex-col items-center justify-center text-center cursor-pointer group/zone"
             >
               <input 
                 type="file" 
                 ref={fileInputRef} 
                 onChange={handleFileInputChange} 
-                accept=".csv,.xlsx,.xls,.json,.txt" 
+                accept=".csv,.xlsx,.xls,.tsv,.txt" 
                 className="hidden" 
               />
-              <div className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover/zone:text-blue-600 group-hover/zone:scale-110 transition-all mb-4 shadow-sm">
-                <UploadCloud className="w-7 h-7" />
-              </div>
-              <h4 className="text-base font-bold text-slate-900 font-sans">
-                Drag and drop loan tape here, or click to browse
-              </h4>
-              <p className="text-xs text-slate-500 font-sans mt-1 max-w-sm">
-                Automatic column matching with header similarity, live 20-row pre-validation preview, and reusable schema templates.
-              </p>
-              <div className="mt-4 px-5 py-2 rounded-xl bg-[#0b1c30] text-white text-xs font-bold font-mono uppercase hover:bg-slate-800 transition-all shadow-md">
-                Browse Files
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover/zone:text-blue-600 transition-all shadow-xs">
+                  <UploadCloud className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-slate-900">
+                    Or drop a custom loan tape here to inspect &amp; ingest
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Automatic column header matching, 15-rule constraint checking, and cryptographic sealing.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-600 gap-2">
+            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-600 gap-2">
               <span className="flex items-center gap-1.5">
                 <Check className="w-3.5 h-3.5 text-blue-600" /> Auto-Schema Matcher
               </span>
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-blue-600" /> Duplicate ID Warning
+                <Check className="w-3.5 h-3.5 text-blue-600" /> Multi-Source Reconciliation
               </span>
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-blue-600" /> 10s Graceful Undo
+                <Check className="w-3.5 h-3.5 text-blue-600" /> Real-Time Rule Engine
               </span>
             </div>
           </div>
@@ -378,7 +517,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
           {/* Method 2: Document Scan / Photo (OCR) */}
           <div 
             onClick={() => setActiveModal('OCR_EXTRACT')}
-            className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 transition-all shadow-sm flex flex-col justify-between cursor-pointer group"
+            className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-purple-500 transition-all shadow-sm flex flex-col justify-between cursor-pointer group"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -386,19 +525,19 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   <ScanLine className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Vision AI
+                  <Sparkles className="w-3 h-3 text-purple-600" /> Vision AI Preview
                 </span>
               </div>
-              <h3 className="text-base font-bold text-slate-900 font-sans">
+              <h3 className="text-base font-bold text-slate-900">
                 Document Scan / Photo (OCR)
               </h3>
-              <p className="text-xs text-slate-500 font-sans mt-1">
-                Upload scanned physical ledgers, W-2s, promissory notes, or photos from mobile/tablet.
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Inspect scanned promissory notes, deeds, and W-2s with bounding boxes and confidence scores.
               </p>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-blue-600 font-bold group-hover:translate-x-1 transition-transform">
-              <span>Launch OCR Inspector</span>
+            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-purple-700 font-bold group-hover:translate-x-1 transition-transform">
+              <span>Launch OCR Simulator</span>
               <ArrowRight className="w-4 h-4" />
             </div>
           </div>
@@ -406,7 +545,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
           {/* Method 3: Connect a System (Live API / Webhook Feed) */}
           <div 
             onClick={() => setActiveModal('CONNECTOR_WIZARD')}
-            className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 transition-all shadow-sm flex flex-col justify-between cursor-pointer group"
+            className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-emerald-500 transition-all shadow-sm flex flex-col justify-between cursor-pointer group"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -414,18 +553,18 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   <Network className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
-                  Live Feed
+                  Live Feed Simulator
                 </span>
               </div>
-              <h3 className="text-base font-bold text-slate-900 font-sans">
+              <h3 className="text-base font-bold text-slate-900">
                 Connect Live System / API
               </h3>
-              <p className="text-xs text-slate-500 font-sans mt-1">
-                Establish direct automated sync with Encompass, Salesforce, Plaid, or SFTP feeds.
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Direct automated sync simulator for Encompass, Salesforce FSC, Plaid, and Black Knight SFTP.
               </p>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-blue-600 font-bold group-hover:translate-x-1 transition-transform">
+            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-emerald-700 font-bold group-hover:translate-x-1 transition-transform">
               <span>Configure Pipeline</span>
               <ArrowRight className="w-4 h-4" />
             </div>
@@ -434,7 +573,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
           {/* Method 4: Quick Manual Entry */}
           <div 
             onClick={() => setActiveModal('MANUAL_ENTRY')}
-            className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 transition-all shadow-sm flex flex-col justify-between cursor-pointer group"
+            className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-amber-500 transition-all shadow-sm flex flex-col justify-between cursor-pointer group"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -442,19 +581,19 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   <Edit3 className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
-                  Single Loan
+                  Single Loan Intake
                 </span>
               </div>
-              <h3 className="text-base font-bold text-slate-900 font-sans">
+              <h3 className="text-base font-bold text-slate-900">
                 Quick Manual Entry
               </h3>
-              <p className="text-xs text-slate-500 font-sans mt-1">
-                One-off record creation with live 14-rule constraint validation evaluated as you type.
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                One-off record creation with live 15-rule constraint validation evaluated and submitted directly to the engine.
               </p>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-blue-600 font-bold group-hover:translate-x-1 transition-transform">
-              <span>Open Form</span>
+            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-amber-700 font-bold group-hover:translate-x-1 transition-transform">
+              <span>Open Form &amp; Submit</span>
               <ArrowRight className="w-4 h-4" />
             </div>
           </div>
@@ -462,7 +601,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
           {/* Method 5: Paste Raw Data from Clipboard */}
           <div 
             onClick={() => setActiveModal('PASTE_DATA')}
-            className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 transition-all shadow-sm flex flex-col justify-between cursor-pointer group"
+            className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-cyan-500 transition-all shadow-sm flex flex-col justify-between cursor-pointer group"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -470,19 +609,19 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   <ClipboardPaste className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-100 text-cyan-800 font-bold">
-                  Clipboard
+                  Functional Intake
                 </span>
               </div>
-              <h3 className="text-base font-bold text-slate-900 font-sans">
+              <h3 className="text-base font-bold text-slate-900">
                 Paste Raw Data
               </h3>
-              <p className="text-xs text-slate-500 font-sans mt-1">
-                Paste directly from Excel or Google Sheets. Delimiter detection automatically formats rows.
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Paste directly from Excel or Google Sheets. Delimiter detection automatically formats rows and triggers validation.
               </p>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-blue-600 font-bold group-hover:translate-x-1 transition-transform">
-              <span>Paste Clipboard</span>
+            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-cyan-700 font-bold group-hover:translate-x-1 transition-transform">
+              <span>Paste &amp; Ingest</span>
               <ArrowRight className="w-4 h-4" />
             </div>
           </div>
@@ -497,61 +636,62 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
               Automated Intake &amp; Validation Pipeline Architecture
             </h3>
             <span className="text-[11px] font-mono text-slate-500">
-              Deterministic 14-Rule Engine
+              15 Deterministic Rules + Gemini Copilot
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
               <div className="text-[10px] font-mono text-blue-600 font-bold uppercase">Stage 01</div>
-              <div className="text-xs font-bold text-slate-900 mt-1">Uploaded</div>
-              <div className="text-[11px] font-mono text-slate-500 mt-1">250 Rows</div>
+              <div className="text-xs font-bold text-slate-900 mt-1">Intake &amp; Ingest</div>
+              <div className="text-[11px] font-mono text-slate-500 mt-1">Multi-Modal Stream</div>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
               <div className="text-[10px] font-mono text-blue-600 font-bold uppercase">Stage 02</div>
               <div className="text-xs font-bold text-slate-900 mt-1">Parsed &amp; Mapped</div>
-              <div className="text-[11px] font-mono text-slate-500 mt-1">10 Columns</div>
+              <div className="text-[11px] font-mono text-slate-500 mt-1">Schema Normalization</div>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
               <div className="text-[10px] font-mono text-blue-600 font-bold uppercase">Stage 03</div>
-              <div className="text-xs font-bold text-slate-900 mt-1">Normalized</div>
-              <div className="text-[11px] font-mono text-slate-500 mt-1">Types Casted</div>
+              <div className="text-xs font-bold text-slate-900 mt-1">Cross-Reconciled</div>
+              <div className="text-[11px] font-mono text-slate-500 mt-1">Tape vs Servicer Delta</div>
             </div>
 
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
               <div className="text-[10px] font-mono text-emerald-700 font-bold uppercase">Stage 04</div>
-              <div className="text-xs font-bold text-emerald-900 mt-1">Validated</div>
-              <div className="text-[11px] font-mono text-emerald-700 mt-1">232 Clean</div>
+              <div className="text-xs font-bold text-emerald-900 mt-1">Clean Records Sealed</div>
+              <div className="text-[11px] font-mono text-emerald-700 font-bold mt-1">SHA-256 Hashes</div>
             </div>
 
             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-center">
               <div className="text-[10px] font-mono text-amber-700 font-bold uppercase">Stage 05</div>
-              <div className="text-xs font-bold text-amber-900 mt-1">Exceptions Routed</div>
-              <div className="text-[11px] font-mono text-amber-700 mt-1">14 Flagged</div>
+              <div className="text-xs font-bold text-amber-900 mt-1">Exceptions Quarantined</div>
+              <div className="text-[11px] font-mono text-amber-700 font-bold mt-1">Reviewer Triage</div>
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* MODAL 1: CSV Schema Mapping */}
+      {/* MODAL 1: CSV Schema Mapping & Ingestion Dialog */}
       {activeModal === 'CSV_MAPPING' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl text-slate-900 overflow-hidden">
             
+            {/* Header */}
             <div className="p-6 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center">
                   <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 font-sans">
-                    Schema Mapping &amp; Pre-Validation: {selectedFile?.name || 'loan_tape.csv'}
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Tape Ingestion &amp; Schema Validation
                   </h3>
-                  <p className="text-xs text-slate-500 font-sans">
-                    Map incoming column headers to VeriLoan standard loan schema.
+                  <p className="text-xs text-slate-500">
+                    Select a pre-loaded financial dataset or supply a custom file.
                   </p>
                 </div>
               </div>
@@ -563,44 +703,139 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
               </button>
             </div>
 
-            <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between text-xs font-mono gap-3">
-              <div className="flex items-center space-x-4">
-                <span className="text-slate-900 font-bold">250 Rows Detected</span>
-                <span className="text-emerald-600 font-bold">232 Clean (92.8%)</span>
-                <span className="text-amber-600 font-bold">14 Will Need Review</span>
-                <span className="text-rose-600 font-bold">4 Critical Anomalies</span>
+            {/* Source Tab Selector */}
+            <div className="px-6 pt-4 border-b border-slate-200 bg-slate-50/80 flex items-center gap-3">
+              <button
+                onClick={() => setCsvIntakeTab('PRELOADED')}
+                className={`pb-3 text-xs font-mono font-bold flex items-center gap-2 border-b-2 transition-all ${
+                  csvIntakeTab === 'PRELOADED' 
+                    ? 'border-blue-600 text-blue-700' 
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Database className="w-4 h-4" />
+                <span>1-Click Preloaded Datasets (3)</span>
+              </button>
+              <button
+                onClick={() => setCsvIntakeTab('CUSTOM_FILE')}
+                className={`pb-3 text-xs font-mono font-bold flex items-center gap-2 border-b-2 transition-all ${
+                  csvIntakeTab === 'CUSTOM_FILE' 
+                    ? 'border-blue-600 text-blue-700' 
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>Custom File Upload ({selectedFile ? selectedFile.name : 'None'})</span>
+              </button>
+            </div>
+
+            {/* Preloaded Dataset Selector Cards */}
+            {csvIntakeTab === 'PRELOADED' && (
+              <div className="p-6 bg-slate-50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {PRELOADED_DATASETS.map((ds) => {
+                  const isSelected = selectedPreloaded.id === ds.id;
+                  const isBlue = ds.badgeColor === 'blue';
+                  const isAmber = ds.badgeColor === 'amber';
+                  return (
+                    <div
+                      key={ds.id}
+                      onClick={() => {
+                        setSelectedPreloaded(ds);
+                        setSelectedFileType(ds.fileType);
+                      }}
+                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                        isBlue 
+                          ? (isSelected ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-500/20 shadow-xs' : 'border-blue-200 bg-blue-50/40 hover:border-blue-400')
+                          : isAmber 
+                          ? (isSelected ? 'border-amber-600 bg-amber-50 ring-2 ring-amber-500/20 shadow-xs' : 'border-amber-200 bg-amber-50/40 hover:border-amber-400')
+                          : (isSelected ? 'border-purple-600 bg-purple-50 ring-2 ring-purple-500/20 shadow-xs' : 'border-purple-200 bg-purple-50/40 hover:border-purple-400')
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-bold uppercase shadow-2xs ${
+                          isBlue ? 'bg-blue-600 text-white' :
+                          isAmber ? 'bg-amber-600 text-white' : 'bg-purple-600 text-white'
+                        }`}>
+                          {ds.badge}
+                        </span>
+                        {isSelected ? (
+                          <CheckCheck className={`w-4 h-4 shrink-0 ${isBlue ? 'text-blue-600' : isAmber ? 'text-amber-600' : 'text-purple-600'}`} />
+                        ) : (
+                          <span className={`text-[10px] font-mono font-bold ${isBlue ? 'text-blue-700' : isAmber ? 'text-amber-700' : 'text-purple-700'}`}>
+                            {ds.recordCount} rows
+                          </span>
+                        )}
+                      </div>
+                      <div className={`text-xs font-bold mt-1 line-clamp-1 ${isBlue ? 'text-blue-950' : isAmber ? 'text-amber-950' : 'text-purple-950'}`}>
+                        {ds.name}
+                      </div>
+                      <div className="text-[11px] font-mono text-slate-500 mt-1">
+                        {ds.filename} • {ds.recordCount} rows
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="text-slate-500 text-[11px]">
-                Template: <span className="text-blue-700 font-bold">{templateName}</span>
+            )}
+
+            {/* Summary Strip */}
+            <div className="px-6 py-3 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between text-xs font-mono gap-3">
+              <div className="flex items-center space-x-3">
+                <span className="text-slate-900 font-bold">
+                  Target: {csvIntakeTab === 'PRELOADED' ? selectedPreloaded.filename : selectedFile?.name || 'Custom File'}
+                </span>
+                <span className="text-blue-600 font-bold">
+                  {csvIntakeTab === 'PRELOADED' ? `${selectedPreloaded.recordCount} Records` : 'Custom File Stream'}
+                </span>
+                <span className="text-amber-600 font-bold">
+                  {csvIntakeTab === 'PRELOADED' ? `~${selectedPreloaded.expectedAnomalies} Known Anomalies` : 'Auto-Validation'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-500">File Type:</span>
+                <select
+                  value={selectedFileType}
+                  onChange={(e) => setSelectedFileType(e.target.value)}
+                  className="bg-slate-50 border border-slate-300 rounded px-2 py-0.5 text-xs text-slate-800 font-bold"
+                >
+                  <option value="LOAN_TAPE">LOAN_TAPE</option>
+                  <option value="SERVICER_UPDATE">SERVICER_UPDATE</option>
+                  <option value="DOC_MANIFEST">DOC_MANIFEST</option>
+                </select>
               </div>
             </div>
 
+            {/* Schema Mapping Table */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="text-xs font-mono text-slate-500 uppercase tracking-wider font-bold">
+                Schema Field Mapping (12 Key Attributes):
+              </div>
               <table className="w-full text-left text-xs font-mono border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500 uppercase text-[10px]">
                     <th className="pb-2">Incoming File Column</th>
-                    <th className="pb-2">Sample Raw Value</th>
-                    <th className="pb-2">VeriLoan Standard Field</th>
+                    <th className="pb-2">Sample Value</th>
+                    <th className="pb-2">Target Canonical Field</th>
                     <th className="pb-2">Confidence</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {schemaMappings.map((mapping, idx) => (
                     <tr key={idx} className="hover:bg-slate-50">
-                      <td className="py-2.5 font-bold text-slate-900">{mapping.incomingColumn}</td>
-                      <td className="py-2.5 text-slate-500">{mapping.sampleValue}</td>
-                      <td className="py-2.5">
+                      <td className="py-2 font-bold text-slate-900">{mapping.incomingColumn}</td>
+                      <td className="py-2 text-slate-500">{mapping.sampleValue}</td>
+                      <td className="py-2">
                         <select 
                           value={mapping.targetField}
                           onChange={(e) => {
                             const val = e.target.value;
                             setSchemaMappings(prev => prev.map((m, i) => i === idx ? { ...m, targetField: val } : m));
                           }}
-                          className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-blue-700 font-bold focus:outline-none focus:border-blue-500"
+                          className="bg-white border border-slate-300 rounded px-2 py-0.5 text-xs text-blue-700 font-bold focus:outline-none focus:border-blue-500"
                         >
                           <option value="loan_id">loan_id</option>
                           <option value="borrower_id">borrower_id</option>
+                          <option value="loan_type">loan_type</option>
                           <option value="origination_date">origination_date</option>
                           <option value="maturity_date">maturity_date</option>
                           <option value="original_principal">original_principal</option>
@@ -609,9 +844,10 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                           <option value="term_months">term_months</option>
                           <option value="borrower_state">borrower_state</option>
                           <option value="payment_status">payment_status</option>
+                          <option value="days_past_due">days_past_due</option>
                         </select>
                       </td>
-                      <td className="py-2.5">
+                      <td className="py-2">
                         <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
                           {Math.round(mapping.confidence * 100)}% Match
                         </span>
@@ -622,32 +858,57 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
               </table>
             </div>
 
+            {/* Ingestion Progress Overlay if Committing */}
+            {isCommitting && (
+              <div className="p-4 bg-blue-50 border-t border-blue-200 space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono text-blue-900 font-bold">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                    <span>
+                      {pipelineProgressStage === 1 && 'Stage 1/3: Reading CSV stream & normalizing headers...'}
+                      {pipelineProgressStage === 2 && 'Stage 2/3: Evaluating 15 deterministic FinTech rules...'}
+                      {pipelineProgressStage === 3 && 'Stage 3/3: Auto-sealing clean records & logging audit events...'}
+                    </span>
+                  </div>
+                  <span>{pipelineProgressStage * 33}%</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-600 transition-all duration-500 rounded-full"
+                    style={{ width: `${pipelineProgressStage * 33}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
             <div className="p-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
               <div className="flex items-center space-x-2 text-xs font-mono text-slate-600">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Lineage &amp; Source File Hash Preserved Automatically</span>
+                <span>Deterministic SHA-256 Batch Sealing</span>
               </div>
 
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => setActiveModal('NONE')}
+                  disabled={isCommitting}
                   className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-mono text-slate-700 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   disabled={isCommitting}
-                  onClick={handleCommitCsv}
+                  onClick={handleExecuteCsvIngestion}
                   className="px-6 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2"
                 >
                   {isCommitting ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Ingesting Batch...</span>
+                      <span>Processing...</span>
                     </>
                   ) : (
                     <>
-                      <span>Commit &amp; Run Engine</span>
+                      <span>Execute Ingestion Pipeline</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </>
                   )}
@@ -659,7 +920,112 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
         </div>
       )}
 
-      {/* MODAL 2: OCR Document Extraction */}
+      {/* MODAL: Real Ingestion Result Drawer / Modal */}
+      {activeModal === 'RESULT_MODAL' && ingestionResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-2xl rounded-2xl bg-white border border-slate-200 shadow-2xl text-slate-900 p-6 sm:p-8 space-y-6">
+            
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Ingestion Pipeline Completed Successfully!
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    Batch Reference: {ingestionResult.batch_id} • File: {ingestionResult.filename}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setActiveModal('NONE')}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Real Server Metrics Grid */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                <div className="text-[10px] font-mono uppercase text-slate-500 font-bold">Total Ingested</div>
+                <div className="text-2xl font-extrabold text-slate-900 mt-1 font-mono">
+                  {ingestionResult.total_rows.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Records Parsed</div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+                <div className="text-[10px] font-mono uppercase text-emerald-700 font-bold">Clean &amp; Sealed</div>
+                <div className="text-2xl font-extrabold text-emerald-700 mt-1 font-mono">
+                  {ingestionResult.valid_rows.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-emerald-600 mt-0.5 font-bold">
+                  {ingestionResult.total_rows > 0 ? `${((ingestionResult.valid_rows / ingestionResult.total_rows) * 100).toFixed(1)}%` : '0%'} Clean
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-center">
+                <div className="text-[10px] font-mono uppercase text-amber-700 font-bold">Flagged Exceptions</div>
+                <div className="text-2xl font-extrabold text-amber-700 mt-1 font-mono">
+                  {ingestionResult.exception_count.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-amber-600 mt-0.5 font-bold">Quarantined</div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs font-mono text-slate-700">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Pipeline Status:</span>
+                <span className="font-bold text-emerald-700">{ingestionResult.status}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Validation Mode:</span>
+                <span className="font-bold text-slate-900">15 Dynamic FinTech Rules + VAL-106</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Cryptographic Integrity:</span>
+                <span className="font-bold text-slate-900">SHA-256 Record Hashes Verified</span>
+              </div>
+            </div>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-200">
+              <button
+                onClick={() => setActiveModal('NONE')}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-mono text-slate-700 font-bold"
+              >
+                Close &amp; Stay on Hub
+              </button>
+              <button
+                onClick={() => {
+                  setActiveModal('NONE');
+                  onNavigateToOperator();
+                }}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-mono font-bold"
+              >
+                View Batch Lineage
+              </button>
+              {ingestionResult.exception_count > 0 && (
+                <button
+                  onClick={() => {
+                    setActiveModal('NONE');
+                    onNavigateToReviewer();
+                  }}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  <span>Triage {ingestionResult.exception_count} Exceptions ➔</span>
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: OCR Document Extraction (Transparent Simulation Preview) */}
       {activeModal === 'OCR_EXTRACT' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl text-slate-900 overflow-hidden">
@@ -670,11 +1036,16 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   <ScanLine className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 font-sans">
-                    Document OCR &amp; Human-Confirmed Extraction
-                  </h3>
-                  <p className="text-xs text-slate-500 font-sans">
-                    Scanned Promissory Note • Model: Gemini 1.5 Pro Vision OCR
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-slate-900">
+                      Document OCR &amp; Human-Confirmed Extraction
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold">
+                      Interactive Simulation Preview
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Scanned Promissory Note • Model: Gemini Vision OCR (98.4% Average Confidence)
                   </p>
                 </div>
               </div>
@@ -689,7 +1060,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
             <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
               <div className="p-6 overflow-y-auto bg-slate-50 flex flex-col justify-between space-y-4">
                 <div className="p-5 rounded-xl bg-white border border-slate-200 space-y-3 font-mono text-xs text-slate-700 shadow-sm">
-                  <div className="flex justify-between border-b border-slate-100 pb-2 text-[10px] text-slate-500 uppercase">
+                  <div className="flex justify-between border-b border-slate-100 pb-2 text-[10px] text-slate-500 uppercase font-bold">
                     <span>Document: PROMISSORY_NOTE_VANCE.PDF</span>
                     <span>Page {ocrActivePage} of 3</span>
                   </div>
@@ -706,7 +1077,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                 </div>
 
                 <div className="flex items-center justify-between text-xs font-mono text-slate-500">
-                  <span>Multi-Page Document Carousel:</span>
+                  <span>Document Carousel:</span>
                   <div className="flex gap-2">
                     <button 
                       onClick={() => setOcrActivePage(1)} 
@@ -776,18 +1147,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   onClick={() => setActiveModal('NONE')}
                   className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-mono text-slate-700 font-bold"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveModal('NONE');
-                    setUndoSeconds(10);
-                    onRefreshSummary();
-                  }}
-                  className="px-6 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95 flex items-center gap-2"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Confirm &amp; Ingest Record</span>
+                  Close Preview
                 </button>
               </div>
             </div>
@@ -796,7 +1156,7 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
         </div>
       )}
 
-      {/* MODAL 3: Connector Wizard */}
+      {/* MODAL 3: Connector Wizard (Transparent Simulation Preview) */}
       {activeModal === 'CONNECTOR_WIZARD' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-2xl rounded-2xl bg-white border border-slate-200 shadow-2xl text-slate-900 p-6 sm:p-8 space-y-6">
@@ -806,11 +1166,16 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   <Network className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 font-sans">
-                    Setup Live Feed Connector
-                  </h3>
-                  <p className="text-xs text-slate-500 font-sans">
-                    Direct automated sync from loan origination or servicing feeds.
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-slate-900">
+                      Live Feed Connector Pipeline
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+                      Connector Preview
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Direct automated sync architecture for Encompass, Salesforce, and Plaid.
                   </p>
                 </div>
               </div>
@@ -829,12 +1194,12 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   <option>Encompass (ICE Mortgage Tech REST API)</option>
                   <option>Salesforce Financial Services Cloud Webhook</option>
                   <option>Plaid Income &amp; Asset Verification</option>
-                  <option>Black Knight SFTP Daily Batch</option>
+                  <option>Black Knight MSP SFTP Daily Feed</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-700 uppercase font-bold mb-1">Endpoint URL / Webhook Receiver</label>
+                <label className="block text-slate-700 uppercase font-bold mb-1">Endpoint Receiver URL</label>
                 <input 
                   type="text" 
                   defaultValue="https://api.ice.com/encompass/v1/loans/export" 
@@ -842,27 +1207,17 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-700 uppercase font-bold mb-1">API Key / Secret Token</label>
-                <input 
-                  type="password" 
-                  defaultValue="enc_live_sec_9941a87b6" 
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
-                />
-              </div>
-
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="flex items-center justify-between text-[11px] text-slate-600">
-                  <span>Sample Live Payload:</span>
-                  <span className="text-emerald-700 font-bold">200 OK • 12ms</span>
+                  <span>Sample Connector Telemetry:</span>
+                  <span className="text-emerald-700 font-bold">200 OK • 12ms Latency</span>
                 </div>
                 <pre className="text-[10px] text-slate-800 bg-white p-3 rounded border border-slate-200 overflow-x-auto">
 {`{
-  "loan_id": "LN-ENCOMPASS-881",
-  "borrower": "Marcus Rivera",
-  "balance": 412000,
-  "rate": 6.25,
-  "status": "APPROVED"
+  "status": "HEALTHY",
+  "synced_batches": 14,
+  "last_heartbeat": "2026-08-31T10:30:00Z",
+  "active_feed": "ENCOMPASS_PRIMARY_POOL"
 }`}
                 </pre>
               </div>
@@ -873,23 +1228,14 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                 onClick={() => setActiveModal('NONE')}
                 className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-mono text-slate-700 font-bold"
               >
-                Cancel
-              </button>
-              <button 
-                onClick={() => {
-                  setActiveModal('NONE');
-                  onRefreshSummary();
-                }}
-                className="px-6 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95"
-              >
-                Save &amp; Activate Feed
+                Close Preview
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL 4: Manual Entry */}
+      {/* MODAL 4: Quick Manual Entry (Functional Single Loan Submission) */}
       {activeModal === 'MANUAL_ENTRY' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-2xl rounded-2xl bg-white border border-slate-200 shadow-2xl text-slate-900 p-6 sm:p-8 space-y-6">
@@ -899,11 +1245,11 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   <Edit3 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 font-sans">
-                    Manual Single-Loan Entry
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Manual Single-Loan Creation &amp; Ingestion
                   </h3>
-                  <p className="text-xs text-slate-500 font-sans">
-                    Live constraint validation evaluates as you type.
+                  <p className="text-xs text-slate-500">
+                    Submit a loan directly to the 15-rule validation engine.
                   </p>
                 </div>
               </div>
@@ -947,12 +1293,11 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
               </div>
 
               <div>
-                <label className="block text-slate-700 uppercase font-bold mb-1">Interest Rate (%)</label>
+                <label className="block text-slate-700 uppercase font-bold mb-1">Current Balance ($)</label>
                 <input 
                   type="number" 
-                  step="0.01"
-                  value={manualForm.interest_rate}
-                  onChange={(e) => setManualForm({ ...manualForm, interest_rate: Number(e.target.value) })}
+                  value={manualForm.current_balance}
+                  onChange={(e) => setManualForm({ ...manualForm, current_balance: Number(e.target.value) })}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900"
                 />
               </div>
@@ -978,28 +1323,34 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
               </div>
             </div>
 
+            {uploadError && (
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-mono">
+                {uploadError}
+              </div>
+            )}
+
             <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200">
               <button 
                 onClick={() => setActiveModal('NONE')}
+                disabled={isCommitting}
                 className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-mono text-slate-700 font-bold"
               >
                 Cancel
               </button>
               <button 
-                onClick={() => {
-                  setActiveModal('NONE');
-                  onRefreshSummary();
-                }}
-                className="px-6 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95"
+                disabled={isCommitting}
+                onClick={handleExecuteManualIngestion}
+                className="px-6 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2"
               >
-                Validate &amp; Ingest
+                {isCommitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>Validate &amp; Ingest Record</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL 5: Paste Raw Data */}
+      {/* MODAL 5: Paste Raw Data from Clipboard (Functional Ingestion) */}
       {activeModal === 'PASTE_DATA' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-2xl rounded-2xl bg-white border border-slate-200 shadow-2xl text-slate-900 p-6 sm:p-8 space-y-6">
@@ -1009,10 +1360,10 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                   <ClipboardPaste className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 font-sans">
+                  <h3 className="text-lg font-bold text-slate-900">
                     Paste Raw Data from Clipboard
                   </h3>
-                  <p className="text-xs text-slate-500 font-sans">
+                  <p className="text-xs text-slate-500">
                     Paste tab-separated or comma-separated records straight from Excel or Google Sheets.
                   </p>
                 </div>
@@ -1031,28 +1382,36 @@ LN-1002\tBW-8821\t2021-08-01\t2036-08-01\t580000\t558200\t5.75\t180\tFL\tCURRENT
                 value={pastedText}
                 onChange={(e) => setPastedText(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-500"
+                placeholder="Paste CSV or TSV contents here..."
               />
             </div>
 
+            {uploadError && (
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-mono">
+                {uploadError}
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-4 border-t border-slate-200">
               <span className="text-[11px] font-mono text-emerald-700 font-bold">
-                ✓ Tab-delimiter auto-detected (2 rows)
+                ✓ Ready for Ingestion ({pastedText.trim().split('\n').length - 1} data rows detected)
               </span>
 
               <div className="flex items-center space-x-3">
                 <button 
                   onClick={() => setActiveModal('NONE')}
+                  disabled={isCommitting}
                   className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-mono text-slate-700 font-bold"
                 >
                   Cancel
                 </button>
                 <button 
-                  onClick={() => {
-                    setActiveModal('CSV_MAPPING');
-                  }}
-                  className="px-6 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95"
+                  disabled={isCommitting}
+                  onClick={handleExecutePasteIngestion}
+                  className="px-6 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2"
                 >
-                  Parse into Schema Mapper →
+                  {isCommitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+                  <span>Ingest &amp; Validate</span>
                 </button>
               </div>
             </div>
