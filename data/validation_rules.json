@@ -1,0 +1,165 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-08-31T04:45:04.176605Z",
+  "rules": [
+    {
+      "code": "VAL-001",
+      "name": "Mandatory Loan ID",
+      "category": "MANDATORY",
+      "severity": "CRITICAL",
+      "field": "loan_id",
+      "enabled": true,
+      "description": "Each record must have a non-empty, non-null loan ID identifier."
+    },
+    {
+      "code": "VAL-002",
+      "name": "Unique Loan ID",
+      "category": "INTEGRITY",
+      "severity": "CRITICAL",
+      "field": "loan_id",
+      "enabled": true,
+      "description": "Loan ID must be strictly unique across the portfolio tape."
+    },
+    {
+      "code": "VAL-003",
+      "name": "Borrower & Principal Duplicate Check",
+      "category": "INTEGRITY",
+      "severity": "HIGH",
+      "field": "borrower_id",
+      "enabled": true,
+      "description": "Flags duplicate loans sharing same borrower ID, principal balance, and origination date."
+    },
+    {
+      "code": "VAL-004",
+      "name": "ISO-8601 Date Format Validation",
+      "category": "FORMAT",
+      "severity": "HIGH",
+      "field": "origination_date, maturity_date, last_payment_date, last_updated_at",
+      "enabled": true,
+      "description": "Dates must adhere strictly to standard ISO-8601 YYYY-MM-DD format (origination_date, maturity_date, last_payment_date, last_updated_at)."
+    },
+    {
+      "code": "VAL-005",
+      "name": "Maturity Date Sequence",
+      "category": "LOGIC",
+      "severity": "CRITICAL",
+      "field": "maturity_date",
+      "enabled": true,
+      "description": "Maturity date must occur strictly after the origination date."
+    },
+    {
+      "code": "VAL-006",
+      "name": "Non-Negative Balance Rule",
+      "category": "FINANCIAL",
+      "severity": "CRITICAL",
+      "field": "original_principal, current_balance",
+      "enabled": true,
+      "allow_negative": false,
+      "description": "Original principal and current balance cannot be negative numbers."
+    },
+    {
+      "code": "VAL-007",
+      "name": "Balance Exceeds Principal Bound",
+      "category": "FINANCIAL",
+      "severity": "HIGH",
+      "field": "current_balance",
+      "enabled": true,
+      "allow_exceeds_principal": false,
+      "description": "Current balance cannot exceed original principal without an authorized negative amortization rider."
+    },
+    {
+      "code": "VAL-008",
+      "name": "Interest Rate Bounds",
+      "category": "FINANCIAL",
+      "severity": "CRITICAL",
+      "field": "interest_rate",
+      "enabled": true,
+      "min_value": 0.0,
+      "max_value": 36.0,
+      "description": "Interest rate must fall between 0.0% and 36.0% statutory maximum.",
+      "max_interest_rate": 30.0
+    },
+    {
+      "code": "VAL-009",
+      "name": "Payment Status vs. DPD Consistency",
+      "category": "CONSISTENCY",
+      "severity": "HIGH",
+      "field": "payment_status, days_past_due",
+      "enabled": true,
+      "current_max_dpd": 30,
+      "description": "Days past due must logically correspond with the designated payment status classification."
+    },
+    {
+      "code": "VAL-010",
+      "name": "Document Availability",
+      "category": "DOCUMENTATION",
+      "severity": "MEDIUM",
+      "field": "document_status",
+      "enabled": true,
+      "disallowed_statuses": [
+        "MISSING",
+        "EXPIRED",
+        "UNVERIFIED",
+        ""
+      ],
+      "description": "Required promissory notes and deeds of trust must be present in the document manifest."
+    },
+    {
+      "code": "VAL-011",
+      "name": "Cross-Source Servicer Conflict",
+      "category": "RECONCILIATION",
+      "severity": "HIGH",
+      "field": "current_balance, payment_status",
+      "enabled": true,
+      "balance_diff_threshold": 50.0,
+      "description": "Balances and payment statuses in the primary tape must reconcile with the second-source servicer update."
+    },
+    {
+      "code": "VAL-012",
+      "name": "Data Staleness Threshold",
+      "category": "FRESHNESS",
+      "severity": "LOW",
+      "field": "last_updated_at",
+      "enabled": true,
+      "max_age_days": 180,
+      "description": "Records updated more than 180 days ago are flagged as stale."
+    },
+    {
+      "code": "VAL-013",
+      "name": "Valid US State Code",
+      "category": "FORMAT",
+      "severity": "MEDIUM",
+      "field": "borrower_state",
+      "enabled": true,
+      "description": "Borrower state must be a valid 2-letter US postal state/territory abbreviation."
+    },
+    {
+      "code": "VAL-014",
+      "name": "Paid-Off Loan Balance Integrity",
+      "category": "STATUS",
+      "severity": "HIGH",
+      "field": "payment_status, current_balance",
+      "enabled": true,
+      "description": "Loans designated as PAID_OFF or CLOSED must carry a $0.00 current balance."
+    },
+    {
+      "code": "VAL-015",
+      "name": "Repeated Borrower Concentration Check",
+      "category": "CONCENTRATION",
+      "severity": "MEDIUM",
+      "field": "borrower_id",
+      "enabled": true,
+      "max_loan_count": 3,
+      "description": "Flags borrowers appearing across 3 or more distinct loans in the portfolio tape to detect borrower concentration risk."
+    },
+    {
+      "code": "VAL-106",
+      "name": "ISO-8601 Extended Date Format Validation",
+      "category": "FORMAT",
+      "severity": "HIGH",
+      "field": "origination_date, maturity_date, last_payment_date, last_updated_at",
+      "enabled": true,
+      "description": "Dates must adhere strictly to standard ISO-8601 YYYY-MM-DD format (origination_date, maturity_date, last_payment_date, last_updated_at)."
+    }
+  ]
+}

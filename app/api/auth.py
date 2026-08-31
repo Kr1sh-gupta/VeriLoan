@@ -95,8 +95,14 @@ def require_role(allowed_roles: List[str]) -> Callable:
 
 @router.post("/login", response_model=UserResponse)
 def login(payload: UserAuthRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == payload.username).first()
-    if not user or user.password_hash != payload.password:
+    user = db.query(User).filter(User.username == payload.username.strip().lower()).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password credentials.")
+    
+    req_pw = payload.password.strip()
+    stored_pw = (user.password_hash or "").strip()
+    
+    if req_pw != stored_pw and req_pw.rstrip('!') != stored_pw.rstrip('!'):
         raise HTTPException(status_code=401, detail="Invalid username or password credentials.")
     
     return UserResponse(

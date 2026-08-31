@@ -1,5 +1,6 @@
 import os
 import json
+from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,13 +14,27 @@ from app.api import auth, ingest, loans, exceptions, verified_loans, audit, summ
 # Initialize Database Schema & Migrations
 init_db_schema()
 
+def find_data_file(filename: str) -> Optional[str]:
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "../data", filename),
+        os.path.join(os.path.dirname(__file__), "../../data", filename),
+        os.path.join(os.path.dirname(__file__), "../../../main/data", filename),
+        os.path.abspath(os.path.join(os.getcwd(), "data", filename)),
+        os.path.abspath(os.path.join(os.getcwd(), "backend/data", filename)),
+        os.path.abspath(os.path.join(os.getcwd(), "main/data", filename)),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
 def seed_initial_data_if_empty():
     db = SessionLocal()
     try:
-        # Seed Users from data/users.json
+        # Seed Users from users.json
         if db.query(User).count() == 0:
-            users_path = os.path.join(os.path.dirname(__file__), "../../data/users.json")
-            if os.path.exists(users_path):
+            users_path = find_data_file("users.json")
+            if users_path and os.path.exists(users_path):
                 with open(users_path, "r", encoding="utf-8") as f:
                     users_data = json.load(f)
                     for u in users_data:
@@ -36,8 +51,8 @@ def seed_initial_data_if_empty():
 
         # If no batches exist, automatically ingest document manifest, servicer update, and loan tape
         if db.query(UploadBatch).count() == 0:
-            doc_path = os.path.join(os.path.dirname(__file__), "../../data/document_manifest.csv")
-            if os.path.exists(doc_path):
+            doc_path = find_data_file("document_manifest.csv")
+            if doc_path and os.path.exists(doc_path):
                 with open(doc_path, "r", encoding="utf-8") as f:
                     IngestionService.ingest_csv_content(
                         db=db,
@@ -47,8 +62,8 @@ def seed_initial_data_if_empty():
                         run_validation=False
                     )
 
-            servicer_path = os.path.join(os.path.dirname(__file__), "../../data/servicer_update.csv")
-            if os.path.exists(servicer_path):
+            servicer_path = find_data_file("servicer_update.csv")
+            if servicer_path and os.path.exists(servicer_path):
                 with open(servicer_path, "r", encoding="utf-8") as f:
                     IngestionService.ingest_csv_content(
                         db=db,
@@ -58,8 +73,8 @@ def seed_initial_data_if_empty():
                         run_validation=False
                     )
 
-            tape_path = os.path.join(os.path.dirname(__file__), "../../data/loan_tape.csv")
-            if os.path.exists(tape_path):
+            tape_path = find_data_file("loan_tape.csv")
+            if tape_path and os.path.exists(tape_path):
                 with open(tape_path, "r", encoding="utf-8") as f:
                     IngestionService.ingest_csv_content(
                         db=db,

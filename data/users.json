@@ -1,0 +1,29 @@
+[
+  {
+    "id": "usr-001",
+    "username": "operator",
+    "password": "operator123!",
+    "full_name": "Elena Rostova",
+    "role": "OPERATOR",
+    "email": "operator@intain-copilot.internal",
+    "avatar_badge": "OP"
+  },
+  {
+    "id": "usr-002",
+    "username": "reviewer",
+    "password": "reviewer123!",
+    "full_name": "Marcus Vance",
+    "role": "REVIEWER",
+    "email": "reviewer@intain-copilot.internal",
+    "avatar_badge": "RV"
+  },
+  {
+    "id": "usr-003",
+    "username": "consumer",
+    "password": "consumer123!",
+    "full_name": "Sarah Chen",
+    "role": "CONSUMER",
+    "email": "consumer@intain-copilot.internal",
+    "avatar_badge": "DC"
+  }
+]

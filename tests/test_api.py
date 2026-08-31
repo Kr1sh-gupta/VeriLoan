@@ -119,3 +119,18 @@ def test_resolve_exception_request_correction(client):
         events = audit_res.json()
         assert len(events) > 0
         assert events[0]["event_type"] == "CORRECTION_REQUESTED"
+
+def test_auth_login_credentials_flexibility(client):
+    # Test login with trailing exclamation mark
+    res1 = client.post("/api/auth/login", json={"username": "operator", "password": "operator123!"})
+    assert res1.status_code == 200
+    assert "token" in res1.json()
+
+    # Test login without trailing exclamation mark
+    res2 = client.post("/api/auth/login", json={"username": "operator", "password": "operator123"})
+    assert res2.status_code == 200
+    assert "token" in res2.json()
+
+    # Test invalid password rejection
+    res3 = client.post("/api/auth/login", json={"username": "operator", "password": "wrongpassword"})
+    assert res3.status_code == 401

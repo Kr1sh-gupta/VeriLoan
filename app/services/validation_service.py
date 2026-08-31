@@ -32,10 +32,11 @@ def load_rules_config() -> Dict[str, Dict[str, Any]]:
     Searches multiple potential workspace paths with robust fallback.
     """
     candidate_paths = [
-        os.path.join(os.path.dirname(__file__), "../../../main/data/validation_rules.json"),
-        os.path.join(os.path.dirname(__file__), "../../../data/validation_rules.json"),
         os.path.join(os.path.dirname(__file__), "../../data/validation_rules.json"),
         os.path.abspath(os.path.join(os.getcwd(), "data/validation_rules.json")),
+        os.path.abspath(os.path.join(os.getcwd(), "backend/data/validation_rules.json")),
+        os.path.join(os.path.dirname(__file__), "../../../main/data/validation_rules.json"),
+        os.path.join(os.path.dirname(__file__), "../../../data/validation_rules.json"),
         os.path.abspath(os.path.join(os.getcwd(), "main/data/validation_rules.json")),
         os.path.abspath(os.path.join(os.getcwd(), "../main/data/validation_rules.json")),
     ]
@@ -157,8 +158,9 @@ class ValidationService:
                     status="OPEN"
                 ))
 
-            # VAL-004: Invalid Date Formats
-            r4 = rules_cfg.get("VAL-004", {})
+            # VAL-004 / VAL-106: Invalid Date Formats (ISO-8601 extended validation)
+            r4 = rules_cfg.get("VAL-106") or rules_cfg.get("VAL-004", {})
+            rule_code_date = "VAL-106" if "VAL-106" in rules_cfg else "VAL-004"
             orig_dt = parse_iso_date(loan.origination_date)
             mat_dt = parse_iso_date(loan.maturity_date)
             lpd_dt = parse_iso_date(loan.last_payment_date) if loan.last_payment_date else None
@@ -175,7 +177,7 @@ class ValidationService:
                         id=f"exc-{uuid.uuid4().hex[:12]}",
                         loan_id_ref=loan.id,
                         loan_id_code=lid,
-                        rule_code="VAL-004",
+                        rule_code=rule_code_date,
                         category=r4.get("category", "FORMAT"),
                         severity=r4.get("severity", "HIGH"),
                         field_name="origination_date",
@@ -189,7 +191,7 @@ class ValidationService:
                         id=f"exc-{uuid.uuid4().hex[:12]}",
                         loan_id_ref=loan.id,
                         loan_id_code=lid,
-                        rule_code="VAL-004",
+                        rule_code=rule_code_date,
                         category=r4.get("category", "FORMAT"),
                         severity=r4.get("severity", "HIGH"),
                         field_name="maturity_date",
@@ -203,7 +205,7 @@ class ValidationService:
                         id=f"exc-{uuid.uuid4().hex[:12]}",
                         loan_id_ref=loan.id,
                         loan_id_code=lid,
-                        rule_code="VAL-004",
+                        rule_code=rule_code_date,
                         category=r4.get("category", "FORMAT"),
                         severity=r4.get("severity", "HIGH"),
                         field_name="last_payment_date",
@@ -217,7 +219,7 @@ class ValidationService:
                         id=f"exc-{uuid.uuid4().hex[:12]}",
                         loan_id_ref=loan.id,
                         loan_id_code=lid,
-                        rule_code="VAL-004",
+                        rule_code=rule_code_date,
                         category=r4.get("category", "FORMAT"),
                         severity=r4.get("severity", "HIGH"),
                         field_name="last_updated_at",
@@ -364,9 +366,11 @@ class ValidationService:
                 su = servicer_updates[lid]
                 diffs = []
                 if su.current_balance is not None and abs(su.current_balance - curr_b) > bal_tol:
-                    diffs.append(f"Balance: Tape=${curr_b:,.2f} vs Servicer=${su.current_balance:,.2f}")
-                if su.payment_status and su.payment_status != loan.payment_status:
-                    diffs.append(f"Status: Tape='{loan.payment_status}' vs Servicer='{su.payment_status}'")
+                    diffs.append(f"Balance (Tape: ${curr_b:,.2f} vs Servicer: ${su.current_balance:,.2f})")
+                if su.payment_status and str(su.payment_status).strip().upper() != str(loan.payment_status).strip().upper():
+                    diffs.append(f"Status (Tape: '{loan.payment_status}' vs Servicer: '{su.payment_status}')")
+                if su.days_past_due is not None and loan.days_past_due is not None and int(su.days_past_due) != int(loan.days_past_due):
+                    diffs.append(f"DPD (Tape: {loan.days_past_due} vs Servicer: {su.days_past_due})")
                 
                 if diffs:
                     loan_exceptions.append(ValidationException(
@@ -376,10 +380,10 @@ class ValidationService:
                         rule_code="VAL-011",
                         category=r11.get("category", "RECONCILIATION"),
                         severity=r11.get("severity", "HIGH"),
-                        field_name="current_balance, payment_status",
-                        error_message=f"Cross-source servicer conflict detected: {'; '.join(diffs)}.",
-                        actual_value=f"Tape: Balance=${curr_b}, Status={loan.payment_status}",
-                        expected_condition=f"Servicer Update: Balance=${su.current_balance}, Status={su.payment_status}",
+                        field_name="current_balance, payment_status, days_past_due",
+                        error_message=f"Cross-source servicer reconciliation conflict: {'; '.join(diffs)}.",
+                        actual_value=f"Tape: Balance=${curr_b:,.2f}, Status={loan.payment_status}, DPD={loan.days_past_due}",
+                        expected_condition=f"Servicer Update: Balance=${(su.current_balance or 0.0):,.2f}, Status={su.payment_status}, DPD={su.days_past_due}",
                         status="OPEN"
                     ))
 
