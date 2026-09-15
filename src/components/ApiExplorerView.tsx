@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Code2, Play, Copy, Check, ExternalLink, RefreshCw, Zap, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
+import { getBackendRootUrl } from '../lib/api';
 
 interface ApiEndpointItem {
   path: string;
@@ -77,9 +78,9 @@ export const ApiExplorerView: React.FC = () => {
           setResponseJson({ error: 'Request body contains invalid JSON formatting.' });
           return;
         }
-        res = await axios.post(`http://localhost:8000${path}`, parsedBody, { headers });
+        res = await axios.post(`${getBackendRootUrl()}${path}`, parsedBody, { headers });
       } else {
-        res = await axios.get(`http://localhost:8000${path}`, { headers });
+        res = await axios.get(`${getBackendRootUrl()}${path}`, { headers });
       }
 
       const duration = Math.round(performance.now() - startTime);
@@ -113,7 +114,7 @@ export const ApiExplorerView: React.FC = () => {
         setResponseStatus({ code: 0, text: 'OFFLINE' });
         setContentType('application/json');
         setResponseJson({
-          error: 'FastAPI backend server appears to be offline at http://localhost:8000.',
+          error: `FastAPI backend server appears to be offline at ${getBackendRootUrl()}.`,
           guidance: 'Start the backend server to enable live API requests.'
         });
       }
@@ -150,7 +151,7 @@ export const ApiExplorerView: React.FC = () => {
           </div>
 
           <a
-            href="http://localhost:8000/docs"
+            href={`${getBackendRootUrl()}/docs`}
             target="_blank"
             rel="noreferrer"
             className="w-full sm:w-auto flex items-center justify-center space-x-2 px-5 py-2.5 rounded-lg bg-white text-[#060913] hover:bg-slate-100 font-bold text-xs tracking-wider uppercase transition-all shadow-md shrink-0"
@@ -303,7 +304,7 @@ export const ApiExplorerView: React.FC = () => {
             </div>
 
             <div className="text-[10px] font-mono text-slate-500 pt-2 border-t border-white/[0.06] flex justify-between">
-              <span>FastAPI Backend: <code>http://localhost:8000</code></span>
+              <span>FastAPI Backend: <code>{getBackendRootUrl()}</code></span>
               <span className="flex items-center gap-1 text-slate-400">
                 <ShieldCheck className="w-3 h-3 text-emerald-400" />
                 <span>CORS &amp; OpenAuth Enabled</span>

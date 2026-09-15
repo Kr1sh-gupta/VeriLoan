@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import type { SystemConnector, ApiKeyItem, ValidationRuleItem, User, AuditEvent } from '../types';
-import { fetchConnectors, fetchApiKeys, fetchValidationRules, fetchUsers, fetchAuditTrail } from '../lib/api';
+import { fetchConnectors, fetchApiKeys, fetchValidationRules, fetchUsers, fetchAuditTrail, getBackendRootUrl } from '../lib/api';
 
 interface AdminConsoleProps {
   initialTab?: 'OVERVIEW' | 'CONNECTORS' | 'RULES' | 'USERS' | 'PLAYGROUND' | 'AUDIT';
@@ -96,7 +96,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ initialTab = 'OVERVI
     setSelectedEndpoint(path);
     try {
       setPlaygroundLoading(true);
-      const res = await axios.get(`http://localhost:8000${path}`);
+      const res = await axios.get(`${getBackendRootUrl()}${path}`);
       setPlaygroundResponse(res.data);
     } catch (err: any) {
       setPlaygroundResponse({
@@ -766,7 +766,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ initialTab = 'OVERVI
                 />
               </div>
               <a
-                href="http://localhost:8000/api/audit/export/json"
+                href={`${getBackendRootUrl()}/api/audit/export/json`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0b1c30] hover:bg-slate-800 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 shadow-sm shrink-0"

@@ -42,9 +42,11 @@ const getNormalizedApiBase = (): string => {
     ? envBase.trim()
     : 'http://localhost:8000/api';
 
-  // Ensure protocol is present
+  // Ensure protocol is present (use http for localhost/127.0.0.1, https for remote domains)
   if (!base.startsWith('http://') && !base.startsWith('https://')) {
-    base = `https://${base}`;
+    base = (base.startsWith('localhost') || base.startsWith('127.0.0.1'))
+      ? `http://${base}`
+      : `https://${base}`;
   }
 
   // Remove trailing slashes
@@ -57,7 +59,10 @@ const getNormalizedApiBase = (): string => {
   return base;
 };
 
-const API_BASE = getNormalizedApiBase();
+export const API_BASE = getNormalizedApiBase();
+
+export const getApiBase = (): string => API_BASE;
+export const getBackendRootUrl = (): string => API_BASE.replace(/\/api\/?$/, '');
 
 export const exportCsvUrl = () => `${API_BASE}/verified-loans/export/csv`;
 
@@ -191,7 +196,7 @@ export const formatApiError = (err: any): Error => {
     return new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
   }
   if (err?.code === 'ERR_NETWORK' || !err?.response) {
-    return new Error('Database and Backend API server are inaccessible at http://localhost:8000. Please ensure the server is running.');
+    return new Error(`Database and Backend API server are inaccessible at ${getBackendRootUrl()}. Please ensure the server is running.`);
   }
   return new Error(err?.message || 'An unexpected API communication error occurred.');
 };
@@ -206,6 +211,19 @@ export const fetchSummary = async (): Promise<SystemSummary> => {
       return DEMO_SUMMARY;
     }
     console.error('[API Error: fetchSummary]', err);
+    throw formatApiError(err);
+  }
+};
+
+export const resetDatabase = async (mode: 'EMPTY' | 'BASELINE' = 'EMPTY'): Promise<{ status: string; mode: string; message: string; total_loans: number }> => {
+  try {
+    const { data } = await api.post('/summary/reset', null, { params: { mode } });
+    return data;
+  } catch (err: any) {
+    if (isDemoBypassActive()) {
+      return { status: 'SUCCESS', mode, message: `Database reset to ${mode} (Demo Bypass).`, total_loans: mode === 'EMPTY' ? 0 : 1200 };
+    }
+    console.error('[API Error: resetDatabase]', err);
     throw formatApiError(err);
   }
 };

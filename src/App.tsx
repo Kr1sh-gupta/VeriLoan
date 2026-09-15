@@ -14,7 +14,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { NotificationCenter } from './components/NotificationCenter';
 import { Footer } from './components/Footer';
 import type { SystemSummary, UserRole, User, NotificationItem } from './types';
-import { fetchSummary, STATIC_USERS, INITIAL_NOTIFICATIONS, isDemoBypassActive, setDemoBypassActive } from './lib/api';
+import { fetchSummary, STATIC_USERS, INITIAL_NOTIFICATIONS, isDemoBypassActive, setDemoBypassActive, getBackendRootUrl } from './lib/api';
 
 const AUTH_STORAGE_KEY = 'veriloan_auth_user';
 const TAB_STORAGE_KEY = 'veriloan_current_tab';
@@ -263,7 +263,7 @@ export function App() {
                 Database &amp; Engine Inaccessible
               </span>
               <span className="hidden sm:inline text-rose-300/80 ml-2">
-                {backendError ? `(${backendError})` : '(API at http://localhost:8000 unreachable)'}
+                {backendError ? `(${backendError})` : `(API at ${getBackendRootUrl()} unreachable)`}
               </span>
             </div>
           </div>

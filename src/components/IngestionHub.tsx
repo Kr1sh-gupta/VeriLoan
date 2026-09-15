@@ -16,10 +16,11 @@ import {
   ShieldCheck, 
   Zap,
   Database,
-  CheckCheck
+  CheckCheck,
+  RotateCcw
 } from 'lucide-react';
 import type { IngestionPipelineItem, SchemaFieldMapping, OcrExtractedField } from '../types';
-import { uploadCsvFile } from '../lib/api';
+import { uploadCsvFile, resetDatabase } from '../lib/api';
 import { PRELOADED_DATASETS, type PreloadedTapeMeta } from '../sample/sampleTapes';
 
 interface IngestionHubProps {
@@ -38,6 +39,39 @@ export const IngestionHub: React.FC<IngestionHubProps> = ({
   // Tab for CSV Ingestion Modal (Preloaded Sample vs Custom Upload)
   const [csvIntakeTab, setCsvIntakeTab] = useState<'PRELOADED' | 'CUSTOM_FILE'>('PRELOADED');
   const [selectedPreloaded, setSelectedPreloaded] = useState<PreloadedTapeMeta>(PRELOADED_DATASETS[0]);
+
+  // Demo Reset State & Handlers
+  const [isResetting, setIsResetting] = useState<boolean>(false);
+  const [resetFeedback, setResetFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const handleResetDemo = async (mode: 'EMPTY' | 'BASELINE') => {
+    const confirmPrompt = mode === 'EMPTY'
+      ? 'Reset to EMPTY showcase state? This clears all loans, batches, and exceptions so you can demonstrate the live ingestion stream from 0 records.'
+      : 'Restore the standard baseline demo dataset (1,200 loans, 89 exceptions, 1,114 verified records)?';
+
+    if (!window.confirm(confirmPrompt)) return;
+
+    setIsResetting(true);
+    setResetFeedback(null);
+    try {
+      const res = await resetDatabase(mode);
+      setResetFeedback({
+        message: mode === 'EMPTY'
+          ? 'Database wiped to 0 loans. Ingestion Command Center is ready for live demonstration!'
+          : `Restored baseline dataset (${res.total_loans || 1200} loans, clean verified records).`,
+        type: 'success'
+      });
+      onRefreshSummary();
+      setTimeout(() => setResetFeedback(null), 6000);
+    } catch (err: any) {
+      setResetFeedback({
+        message: 'Reset failed: ' + (err.message || 'Server error'),
+        type: 'error'
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   // Ingestion Pipeline Ticker State
   const [pipelineItems] = useState<IngestionPipelineItem[]>([
@@ -386,28 +420,76 @@ LN-10002,BOR-20002,Auto_Loan,2023-01-04,2037-10-17,504919.11,383370.18,4.018,180
           <div 
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleFileDrop}
-            className="lg:col-span-2 lg:row-span-2 p-7 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 transition-all shadow-sm flex flex-col justify-between group relative overflow-hidden"
+            className="lg:col-span-2 lg:row-span-2 p-4 sm:p-6 lg:p-7 rounded-2xl bg-white border border-slate-200 hover:border-blue-500 transition-all shadow-sm flex flex-col justify-between group relative overflow-hidden"
           >
-            <div className="flex items-start justify-between mb-5">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                  <UploadCloud className="w-6 h-6" />
+            {/* Header: Title & Subtitle */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start sm:items-center space-x-3 sm:space-x-3.5">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs shrink-0 mt-0.5 sm:mt-0">
+                  <UploadCloud className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold text-slate-900">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <h3 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight leading-snug">
                       Bulk Loan Tape &amp; Portfolio Ingestion
                     </h3>
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase font-bold">
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase font-bold shrink-0">
                       Primary Channel
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 mt-0.5 font-sans">
                     1-Click Pre-loaded Financial Datasets or Custom CSV/XLSX Uploads (Up to 500MB)
                   </p>
                 </div>
               </div>
             </div>
+
+            {/* Showcase Sandbox Toolbar Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2.5 sm:px-3.5 rounded-xl bg-slate-50 border border-slate-200/90 mb-4 shadow-2xs">
+              <div className="flex items-center gap-2 text-xs font-mono text-slate-600">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                <span className="font-bold text-slate-700">Demo Showcase Controls:</span>
+                <span className="text-slate-500 text-[11px] hidden md:inline">Re-run ingestion showcase or reset baseline</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleResetDemo('EMPTY')}
+                  disabled={isResetting}
+                  title="Wipe database to 0 loans so you can showcase live tape ingestion from scratch"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 text-[11px] font-mono font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer disabled:opacity-50 active:scale-98 w-full sm:w-auto text-center"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 text-amber-600 shrink-0 ${isResetting ? 'animate-spin' : ''}`} />
+                  <span className="truncate">Reset (0 Loans)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleResetDemo('BASELINE')}
+                  disabled={isResetting}
+                  title="Restore baseline 1,200 loan dataset"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[11px] font-mono font-semibold flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer disabled:opacity-50 active:scale-98 w-full sm:w-auto text-center"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 shrink-0 ${isResetting ? 'animate-spin' : ''}`} />
+                  <span className="truncate">Restore Baseline</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Reset Feedback Notification */}
+            {resetFeedback && (
+              <div className={`mb-4 px-4 py-2.5 rounded-xl border text-xs font-mono flex items-center gap-2 animate-fade-in ${
+                resetFeedback.type === 'success'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                  : 'bg-red-50 border-red-300 text-red-900'
+              }`}>
+                {resetFeedback.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                )}
+                <span>{resetFeedback.message}</span>
+              </div>
+            )}
 
             {/* Distinct 3 Preloaded Dataset Cards (Fannie Standard, Multi-Source Delta, Document Integrity) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
