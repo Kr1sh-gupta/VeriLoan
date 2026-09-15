@@ -25,5 +25,14 @@
     "role": "CONSUMER",
     "email": "consumer@intain-copilot.internal",
     "avatar_badge": "DC"
+  },
+  {
+    "id": "usr-004",
+    "username": "admin",
+    "password": "admin123!",
+    "full_name": "Alex Rivera",
+    "role": "ADMIN",
+    "email": "admin@intain-copilot.internal",
+    "avatar_badge": "AD"
   }
 ]
