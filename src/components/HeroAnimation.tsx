@@ -57,7 +57,7 @@ export const HeroAnimation: React.FC = () => {
               </div>
               <span className="font-semibold text-sm text-slate-200">1. Messy Ingestion</span>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/20 text-red-300 font-semibold">14 Anomaly Types</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/20 text-red-300 font-semibold">15 Anomaly Types</span>
           </div>
 
           {/* Animated Raw Record Mock */}
@@ -80,7 +80,7 @@ export const HeroAnimation: React.FC = () => {
           </div>
         </div>
 
-        {/* Stage 2: AI Copilot & 14-Rule Engine */}
+        {/* Stage 2: AI Copilot & 15-Rule Engine */}
         <div className={`p-5 rounded-2xl transition-all duration-500 ${
           activeStep === 1 || activeStep === 2 ? 'bg-cyan-950/40 border-2 border-cyan-400 shadow-lg shadow-cyan-500/20 scale-102' : 'bg-slate-900/60 border border-slate-800'
         }`}>

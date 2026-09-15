@@ -1,18 +1,18 @@
 import React from 'react';
-import { 
-  Layers, 
-  FileSpreadsheet, 
-  AlertTriangle, 
-  ShieldCheck, 
-  Download, 
-  Activity, 
-  Sliders, 
-  Code2, 
-  ShieldAlert, 
-  UserCheck, 
-  LogOut, 
-  Hexagon, 
-  X 
+import {
+  Layers,
+  FileSpreadsheet,
+  AlertTriangle,
+  ShieldCheck,
+  Download,
+  Activity,
+  Sliders,
+  Code2,
+  ShieldAlert,
+  UserCheck,
+  LogOut,
+  Hexagon,
+  X
 } from 'lucide-react';
 import type { UserRole, User } from '../types';
 
@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Mobile Backdrop Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-fade-in"
           onClick={onToggle}
           aria-hidden="true"
@@ -86,20 +86,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Aside Drawer */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 h-full bg-[#060913] text-white z-50 flex flex-col border-r border-slate-800/80 shadow-2xl transition-all duration-300 ${
-          isOpen ? 'translate-x-0 w-64 max-w-[85vw]' : '-translate-x-full md:translate-x-0 md:w-16'
-        }`}
+        className={`fixed left-0 top-0 bottom-0 h-full bg-[#060913] text-white z-50 flex flex-col border-r border-slate-800/80 shadow-2xl transition-all duration-300 ${isOpen ? 'translate-x-0 w-64 max-w-[85vw]' : '-translate-x-full md:translate-x-0 md:w-16'
+          }`}
       >
         {/* Brand Header at top of sidebar */}
         <div className="h-16 sm:h-20 flex items-center justify-between px-4 border-b border-slate-800/80">
-          <div 
+          <div
             onClick={() => {
               setCurrentTab('landing');
               if (window.innerWidth < 768) onToggle();
             }}
-            className={`flex items-center space-x-3 cursor-pointer group overflow-hidden ${
-              !isOpen ? 'w-full justify-center space-x-0' : ''
-            }`}
+            className={`flex items-center space-x-3 cursor-pointer group overflow-hidden ${!isOpen ? 'w-full justify-center space-x-0' : ''
+              }`}
             title="VeriLoan Home"
           >
             <div className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-700 bg-slate-900/60 text-slate-200 group-hover:border-slate-500 group-hover:text-white transition-colors shrink-0">
@@ -169,19 +167,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   setCurrentTab(targetTab);
                   if (window.innerWidth < 768) onToggle();
                 }}
-                className={`w-full flex items-center transition-all ${
-                  isOpen 
-                    ? `space-x-3 px-3 py-2.5 rounded-xl text-xs ${
-                        isActive
-                          ? 'bg-slate-800 text-white font-semibold border border-slate-700/80 shadow-sm'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-                      }`
-                    : `justify-center p-2.5 rounded-xl ${
-                        isActive
-                          ? 'bg-slate-800 text-white border border-slate-700/80 shadow-sm'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-                      }`
-                }`}
+                className={`w-full flex items-center transition-all ${isOpen
+                    ? `space-x-3 px-3 py-2.5 rounded-xl text-xs ${isActive
+                      ? 'bg-slate-800 text-white font-semibold border border-slate-700/80 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                    }`
+                    : `justify-center p-2.5 rounded-xl ${isActive
+                      ? 'bg-slate-800 text-white border border-slate-700/80 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                    }`
+                  }`}
                 title={!isOpen ? item.label : undefined}
               >
                 <Icon className="w-4 h-4 shrink-0" />
@@ -268,7 +263,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             <div className="flex flex-col items-center gap-2">
               {isDemoBypass && (
-                <div 
+                <div
                   className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 cursor-pointer"
                   title="Offline Demo Mode Active (Preloaded Data)"
                   onClick={onToggleBypass}

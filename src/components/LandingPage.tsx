@@ -49,7 +49,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
               <div className="pt-4 text-xs font-mono text-slate-400 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                <span>14-Rule Engine • SHA-256 Protocol</span>
+                <span>15-Rule Engine • SHA-256 Protocol</span>
               </div>
             </div>
 
@@ -126,7 +126,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <div>
                       <h4 className="text-xs font-bold text-white tracking-wide">Smart Financial Insights</h4>
                       <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
-                        14-rule anomaly detection &amp; AI explanations.
+                        15-rule anomaly detection &amp; AI explanations.
                       </p>
                     </div>
                   </div>
