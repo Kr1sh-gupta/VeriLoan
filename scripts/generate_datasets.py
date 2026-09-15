@@ -386,7 +386,7 @@ validation_rules = {
 with open("data/validation_rules.json", "w", encoding="utf-8") as f:
     json.dump(validation_rules, f, indent=2)
 
-print("Generated data/validation_rules.json with 14 configured rules.")
+print("Generated data/validation_rules.json with 15 configured rules.")
 
 users = [
     {

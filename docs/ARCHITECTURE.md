@@ -7,7 +7,7 @@
 
 Financial platforms depend on loan-level data for diligence, securitization, risk analytics, and servicing. However, loan tapes rarely arrive clean—they often contain missing identifiers, date format corruptions, negative balances, balance-to-principal violations, conflicting multi-source updates, and stale records.
 
-The **Loan Data Verification Copilot** provides an end-to-end full-stack console that ingests multi-source loan tapes, runs a high-performance 14-rule validation engine, assists reviewers via an explainable AI Copilot with transparent human-in-the-loop controls, and seals records into canonical JSON with SHA-256 cryptographic hashes and an immutable audit trail.
+The **Loan Data Verification Copilot** provides an end-to-end full-stack console that ingests multi-source loan tapes, runs a high-performance 15-rule validation engine, assists reviewers via an explainable AI Copilot with transparent human-in-the-loop controls, and seals records into canonical JSON with SHA-256 cryptographic hashes and an immutable audit trail.
 
 ---
 
@@ -28,7 +28,7 @@ The **Loan Data Verification Copilot** provides an end-to-end full-stack console
 |                            FastAPI Backend Service                                |
 |  +--------------------+  +----------------------+  +---------------------------+  |
 |  | Ingestion Engine   |  | Validation Engine    |  | AI Review Assistant       |  |
-|  | - CSV Streamer     |  | - 14+ Concrete Rules |  | - Gemini / LLM Client     |  |
+|  | - CSV Streamer     |  | - 15 Concrete Rules  |  | - Gemini / LLM Client     |  |
 |  | - Lineage Mapper   |  | - Severity Scorer    |  | - Deterministic Fallback  |  |
 |  +--------------------+  +----------------------+  +---------------------------+  |
 |  +-----------------------------------------------------------------------------+  |
@@ -57,7 +57,7 @@ The **Loan Data Verification Copilot** provides an end-to-end full-stack console
 - Normalizes numeric strings (handling `$`, `,`), ISO dates, and loan status enumerations.
 
 ### B. Validation Engine (`ValidationService`)
-Executes 14 distinct rule checks across 8 risk categories:
+Executes 15 distinct rule checks across 9 risk categories:
 1. `VAL-001` (Mandatory): Missing loan ID detection.
 2. `VAL-002` (Integrity): Duplicate loan IDs across portfolio.
 3. `VAL-003` (Integrity): Duplicate borrower + original principal + origination date.
@@ -72,6 +72,7 @@ Executes 14 distinct rule checks across 8 risk categories:
 12. `VAL-012` (Freshness): Stale loan records (>180 days since last update).
 13. `VAL-013` (Format): Invalid US state postal codes.
 14. `VAL-014` (Status): Loans marked `PAID_OFF` or `CLOSED` carrying positive balances.
+15. `VAL-015` (Concentration): Repeated borrower IDs appearing in multiple distinct loan obligations.
 
 ### C. AI Review Assistant & Governance (`AIService`)
 - **Dual-Mode AI Provider**: Integrates with Google Gemini API with seamless fallback to deterministic financial heuristic reasoning for 100% offline reliability.

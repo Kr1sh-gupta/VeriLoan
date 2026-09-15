@@ -39,7 +39,7 @@
   - Drag-and-drop CSV ingestion zone supporting `loan_tape.csv`, `servicer_update.csv`, and `document_manifest.csv`.
   - Ingestion batch history table showing batch IDs, total rows (1,200), exceptions raised, and execution status.
   - Raw loan records table showing status badges (`FLAGGED`, `PENDING`, `VERIFIED`).
-  - Click **"Batch Seal Clean Loans"** to instantly verify all records that passed 14 validation rules without exceptions.
+  - Click **"Batch Seal Clean Loans"** to instantly verify all records that passed 15 validation rules without exceptions.
 
 ---
 
