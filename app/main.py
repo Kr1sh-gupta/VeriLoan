@@ -32,12 +32,13 @@ def seed_initial_data_if_empty():
     db = SessionLocal()
     try:
         # Seed Users from users.json
-        if db.query(User).count() == 0:
-            users_path = find_data_file("users.json")
-            if users_path and os.path.exists(users_path):
-                with open(users_path, "r", encoding="utf-8") as f:
-                    users_data = json.load(f)
-                    for u in users_data:
+        users_path = find_data_file("users.json")
+        if users_path and os.path.exists(users_path):
+            with open(users_path, "r", encoding="utf-8") as f:
+                users_data = json.load(f)
+                for u in users_data:
+                    existing = db.query(User).filter((User.id == u["id"]) | (User.username == u["username"])).first()
+                    if not existing:
                         db.add(User(
                             id=u["id"],
                             username=u["username"],
@@ -47,7 +48,7 @@ def seed_initial_data_if_empty():
                             email=u.get("email"),
                             avatar_badge=u.get("avatar_badge")
                         ))
-                    db.commit()
+                db.commit()
 
         # If no batches exist, automatically ingest document manifest, servicer update, and loan tape
         if db.query(UploadBatch).count() == 0:

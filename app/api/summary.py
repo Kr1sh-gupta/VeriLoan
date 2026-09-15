@@ -1,12 +1,14 @@
 import json
 import os
 import datetime
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Loan, ValidationException, VerifiedLoan, UploadBatch, User
+from app.models import Loan, ValidationException, VerifiedLoan, UploadBatch, User, ServicerUpdate, DocumentManifest, AuditEvent
 from app.schemas import SystemSummaryMetrics, IngestionSummaryResponse
 from app.services.audit_service import AuditService
+from app.services.ingestion_service import IngestionService
+from app.services.verification_service import VerificationService
 from app.api.auth import require_role
 
 router = APIRouter(prefix="/summary", tags=["Summary & Metrics"])
@@ -176,3 +178,105 @@ def update_validation_rule(
         metadata_json={"rule_code": rule_code, "updated_fields": rule_data}
     )
     return {"status": "SUCCESS", "message": f"Rule {rule_code} updated", "rule_code": rule_code}
+
+def _find_data_file(filename: str):
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "../data", filename),
+        os.path.join(os.path.dirname(__file__), "../../data", filename),
+        os.path.join(os.path.dirname(__file__), "../../../main/data", filename),
+        os.path.abspath(os.path.join(os.getcwd(), "data", filename)),
+        os.path.abspath(os.path.join(os.getcwd(), "backend/data", filename)),
+        os.path.abspath(os.path.join(os.getcwd(), "main/data", filename)),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
+@router.post("/reset")
+def reset_database(
+    mode: str = Query("EMPTY", description="EMPTY (clears all loans/batches for live showcase) or BASELINE (re-seeds default 1,200 loans)"),
+    current_user: User = Depends(require_role(["ADMIN", "OPERATOR", "REVIEWER"])),
+    db: Session = Depends(get_db)
+):
+    """
+    Resets the database for demonstration and testing purposes.
+    - EMPTY mode: Clears all loans, batches, exceptions, and verified records so the user can showcase live ingestion from 0.
+    - BASELINE mode: Restores the clean 1-batch standard demo state (1,200 loans, ~89 exceptions, 1,114 verified).
+    Users and validation rules are preserved across both modes.
+    """
+    mode_upper = mode.strip().upper()
+    if mode_upper not in ["EMPTY", "BASELINE"]:
+        mode_upper = "EMPTY"
+
+    # Strictly ordered deletion to respect foreign keys (PRAGMA foreign_keys=ON)
+    db.query(ValidationException).delete(synchronize_session=False)
+    db.query(VerifiedLoan).delete(synchronize_session=False)
+    db.query(Loan).delete(synchronize_session=False)
+    db.query(ServicerUpdate).delete(synchronize_session=False)
+    db.query(DocumentManifest).delete(synchronize_session=False)
+    db.query(UploadBatch).delete(synchronize_session=False)
+    db.query(AuditEvent).delete(synchronize_session=False)
+    db.commit()
+
+    if mode_upper == "BASELINE":
+        doc_path = _find_data_file("document_manifest.csv")
+        if doc_path and os.path.exists(doc_path):
+            with open(doc_path, "r", encoding="utf-8") as f:
+                IngestionService.ingest_csv_content(
+                    db=db,
+                    csv_text=f.read(),
+                    filename="document_manifest.csv",
+                    file_type="DOC_MANIFEST",
+                    run_validation=False
+                )
+
+        servicer_path = _find_data_file("servicer_update.csv")
+        if servicer_path and os.path.exists(servicer_path):
+            with open(servicer_path, "r", encoding="utf-8") as f:
+                IngestionService.ingest_csv_content(
+                    db=db,
+                    csv_text=f.read(),
+                    filename="servicer_update.csv",
+                    file_type="SERVICER_UPDATE",
+                    run_validation=False
+                )
+
+        tape_path = _find_data_file("loan_tape.csv")
+        if tape_path and os.path.exists(tape_path):
+            with open(tape_path, "r", encoding="utf-8") as f:
+                IngestionService.ingest_csv_content(
+                    db=db,
+                    csv_text=f.read(),
+                    filename="loan_tape.csv",
+                    file_type="LOAN_TAPE",
+                    run_validation=True
+                )
+
+        VerificationService.verify_clean_loans_batch(db=db)
+
+    # Log audit event for reset
+    AuditService.log_event(
+        db=db,
+        event_type="DATABASE_RESET",
+        actor_id=current_user.id,
+        actor_role=current_user.role,
+        summary=f"Database reset to {mode_upper} mode by {current_user.full_name} ({current_user.role}).",
+        metadata_json={"mode": mode_upper, "actor_id": current_user.id}
+    )
+
+    total_loans = db.query(Loan).count()
+    total_exceptions = db.query(ValidationException).count()
+    verified_loans = db.query(VerifiedLoan).count()
+    upload_batches = db.query(UploadBatch).count()
+
+    return {
+        "status": "SUCCESS",
+        "mode": mode_upper,
+        "message": f"Database successfully reset to {mode_upper} state.",
+        "total_loans": total_loans,
+        "total_exceptions": total_exceptions,
+        "verified_loans": verified_loans,
+        "upload_batches": upload_batches
+    }
+

@@ -134,3 +134,35 @@ def test_auth_login_credentials_flexibility(client):
     # Test invalid password rejection
     res3 = client.post("/api/auth/login", json={"username": "operator", "password": "wrongpassword"})
     assert res3.status_code == 401
+
+def test_reset_database_empty_and_baseline(client):
+    # Test reset to EMPTY mode
+    res_empty = client.post(
+        "/api/summary/reset?mode=EMPTY",
+        headers={"Authorization": "Bearer jwt-mock-token-usr-004-admin"}
+    )
+    assert res_empty.status_code == 200
+    data_empty = res_empty.json()
+    assert data_empty["status"] == "SUCCESS"
+    assert data_empty["total_loans"] == 0
+    assert data_empty["upload_batches"] == 0
+
+    # Verify summary reports 0 loans
+    summary_empty = client.get("/api/summary").json()
+    assert summary_empty["total_loans"] == 0
+
+    # Test reset to BASELINE mode
+    res_base = client.post(
+        "/api/summary/reset?mode=BASELINE",
+        headers={"Authorization": "Bearer jwt-mock-token-usr-004-admin"}
+    )
+    assert res_base.status_code == 200
+    data_base = res_base.json()
+    assert data_base["status"] == "SUCCESS"
+    assert data_base["total_loans"] == 1200
+    assert data_base["verified_loans"] > 1000
+
+    # Verify summary reports restored state
+    summary_base = client.get("/api/summary").json()
+    assert summary_base["total_loans"] == 1200
+
