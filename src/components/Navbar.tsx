@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   ArrowRight,
   Hexagon,
   Search,
@@ -78,9 +78,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-[#060913] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
-            
+
             {/* Left: Brand Logo */}
-            <div 
+            <div
               onClick={() => setCurrentTab('landing')}
               className="flex items-center space-x-2.5 sm:space-x-3 cursor-pointer group shrink-0"
             >
@@ -137,10 +137,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Render DASHBOARD HEADER
   return (
-    <header className={`fixed top-0 right-0 z-40 h-16 sm:h-20 bg-[#060913] text-white border-b border-slate-800/80 flex items-center justify-between px-3 sm:px-6 transition-all duration-300 left-0 ${
-      sidebarOpen ? 'md:left-64' : 'md:left-16'
-    }`}>
-      
+    <header className={`fixed top-0 right-0 z-40 h-16 sm:h-20 bg-[#060913] text-white border-b border-slate-800/80 flex items-center justify-between px-3 sm:px-6 transition-all duration-300 left-0 ${sidebarOpen ? 'md:left-64' : 'md:left-16'
+      }`}>
+
       {/* Left: Hamburger Toggle + Role Breadcrumb */}
       <div className="flex items-center space-x-2.5 sm:space-x-3">
         {onToggleSidebar && (
@@ -177,11 +176,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               setCurrentRole(mod.role);
               setCurrentTab(mod.id);
             }}
-            className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${
-              currentTab === mod.id
+            className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${currentTab === mod.id
                 ? 'bg-slate-800 text-white font-semibold border border-slate-700 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-            }`}
+              }`}
           >
             {mod.label}
           </button>
@@ -190,7 +188,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Right: Search, Notifications, Role Switcher, Profile */}
       <div className="flex items-center space-x-2 sm:space-x-3">
-        
+
         {/* Global Search trigger (Cmd+K) */}
         <button
           onClick={onOpenCommandPalette}
@@ -242,9 +240,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setRoleDropdownOpen(false);
                     setCurrentTab(r.defaultTab);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs hover:bg-slate-800 transition-colors ${
-                    currentRole === roleKey ? 'text-white font-semibold bg-slate-800/80' : 'text-slate-300'
-                  }`}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs hover:bg-slate-800 transition-colors ${currentRole === roleKey ? 'text-white font-semibold bg-slate-800/80' : 'text-slate-300'
+                    }`}
                 >
                   <div>
                     <div>{r.label}</div>

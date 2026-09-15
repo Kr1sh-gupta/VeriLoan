@@ -268,14 +268,14 @@ export function App() {
             </div>
           </div>
           <div className="flex items-center space-x-2 shrink-0">
-            <button 
-              onClick={loadSummary} 
+            <button
+              onClick={loadSummary}
               className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
             >
               Retry ⟳
             </button>
-            <button 
-              onClick={handleToggleBypass} 
+            <button
+              onClick={handleToggleBypass}
               className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 border border-amber-400/60 text-[11px] font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
               title="Activate offline demo mode with verified preloaded financial fixtures"
             >
@@ -319,7 +319,7 @@ export function App() {
       ) : (
         /* Dynamic Role-Based Dashboard with Left Sidebar */
         <div className="flex-1 min-h-screen flex relative bg-[#f8f9fc] w-full max-w-full min-w-0 overflow-x-hidden">
-          
+
           {/* Left Burger Menu / Sidebar Navigation */}
           <Sidebar
             isOpen={sidebarOpen}
@@ -347,11 +347,9 @@ export function App() {
           />
 
           {/* Main Dashboard Workspace (Responsive pl-0 on mobile, offset on desktop) */}
-          <main className={`flex-1 flex flex-col justify-between transition-all duration-300 pt-16 sm:pt-20 min-h-screen pl-0 w-full max-w-full min-w-0 overflow-x-hidden ${
-            currentTab === 'api' ? 'bg-[#060913] text-white' : 'bg-[#f8f9fc] text-slate-900'
-          } ${
-            sidebarOpen ? 'md:pl-64' : 'md:pl-16'
-          }`}>
+          <main className={`flex-1 flex flex-col justify-between transition-all duration-300 pt-16 sm:pt-20 min-h-screen pl-0 w-full max-w-full min-w-0 overflow-x-hidden ${currentTab === 'api' ? 'bg-[#060913] text-white' : 'bg-[#f8f9fc] text-slate-900'
+            } ${sidebarOpen ? 'md:pl-64' : 'md:pl-16'
+            }`}>
             <div className="flex-1 w-full max-w-full min-w-0">
               {(currentTab === 'ingest') && (
                 <IngestionHub
@@ -369,6 +367,7 @@ export function App() {
 
               {(currentTab === 'operator' || currentTab === 'operator_records') && (
                 <OperatorView
+                  summary={summary}
                   onRefreshSummary={loadSummary}
                   onNavigateToReviewer={() => {
                     handleSetCurrentRole('REVIEWER');
@@ -402,12 +401,12 @@ export function App() {
               )}
 
               {(currentTab === 'admin' || currentTab.startsWith('admin_')) && (
-                <AdminConsole 
+                <AdminConsole
                   initialTab={
                     currentTab === 'admin_connectors' ? 'CONNECTORS' :
-                    currentTab === 'admin_rules' ? 'RULES' :
-                    currentTab === 'admin_users' ? 'USERS' :
-                    currentTab === 'admin_audit' ? 'AUDIT' : 'OVERVIEW'
+                      currentTab === 'admin_rules' ? 'RULES' :
+                        currentTab === 'admin_users' ? 'USERS' :
+                          currentTab === 'admin_audit' ? 'AUDIT' : 'OVERVIEW'
                   }
                 />
               )}

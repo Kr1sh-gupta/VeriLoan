@@ -278,9 +278,9 @@ export const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
-export const fetchLoans = async (status?: string, search?: string, limit: number = 100): Promise<LoanRecord[]> => {
+export const fetchLoans = async (status?: string, search?: string, limit: number = 100, offset: number = 0): Promise<LoanRecord[]> => {
   try {
-    const params: any = { limit };
+    const params: any = { limit, offset };
     if (status) params.status = status;
     if (search) params.search = search;
     const { data } = await api.get<LoanRecord[]>('/loans', { params });
@@ -294,7 +294,7 @@ export const fetchLoans = async (status?: string, search?: string, limit: number
         const q = search.toLowerCase();
         filtered = filtered.filter(l => l.loan_id?.toLowerCase().includes(q) || l.borrower_id?.toLowerCase().includes(q));
       }
-      return filtered;
+      return filtered.slice(offset, offset + limit);
     }
     console.error('[API Error: fetchLoans]', err);
     throw formatApiError(err);

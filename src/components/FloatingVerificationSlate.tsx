@@ -125,7 +125,7 @@ export const FloatingVerificationSlate: React.FC = () => {
           </div>
 
           <div className="text-right">
-            <div className="text-[9px] uppercase tracking-wider text-slate-500">14-Rule Status</div>
+            <div className="text-[9px] uppercase tracking-wider text-slate-500">15-Rule Status</div>
             <div className="text-emerald-400 font-bold flex items-center gap-1 justify-end">
               <CheckCircle2 className="w-3 h-3" /> VERIFIED
             </div>

@@ -372,10 +372,11 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
     );
   });
 
-  // Severity counts
+  // Severity counts & unique flagged loans
   const critCount = displayedExceptions.filter((e) => e.severity === 'CRITICAL').length;
   const highCount = displayedExceptions.filter((e) => e.severity === 'HIGH').length;
   const medCount = displayedExceptions.filter((e) => e.severity === 'MEDIUM').length;
+  const uniqueLoansCount = new Set(displayedExceptions.map((e) => e.loan_id_code || e.loan_id_ref)).size;
 
   return (
     <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8">
@@ -423,7 +424,7 @@ export const ReviewerWorkbench: React.FC<ReviewerWorkbenchProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-sans mt-0.5 leading-relaxed">
-                {displayedExceptions.length} open exceptions detected across 250 loans. Critical maturity &amp; rate violations prioritized for immediate sign-off.
+                {displayedExceptions.length} open exceptions detected across {uniqueLoansCount} flagged loans. Critical maturity &amp; rate violations prioritized for immediate sign-off.
               </p>
             </div>
           </div>

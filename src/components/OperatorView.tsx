@@ -6,35 +6,56 @@ import {
   ArrowRight,
   Layers,
   Check,
-  FileText
+  FileText,
+  ChevronDown,
+  RefreshCw
 } from 'lucide-react';
-import type { LoanRecord } from '../types';
-import { fetchLoans, verifyAllCleanLoans } from '../lib/api';
+import type { LoanRecord, SystemSummary } from '../types';
+import { fetchLoans, fetchSummary, verifyAllCleanLoans } from '../lib/api';
 
 interface OperatorViewProps {
+  summary?: SystemSummary | null;
   onRefreshSummary: () => void;
   onNavigateToReviewer: () => void;
   onNavigateToIngest?: () => void;
 }
 
 export const OperatorView: React.FC<OperatorViewProps> = ({
+  summary,
   onRefreshSummary,
   onNavigateToReviewer,
   onNavigateToIngest,
 }) => {
+  const PAGE_SIZE = 100;
   const [loans, setLoans] = useState<LoanRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [localSummary, setLocalSummary] = useState<SystemSummary | null>(summary || null);
   const [error, setError] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  useEffect(() => {
+    if (summary) {
+      setLocalSummary(summary);
+    }
+  }, [summary]);
+
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const loanData = await fetchLoans(statusFilter === 'ALL' ? undefined : statusFilter, searchQuery || undefined);
+      const [loanData, summaryData] = await Promise.all([
+        fetchLoans(statusFilter === 'ALL' ? undefined : statusFilter, searchQuery || undefined, PAGE_SIZE, 0),
+        fetchSummary().catch(() => null)
+      ]);
       setLoans(loanData);
+      setHasMore(loanData.length === PAGE_SIZE);
+      if (summaryData) {
+        setLocalSummary(summaryData);
+      }
     } catch (err) {
       console.error('Failed to load operator data', err);
       setError('Could not load loan records. Please try again.');
@@ -46,6 +67,31 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   useEffect(() => {
     loadData();
   }, [statusFilter]);
+
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    try {
+      setLoadingMore(true);
+      const nextBatch = await fetchLoans(
+        statusFilter === 'ALL' ? undefined : statusFilter,
+        searchQuery || undefined,
+        PAGE_SIZE,
+        loans.length
+      );
+      if (nextBatch.length === 0) {
+        setHasMore(false);
+      } else {
+        setLoans((prev) => [...prev, ...nextBatch]);
+        if (nextBatch.length < PAGE_SIZE) {
+          setHasMore(false);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load more loans', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleVerifyCleanBatch = async () => {
     try {
@@ -61,9 +107,14 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
     }
   };
 
-  const cleanCount = loans.filter((l) => l.status === 'VERIFIED').length;
-  const flaggedCount = loans.filter((l) => l.status === 'FLAGGED').length;
-  const cleanPct = loans.length > 0 ? ((cleanCount / loans.length) * 100).toFixed(1) : '0.0';
+  // Global portfolio counts from system summary
+  const activeSummary = summary || localSummary;
+  const totalPortfolioRecords = activeSummary?.total_loans ?? (loans.length || 1200);
+  const cleanPortfolioRecords = activeSummary?.verified_loans ?? loans.filter((l) => l.status === 'VERIFIED').length;
+  const exceptionsPortfolioCount = activeSummary?.open_exceptions ?? (activeSummary?.total_exceptions ?? loans.filter((l) => l.status === 'FLAGGED').length);
+  const cleanPct = totalPortfolioRecords > 0 
+    ? ((cleanPortfolioRecords / totalPortfolioRecords) * 100).toFixed(1) 
+    : '0.0';
 
   return (
     <div className="w-full bg-[#f8f9fc] text-slate-900 min-h-[calc(100vh-80px)] py-4 sm:py-8">
@@ -121,29 +172,41 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           </div>
         )}
 
-        {/* Batch Lineage Summary Cards */}
+        {/* Batch Lineage Summary Cards (Global Portfolio Level) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Total Ingested Records</div>
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-900">{loading ? '—' : loans.length}</div>
-            <div className="text-[11px] font-sans text-slate-500">Currently loaded records</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-900">
+              {loading && !activeSummary ? '—' : totalPortfolioRecords.toLocaleString()}
+            </div>
+            <div className="text-[11px] font-sans text-slate-500">
+              Total portfolio records ({loans.length} in view)
+            </div>
           </div>
 
           <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Clean Loans (Passed)</div>
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-700">{loading ? '—' : cleanCount}</div>
-            <div className="text-[11px] font-sans text-emerald-700 font-bold">{loading ? '' : `${cleanPct}% First-Pass Yield`}</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-700">
+              {loading && !activeSummary ? '—' : cleanPortfolioRecords.toLocaleString()}
+            </div>
+            <div className="text-[11px] font-sans text-emerald-700 font-bold">
+              {loading && !activeSummary ? '' : `${cleanPct}% First-Pass Yield`}
+            </div>
           </div>
 
           <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Exceptions Routed</div>
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-600">{loading ? '—' : flaggedCount}</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-600">
+              {loading && !activeSummary ? '—' : exceptionsPortfolioCount.toLocaleString()}
+            </div>
             <div className="text-[11px] font-sans text-amber-700 font-bold">Awaiting Reviewer</div>
           </div>
 
           <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1">
             <div className="text-[10px] font-mono text-slate-500 uppercase">Sealed Verified Records</div>
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-blue-700">{loading ? '—' : cleanCount}</div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-blue-700">
+              {loading && !activeSummary ? '—' : cleanPortfolioRecords.toLocaleString()}
+            </div>
             <div className="text-[11px] font-sans text-blue-700 font-bold">SHA-256 Hash Immutability</div>
           </div>
         </div>
@@ -184,9 +247,9 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                     <span>All ingested records</span>
                   </td>
                   <td className="px-6 py-4">LOAN_TAPE</td>
-                  <td className="px-6 py-4 font-bold">{loading ? '—' : loans.length}</td>
-                  <td className="px-6 py-4 text-emerald-700 font-bold">{loading ? '—' : cleanCount}</td>
-                  <td className="px-6 py-4 text-amber-600 font-bold">{loading ? '—' : flaggedCount}</td>
+                  <td className="px-6 py-4 font-bold">{loading && !activeSummary ? '—' : totalPortfolioRecords.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-emerald-700 font-bold">{loading && !activeSummary ? '—' : cleanPortfolioRecords.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-amber-600 font-bold">{loading && !activeSummary ? '—' : exceptionsPortfolioCount.toLocaleString()}</td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
                       {loading ? 'LOADING' : 'PROCESSED'}
@@ -211,7 +274,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center space-x-2 text-xs font-mono text-slate-700 uppercase tracking-wider font-bold">
               <Layers className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>Normalized Ingested Records ({loans.length} Records)</span>
+              <span>Normalized Ingested Records ({loans.length} of {totalPortfolioRecords.toLocaleString()} Loaded)</span>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:space-x-3 space-x-0">
@@ -290,6 +353,51 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                 ))}
               </tbody>
             </table>
+
+            {/* Load More Pagination Bar */}
+            <div className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono">
+              <div className="text-slate-500 flex items-center gap-1.5 text-center sm:text-left">
+                <span>
+                  Showing <strong>{loans.length}</strong> of{' '}
+                  <strong>
+                    {statusFilter === 'ALL' && !searchQuery
+                      ? totalPortfolioRecords.toLocaleString()
+                      : (hasMore ? `${loans.length}+` : loans.length)}
+                  </strong> records
+                </span>
+                {statusFilter !== 'ALL' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-bold">
+                    {statusFilter}
+                  </span>
+                )}
+              </div>
+
+              {hasMore ? (
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore || loading}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 hover:border-blue-400 font-bold flex items-center justify-center gap-2 transition-all shadow-2xs hover:shadow-xs active:scale-98 cursor-pointer disabled:opacity-50"
+                >
+                  {loadingMore ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                      <span>Loading next 100 loans...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Load More Loans (+100)</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="text-slate-500 font-medium flex items-center gap-1.5 text-[11px]">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>All {loans.length} matching loan records loaded</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

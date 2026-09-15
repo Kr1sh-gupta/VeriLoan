@@ -334,7 +334,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ initialTab = 'OVERVI
                   <span className="text-xs font-mono text-slate-500">sec / explanation</span>
                 </div>
                 <div className="text-[11px] font-mono text-purple-700 font-bold flex items-center gap-1">
-                  <span>Deterministic Gemini 1.5 Pro</span>
+                  <span>Deterministic Gemini 2.5 Flash</span>
                 </div>
               </div>
 
@@ -691,7 +691,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ initialTab = 'OVERVI
                 { path: '/api/exceptions?severity=CRITICAL', method: 'GET', desc: 'Filter critical exceptions' },
                 { path: '/api/verified-loans?limit=5', method: 'GET', desc: 'Sealed verified records' },
                 { path: '/api/audit?limit=5', method: 'GET', desc: 'Global audit trail stream' },
-                { path: '/api/summary/rules', method: 'GET', desc: '14 validation rules' },
+                { path: '/api/summary/rules', method: 'GET', desc: '15 validation rules' },
               ].map((ep) => (
                 <div
                   key={ep.path}

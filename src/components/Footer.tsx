@@ -40,7 +40,7 @@ export const Footer: React.FC<FooterProps> = () => {
           </span>
 
           <span className="px-2.5 py-0.5 rounded-md bg-slate-900/90 text-slate-300 border border-slate-800 shadow-sm">
-            14 Rules Active
+            15 Rules Active
           </span>
 
           <span className="px-2.5 py-0.5 rounded-md bg-slate-900/90 text-slate-300 border border-slate-800 shadow-sm">

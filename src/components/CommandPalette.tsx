@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, 
-  FileText, 
-  AlertTriangle, 
-  ShieldCheck, 
-  Layers, 
-  Network, 
-  Settings, 
-  Download, 
-  Code2, 
-  X, 
+import {
+  Search,
+  FileText,
+  AlertTriangle,
+  ShieldCheck,
+  Layers,
+  Network,
+  Settings,
+  Download,
+  Code2,
+  X,
   CornerDownLeft,
   Sparkles
 } from 'lucide-react';
@@ -58,11 +58,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   const filteredItems = query.trim() === ''
     ? allItems
-    : allItems.filter(item => 
-        item.title.toLowerCase().includes(query.toLowerCase()) ||
-        item.desc.toLowerCase().includes(query.toLowerCase()) ||
-        item.category.toLowerCase().includes(query.toLowerCase())
-      );
+    : allItems.filter(item =>
+      item.title.toLowerCase().includes(query.toLowerCase()) ||
+      item.desc.toLowerCase().includes(query.toLowerCase()) ||
+      item.category.toLowerCase().includes(query.toLowerCase())
+    );
 
   // Reset selectedIndex and scroll position whenever search query changes
   useEffect(() => {
@@ -149,11 +149,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/80 backdrop-blur-md animate-fade-in"
       onClick={onClose}
     >
-      <div 
+      <div
         className="relative w-full max-w-2xl rounded-2xl bg-[#0c1220] border border-white/15 shadow-2xl text-white overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -168,7 +168,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             placeholder="Search loans, exception rules, connectors, or navigation..."
             className="w-full bg-transparent text-sm font-mono text-white placeholder:text-slate-500 focus:outline-none"
           />
-          <button 
+          <button
             onClick={onClose}
             className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
           >
@@ -200,11 +200,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       setSelectedIndex(index);
                     }
                   }}
-                  className={`flex items-center justify-between p-3 rounded-xl cursor-pointer group transition-all ${
-                    isSelected
+                  className={`flex items-center justify-between p-3 rounded-xl cursor-pointer group transition-all ${isSelected
                       ? 'bg-white/[0.12] border border-cyan-400/30 text-white shadow-sm ring-1 ring-cyan-400/20'
                       : 'hover:bg-white/[0.08]'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center text-slate-300 group-hover:text-cyan-300 group-hover:border-cyan-400/40 transition-colors">

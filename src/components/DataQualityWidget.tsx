@@ -31,7 +31,7 @@ export const DataQualityWidget: React.FC<DataQualityWidgetProps> = ({
               Data Quality &amp; Integrity Health
             </h3>
             <p className="text-[11px] sm:text-xs text-slate-500 font-sans leading-relaxed">
-              Continuous validation across 14 deterministic loan constraints.
+              Continuous validation across 15 deterministic loan constraints.
             </p>
           </div>
         </div>
