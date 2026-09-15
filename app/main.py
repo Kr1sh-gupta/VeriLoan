@@ -99,7 +99,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Full-stack AI Copilot platform for loan tape ingestion, 14-rule validation, AI-assisted exception resolution, and cryptographic SHA-256 verification.",
+    description="Full-stack AI Copilot platform for loan tape ingestion, 15-rule validation, AI-assisted exception resolution, and cryptographic SHA-256 verification.",
     lifespan=lifespan
 )
 
