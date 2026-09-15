@@ -127,6 +127,20 @@ pytest tests/ -v
 
 ---
 
+### 👥 Contributors — Team Trustmint
+
+Developed with pride for the **Intain FinTech Challenge 2026** by **Team Trustmint**:
+
+<div align="center">
+
+| [<img src="https://github.com/Kr1sh-gupta.png?size=100" width="100px;" alt="Krish Gupta"/><br /><sub><b>Krish Gupta</b></sub>](https://github.com/Kr1sh-gupta)<br />[![GitHub](https://img.shields.io/badge/GitHub-Kr1sh--gupta-181717?style=flat-square&logo=github)](https://github.com/Kr1sh-gupta)<br /><b> | [<img src="https://github.com/Radha-byte.png?size=100" width="100px;" alt="Radha Rani"/><br /><sub><b>Radha Rani</b></sub>](https://github.com/Radha-byte)<br />[![GitHub](https://img.shields.io/badge/GitHub-Radha--byte-181717?style=flat-square&logo=github)](https://github.com/Radha-byte)<br />| [<img src="https://github.com/pranathi-2504.png?size=100" width="100px;" alt="G V Mani Prabha"/><br /><sub><b>G V Mani Prabha (Pranathi)</b></sub>](https://github.com/pranathi-2504)<br />[![GitHub](https://img.shields.io/badge/GitHub-pranathi--2504-181717?style=flat-square&logo=github)](https://github.com/pranathi-2504)<br />|
+| :---: | :---: | :---: |
+
+</div>
+
+---
+
 <div align="center">
   <small>Developed for the Intain FinTech Challenge 2026 • Monorepo Architecture</small>
 </div>
+
