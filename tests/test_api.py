@@ -166,3 +166,35 @@ def test_reset_database_empty_and_baseline(client):
     summary_base = client.get("/api/summary").json()
     assert summary_base["total_loans"] == 1200
 
+def test_simulate_tamper_and_restore_endpoints(client):
+    v_res = client.get("/api/verified-loans?limit=1")
+    assert v_res.status_code == 200
+    v_list = v_res.json()
+    if not v_list:
+        return
+    v_loan = v_list[0]
+    loan_id = v_loan["loan_id"]
+
+    # Ingest simulated tamper
+    tamper_res = client.post(
+        f"/api/verified-loans/{loan_id}/simulate-tamper",
+        json={"tampered_fields": {"current_balance": 999999.99}, "reason": "Test tamper detection"}
+    )
+    assert tamper_res.status_code == 200
+    tamper_data = tamper_res.json()
+    assert tamper_data["hash_verification"]["tamper_detected"] is True
+    assert tamper_data["hash_verification"]["is_valid"] is False
+
+    # Check detail endpoint reflects tamper
+    detail_res = client.get(f"/api/verified-loans/{loan_id}")
+    assert detail_res.status_code == 200
+    detail_data = detail_res.json()
+    assert detail_data["hash_verification"]["tamper_detected"] is True
+
+    # Restore clean record
+    restore_res = client.post(f"/api/verified-loans/{loan_id}/restore")
+    assert restore_res.status_code == 200
+    restore_data = restore_res.json()
+    assert restore_data["hash_verification"]["tamper_detected"] is False
+    assert restore_data["hash_verification"]["is_valid"] is True
+
