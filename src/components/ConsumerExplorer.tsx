@@ -5,13 +5,15 @@ import {
   RefreshCw, 
   FileText, 
   Copy, 
-  Check
+  Check,
+  ShieldAlert
 } from 'lucide-react';
 import type { VerifiedLoan, SystemSummary } from '../types';
 import { fetchVerifiedLoans, fetchSummary, exportCsvUrl } from '../lib/api';
 import { HashVerifierModal } from './HashVerifierModal';
 import { AuditTrailModal } from './AuditTrailModal';
 import { DataQualityWidget } from './DataQualityWidget';
+import { TamperSimulatorModal } from './TamperSimulatorModal';
 
 interface ConsumerExplorerProps {
   onNavigateToExport?: () => void;
@@ -31,6 +33,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
   // Modals
   const [inspectHashLoanId, setInspectHashLoanId] = useState<string | null>(null);
   const [inspectAuditLoanId, setInspectAuditLoanId] = useState<string | null>(null);
+  const [tamperSimulationLoan, setTamperSimulationLoan] = useState<VerifiedLoan | null>(null);
 
   const loadData = async () => {
     try {
@@ -93,10 +96,23 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
           </div>
 
           <div className="flex items-center space-x-2 shrink-0">
+            <button
+              onClick={() => {
+                const target = filteredLoans[0] || verifiedLoans[0];
+                if (target) setTamperSimulationLoan(target);
+              }}
+              disabled={verifiedLoans.length === 0}
+              className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-800 hover:bg-amber-500/20 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+              title="Open real-time cryptographic tamper simulation dialog"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+              <span>Simulate Tampering</span>
+            </button>
+
             {onNavigateToExport ? (
               <button
                 onClick={onNavigateToExport}
-                className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Open Export Center</span>
@@ -104,7 +120,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
             ) : (
               <button
                 onClick={handleExportCsv}
-                className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-[#0b1c30] text-white hover:bg-slate-800 font-bold text-xs font-mono uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export Dataset (CSV)</span>
@@ -149,7 +165,7 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
             />
           </div>
 
-          <div className="flex items-center overflow-x-auto pb-1 gap-2">
+          <div className="flex items-center overflow-x-auto pb-1 gap-2 no-scrollbar">
             {[
               { id: 'ALL', label: `All (${verifiedLoans.length})` },
               { id: 'AI_ASSISTED', label: `AI-Assisted (${aiAssistedCount})` },
@@ -209,7 +225,15 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
                     return (
                       <tr key={v.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
-                          <span className="text-emerald-700 font-bold">{v.loan_id}</span>
+                          <span className={v.tamper_detected ? "text-rose-700 font-bold" : "text-emerald-700 font-bold"}>
+                            {v.loan_id}
+                          </span>
+                          {v.tamper_detected && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-bold border border-rose-300 animate-pulse flex items-center gap-1">
+                              <ShieldAlert className="w-2.5 h-2.5 text-rose-600" />
+                              TAMPER DETECTED
+                            </span>
+                          )}
                           {v.ai_assisted && (
                             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-bold border border-purple-200">
                               AI-Assisted
@@ -251,13 +275,13 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
                         <td className="px-6 py-4 text-right space-x-2">
                           <button
                             onClick={() => setInspectHashLoanId(v.loan_id)}
-                            className="px-2.5 py-1 rounded bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-all"
+                            className="px-2.5 py-1 rounded bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-all cursor-pointer"
                           >
                             Verify Hash
                           </button>
                           <button
                             onClick={() => setInspectAuditLoanId(v.loan_id)}
-                            className="px-2.5 py-1 rounded bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all"
+                            className="px-2.5 py-1 rounded bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
                           >
                             Audit Trail
                           </button>
@@ -285,6 +309,18 @@ export const ConsumerExplorer: React.FC<ConsumerExplorerProps> = ({
         <AuditTrailModal
           loanId={inspectAuditLoanId}
           onClose={() => setInspectAuditLoanId(null)}
+        />
+      )}
+
+      {tamperSimulationLoan && (
+        <TamperSimulatorModal
+          initialLoan={tamperSimulationLoan}
+          availableLoans={verifiedLoans}
+          onClose={() => setTamperSimulationLoan(null)}
+          onLoanMutated={(updated) => {
+            setVerifiedLoans(prev => prev.map(l => l.loan_id === updated.loan_id ? updated : l));
+            loadData();
+          }}
         />
       )}
     </div>

@@ -468,6 +468,35 @@ export const fetchVerifiedLoanDetail = async (id: string): Promise<VerifiedLoanD
   }
 };
 
+export const simulateTamperVerifiedLoan = async (
+  id: string,
+  tamperedFields: Record<string, any>,
+  reason?: string
+): Promise<VerifiedLoanDetailResponse> => {
+  try {
+    const { data } = await api.post<VerifiedLoanDetailResponse>(`/verified-loans/${id}/simulate-tamper`, {
+      tampered_fields: tamperedFields,
+      reason: reason || 'Live diligence tamper demonstration'
+    });
+    return data;
+  } catch (err: any) {
+    console.error(`[API Error: simulateTamperVerifiedLoan(${id})]`, err);
+    throw formatApiError(err);
+  }
+};
+
+export const restoreTamperedVerifiedLoan = async (
+  id: string
+): Promise<VerifiedLoanDetailResponse> => {
+  try {
+    const { data } = await api.post<VerifiedLoanDetailResponse>(`/verified-loans/${id}/restore`);
+    return data;
+  } catch (err: any) {
+    console.error(`[API Error: restoreTamperedVerifiedLoan(${id})]`, err);
+    throw formatApiError(err);
+  }
+};
+
 export const fetchAuditTrail = async (loanId?: string, limit: number = 50): Promise<AuditEvent[]> => {
   try {
     if (loanId) {

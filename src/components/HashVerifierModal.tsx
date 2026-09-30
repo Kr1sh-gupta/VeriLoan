@@ -190,7 +190,7 @@ export const HashVerifierModal: React.FC<HashVerifierModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-lg bg-white text-[#060913] hover:bg-slate-100 text-xs font-bold uppercase tracking-wider cursor-pointer"
+            className="px-5 py-2 rounded-lg bg-white text-[#060913] hover:bg-slate-100 text-xs font-bold uppercase tracking-wider cursor-pointer shadow-sm"
           >
             Close
           </button>

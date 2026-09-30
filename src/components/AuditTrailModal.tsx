@@ -92,36 +92,53 @@ export const AuditTrailModal: React.FC<AuditTrailModalProps> = ({
           </div>
         ) : (
           <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-800 max-h-96 overflow-y-auto pr-2">
-            {events.map((ev, idx) => (
-              <div key={ev.id || idx} className="relative group">
-                {/* Dot */}
-                <div className="absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full bg-blue-400 ring-4 ring-[#090e1a]" />
-                
-                <div className="p-4 rounded-xl bg-[#060913] border border-slate-800/80 space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs font-mono font-bold text-blue-400">
-                      {ev.event_type}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {formatTimestamp(ev.timestamp)}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-slate-200 font-sans leading-relaxed">
-                    {ev.summary}
-                  </p>
-
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-800/50">
-                    <span>Actor: <strong className="text-slate-200">{ev.actor_id}</strong> ({ev.actor_role})</span>
-                    {ev.metadata_json?.record_hash && (
-                      <span className="text-emerald-400 truncate max-w-[180px]">
-                        Hash: {ev.metadata_json.record_hash.substring(0, 16)}...
+            {events.map((ev, idx) => {
+              const isTamper = ev.event_type === 'TAMPER_DETECTED';
+              return (
+                <div key={ev.id || idx} className="relative group">
+                  {/* Dot */}
+                  <div className={`absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-[#090e1a] ${
+                    isTamper ? 'bg-rose-500 animate-pulse' : 'bg-blue-400'
+                  }`} />
+                  
+                  <div className={`p-4 rounded-xl border space-y-2 transition-all ${
+                    isTamper 
+                      ? 'bg-rose-950/20 border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.08)]' 
+                      : 'bg-[#060913] border-slate-800/80'
+                  }`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className={`text-xs font-mono font-bold flex items-center gap-1.5 ${
+                        isTamper ? 'text-rose-400' : 'text-blue-400'
+                      }`}>
+                        {isTamper && <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />}
+                        {ev.event_type}
                       </span>
-                    )}
+                      <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {formatTimestamp(ev.timestamp)}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-200 font-sans leading-relaxed">
+                      {ev.summary}
+                    </p>
+
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-800/50">
+                      <span>Actor: <strong className={isTamper ? 'text-amber-300 font-bold' : 'text-slate-200'}>{ev.actor_id}</strong> ({ev.actor_role})</span>
+                      {ev.metadata_json?.recalculated_hash && (
+                        <span className="text-rose-400 truncate max-w-[180px]">
+                          Hash: {String(ev.metadata_json.recalculated_hash).substring(0, 16)}...
+                        </span>
+                      )}
+                      {!ev.metadata_json?.recalculated_hash && ev.metadata_json?.record_hash && (
+                        <span className="text-emerald-400 truncate max-w-[180px]">
+                          Hash: {ev.metadata_json.record_hash.substring(0, 16)}...
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

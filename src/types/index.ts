@@ -79,6 +79,7 @@ export interface VerifiedLoan {
   resolution_notes?: string;
   ai_assisted: boolean;
   quality_score?: number;
+  tamper_detected?: boolean;
 }
 
 export interface HashVerificationDetail {
