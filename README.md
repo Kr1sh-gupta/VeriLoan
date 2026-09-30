@@ -2,10 +2,10 @@
 
   <br />
   <a href="https://veri-loan.vercel.app/" target="_blank">
-    <img src="docs/images/favicon.svg" alt="VeriLoan Icon" width="64" height="64" />
+    <img src="docs/images/veriloan_logo.png" alt="VeriLoan Logo" width="130" style="border-radius: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);" />
   </a>
   
-  <h1 align="center" style="margin-top: 10px; font-size: 2.6rem; font-weight: 900; letter-spacing: -0.03em;">VeriLoan</h1>
+  <h1 align="center" style="margin-top: 14px; font-size: 2.6rem; font-weight: 900; letter-spacing: -0.03em;">VeriLoan</h1>
   
   <p align="center">
     <strong>Autonomous Financial Diligence &amp; Cryptographic Verification Platform</strong>
@@ -13,25 +13,26 @@
 
   <p align="center">
     <a href="https://veri-loan.vercel.app/" target="_blank">
-      <img src="https://img.shields.io/badge/⚡_Live_Platform-Vercel_Edge-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live App" />
+      <img src="https://img.shields.io/badge/Live_Platform-Vercel_Edge-059669?style=for-the-badge&logo=vercel&logoColor=white" alt="Live App" />
     </a>
     &nbsp;
-    <a href="https://veriloan-production-5628.up.railway.app/docs" target="_blank">
-      <img src="https://img.shields.io/badge/📜_Swagger_Docs-FastAPI_Cloud-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="Swagger Docs" />
+    <a href="https://veriloan-production-dc36.up.railway.app/docs" target="_blank">
+      <img src="https://img.shields.io/badge/Cloud_API-Swagger_Docs-0284C7?style=for-the-badge&logo=fastapi&logoColor=white" alt="Swagger Docs" />
     </a>
     &nbsp;
     <a href="https://github.com/Kr1sh-gupta/VeriLoan" target="_blank">
-      <img src="https://img.shields.io/badge/📦_Monorepo-GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo" />
+      <img src="https://img.shields.io/badge/Source_Monorepo-GitHub-4F46E5?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo" />
     </a>
   </p>
 
   <p align="center">
-    <img src="https://img.shields.io/badge/Backend-FastAPI_%7C_Python_3.11-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
-    <img src="https://img.shields.io/badge/Frontend-React_19_%7C_Vite-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 19" />
-    <img src="https://img.shields.io/badge/Styling-Tailwind_CSS_v4-38B2AC?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
+    <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.11" />
+    <img src="https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/React-19.0-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 19" />
+    <img src="https://img.shields.io/badge/Tailwind_CSS-v4.0-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
     <img src="https://img.shields.io/badge/AI_Engine-Gemini_2.5_Flash-8E75B2?style=flat-square&logo=googlegemini&logoColor=white" alt="Gemini AI" />
-    <img src="https://img.shields.io/badge/Hashing-SHA--256_Immutable-0ea5e9?style=flat-square&logo=lock&logoColor=white" alt="SHA-256" />
-    <img src="https://img.shields.io/badge/Test_Suite-43%2F43_Passed_(100%25)-10B981?style=flat-square&logo=pytest&logoColor=white" alt="Pytest Tests" />
+    <img src="https://img.shields.io/badge/Security-SHA--256_Vault-0EA5E9?style=flat-square&logo=shield&logoColor=white" alt="SHA-256" />
+    <img src="https://img.shields.io/badge/Test_Suite-44%2F44_Passing-10B981?style=flat-square&logo=pytest&logoColor=white" alt="Pytest Tests" />
   </p>
 
 </div>
@@ -65,6 +66,31 @@ VeriLoan transforms multi-day manual mortgage tape diligence into a **60-second 
 | **⚡ Deterministic 15-Rule Engine** | High-performance execution of constraints including mandatory IDs, duplicate combos, ISO-8601 extended date logic (`VAL-106`), balance bounds, DPD reconciliation, and borrower concentration risk. |
 | **🤖 Zero-Silent-Write AI Copilot** | Context-aware Google Gemini 2.5 Flash assistant generating explainable anomaly diagnostics and candidate JSON patches with strict human reviewer authorization. |
 | **🔐 Cryptographic Proof & Sealing** | Deterministic canonical JSON serialization (`sort_keys=True`) and SHA-256 hash sealing with on-the-fly tamper recalculation and an immutable 7-event audit timeline. |
+
+---
+
+### 🌐 Core REST API Endpoints (Cloud & Local)
+
+The API is fully documented via interactive OpenAPI/Swagger at [`https://veriloan-production-dc36.up.railway.app/docs`](https://veriloan-production-dc36.up.railway.app/docs). Below are the primary endpoints governing diligence workflows:
+
+| Method | Endpoint | Description | Role Clearance |
+| :---: | :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Authenticate user credentials & issue scoped JWT bearer token | Public |
+| `POST` | `/api/ingest/upload` | Stream-ingest raw loan tape, servicer update, or document manifest CSV | `OPERATOR`, `ADMIN` |
+| `GET` | `/api/summary` | Real-time system telemetry, health score, pass rates, and batch metrics | All Roles |
+| `GET` | `/api/loans` | Filterable portfolio loan records with pagination and borrower search | All Roles |
+| `GET` | `/api/loans/{id}` | Detailed loan record with cross-source servicer updates & document hashes | All Roles |
+| `PUT` | `/api/loans/{id}` | Reviewer manual field correction with audit logging and previous-state capture | `REVIEWER`, `ADMIN` |
+| `GET` | `/api/exceptions` | Exception triage matrix filtered by severity (`CRITICAL`, `HIGH`), status, or rule | `REVIEWER`, `ADMIN` |
+| `POST` | `/api/exceptions/{id}/resolve` | Execute exception resolution (`ACCEPT_AI`, `MANUAL_OVERRIDE`, `DISMISS`, `REJECT`) | `REVIEWER`, `ADMIN` |
+| `POST` | `/api/exceptions/{id}/comment` | Add reviewer diligence notes and audit commentary to exception record | `REVIEWER`, `ADMIN` |
+| `POST` | `/api/ai/explain` | Dual-engine AI root-cause diagnosis & suggested data patch with confidence score | `REVIEWER`, `ADMIN` |
+| `GET` | `/api/verified-loans` | Paginated list of cryptographically sealed records with canonical SHA-256 hashes | All Roles |
+| `GET` | `/api/verified-loans/{id}` | Sealed record details with live recalculation of hash and tamper detection | All Roles |
+| `POST` | `/api/verified-loans/verify-all-clean` | Batch seal and cryptographically hash all clean loans passing 15 rules | `REVIEWER`, `ADMIN` |
+| `GET` | `/api/verified-loans/export/csv` | Download sealed verified records as an institutional compliance CSV manifest | `CONSUMER`, `REVIEWER`, `ADMIN` |
+| `GET` | `/api/audit/{loan_id}` | Chronological lifecycle provenance timeline for a specific loan record | All Roles |
+| `GET` | `/api/audit` | System-wide append-only audit ledger with actor and state transitions | `ADMIN` |
 
 ---
 
@@ -113,7 +139,7 @@ docker compose up --build
 * **Backend**: FastAPI (Python 3.11), SQLAlchemy ORM, SQLite / PostgreSQL, Pydantic v2.
 * **AI Engine**: Google Gemini 2.5 Flash API with local heuristic fallback.
 * **Security & Diligence**: SHA-256 deterministic hashing, RBAC authentication, 7-event append-only audit trail.
-* **Cloud Infrastructure**: Vercel Global Edge (Frontend) + Railway.app (Cloud API).
+* **Cloud Infrastructure**: Vercel Global Edge (Frontend) + [Railway.app Cloud API](https://veriloan-production-dc36.up.railway.app/docs) (`https://veriloan-production-dc36.up.railway.app`).
 
 ---
 
@@ -122,11 +148,12 @@ docker compose up --build
 ```bash
 cd backend
 pytest tests/ -v
-# -> 43 / 43 tests passing (100% pass rate in 10.6s)
+# -> 44 / 44 tests passing (100% pass rate in 10.6s)
 ```
 
 ---
 
+<!--
 ### 👥 Contributors — Team Trustmint
 
 Developed with pride for the **Intain FinTech Challenge 2026** by **Team Trustmint**:
@@ -137,6 +164,7 @@ Developed with pride for the **Intain FinTech Challenge 2026** by **Team Trustmi
 | :---: | :---: | :---: |
 
 </div>
+-->
 
 ---
 
