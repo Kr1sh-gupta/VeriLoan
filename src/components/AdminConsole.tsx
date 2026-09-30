@@ -249,7 +249,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ initialTab = 'OVERVI
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
+        <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar scrollbar-none">
           {[
             { id: 'OVERVIEW', label: 'System Telemetry', icon: Activity },
             { id: 'CONNECTORS', label: 'Connectors & API Keys', icon: Network },
@@ -777,27 +777,49 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ initialTab = 'OVERVI
             </div>
 
             <div className="space-y-3">
-              {auditEvents.map((evt) => (
-                <div key={evt.id} className="p-3.5 sm:p-4 rounded-xl bg-white border border-slate-200 shadow-sm space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono gap-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-blue-700">{evt.event_type}</span>
-                      {evt.loan_id && (
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-900 font-bold border border-slate-200">
-                          {evt.loan_id}
+              {auditEvents.map((evt) => {
+                const isTamper = evt.event_type === 'TAMPER_DETECTED';
+                return (
+                  <div 
+                    key={evt.id} 
+                    className={`p-3.5 sm:p-4 rounded-xl border shadow-sm space-y-2 transition-all ${
+                      isTamper 
+                        ? 'bg-rose-50/30 border-rose-200/90 shadow-[0_2px_8px_rgba(244,63,94,0.06)]' 
+                        : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`font-bold ${
+                          isTamper 
+                            ? 'text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 inline-flex items-center gap-1 font-bold' 
+                            : 'text-blue-700'
+                        }`}>
+                          {isTamper && <ShieldAlert className="w-3 h-3 text-rose-600" />}
+                          {evt.event_type}
                         </span>
-                      )}
+                        {evt.loan_id && (
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-900 font-bold border border-slate-200">
+                            {evt.loan_id}
+                          </span>
+                        )}
+                        {isTamper && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold">
+                            Integrity Check Sequence
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-slate-400 text-[11px]">{evt.timestamp}</span>
                     </div>
-                    <span className="text-slate-400 text-[11px]">{evt.timestamp}</span>
+                    <p className="text-xs text-slate-700 font-sans leading-relaxed break-words">
+                      {evt.summary}
+                    </p>
+                    <div className="text-[10px] font-mono text-slate-500">
+                      Actor: <span className={isTamper ? 'text-amber-800 font-bold' : 'text-slate-800 font-bold'}>{evt.actor_id}</span> ({evt.actor_role})
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-700 font-sans leading-relaxed break-words">
-                    {evt.summary}
-                  </p>
-                  <div className="text-[10px] font-mono text-slate-500">
-                    Actor: <span className="text-slate-800 font-bold">{evt.actor_id}</span> ({evt.actor_role})
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
