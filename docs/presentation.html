@@ -228,7 +228,12 @@
     .card-desc {
       font-size: 0.88rem;
       color: var(--text-muted);
-      line-height: 1.5;
+      line-height: 1.55;
+    }
+
+    .card-desc strong {
+      color: #F1F5F9;
+      font-weight: 700;
     }
 
     .pill {
@@ -693,34 +698,46 @@
 
       <div class="grid-4">
         <div class="feature-card">
-          <div class="card-icon">📑</div>
-          <div class="card-title">Dirty Loan Tapes</div>
-          <div class="card-desc">Missing IDs, malformed dates, negative balances, and non-standard field headers across
-            servicers.</div>
+          <div>
+            <div class="card-icon">📑</div>
+            <div class="card-title">Dirty Loan Tapes</div>
+            <div class="card-desc">
+              Tapes arrive with <strong>missing borrower IDs</strong>, <strong>malformed dates</strong>, and <strong>negative balances</strong> that break valuation models.
+            </div>
+          </div>
           <div class="pill pill-amber">Data Anarchy</div>
         </div>
 
         <div class="feature-card">
-          <div class="card-icon">🔄</div>
-          <div class="card-title">Servicer Drift</div>
-          <div class="card-desc">Silent balance discrepancies, conflicting Days Past Due (DPD), and missing collateral
-            documents.</div>
+          <div>
+            <div class="card-icon">🔄</div>
+            <div class="card-title">Servicer Drift</div>
+            <div class="card-desc">
+              Monthly bank feeds fall out of sync with loan tapes, creating <strong>balance mismatches</strong>, <strong>conflicting DPD</strong>, and missing loan docs.
+            </div>
+          </div>
           <div class="pill pill-amber">Reconciliation Lag</div>
         </div>
 
         <div class="feature-card">
-          <div class="card-icon">⏳</div>
-          <div class="card-title">Reviewer Fatigue</div>
-          <div class="card-desc">Analysts manually cross-referencing rows in Excel, taking hours per portfolio tape.
+          <div>
+            <div class="card-icon">⏳</div>
+            <div class="card-title">Reviewer Fatigue</div>
+            <div class="card-desc">
+              Human analysts spend <strong>3 to 5 business days</strong> manually cross-checking thousands of spreadsheet rows, creating massive deal delays.
+            </div>
           </div>
           <div class="pill pill-amber">Human Bottleneck</div>
         </div>
 
         <div class="feature-card">
-          <div class="card-icon">🔏</div>
-          <div class="card-title">Zero Proof of State</div>
-          <div class="card-desc">No cryptographic guarantee that approved records weren't tampered with
-            post-verification.</div>
+          <div>
+            <div class="card-icon">🔏</div>
+            <div class="card-title">Zero Proof of State</div>
+            <div class="card-desc">
+              Verified records lack <strong>cryptographic protection</strong>, leaving portfolios exposed to <strong>undetected tampering</strong> post-closing.
+            </div>
+          </div>
           <div class="pill pill-amber">Audit Risk</div>
         </div>
       </div>
