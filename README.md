@@ -1,7 +1,9 @@
 <div align="center">
 
   <br />
-  <img src="https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png" alt="FastAPI" width="180" />
+  <img src="veriloan_logo.png" alt="VeriLoan Logo" width="120" style="border-radius: 12px; margin-bottom: 8px;" />
+  <br />
+  <img src="https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png" alt="FastAPI" width="140" />
   
   <h1 align="center" style="margin-top: 10px; font-size: 2.2rem; font-weight: 800;">VeriLoan Backend API Service</h1>
   
@@ -10,12 +12,12 @@
   </p>
 
   <p align="center">
-    <a href="https://veriloan-production-5628.up.railway.app/docs" target="_blank">
-      <img src="https://img.shields.io/badge/Live_API_Docs-FastAPI_Swagger-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="Live Swagger Docs" />
+    <a href="https://veriloan-production-dc36.up.railway.app/docs" target="_blank">
+      <img src="https://img.shields.io/badge/Live_API_Docs-FastAPI_Swagger-0284C7?style=for-the-badge&logo=fastapi&logoColor=white" alt="Live Swagger Docs" />
     </a>
     &nbsp;
     <a href="https://veri-loan.vercel.app/" target="_blank">
-      <img src="https://img.shields.io/badge/Web_Client-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel App" />
+      <img src="https://img.shields.io/badge/Web_Client-Vercel_Edge-059669?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel App" />
     </a>
   </p>
 
@@ -25,8 +27,8 @@
     <img src="https://img.shields.io/badge/ORM-SQLAlchemy_2.0-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy" />
     <img src="https://img.shields.io/badge/Validation-Pydantic_v2-E92063?style=flat-square&logo=pydantic&logoColor=white" alt="Pydantic v2" />
     <img src="https://img.shields.io/badge/AI-Google_Gemini_2.5_Flash-8E75B2?style=flat-square&logo=googlegemini&logoColor=white" alt="Gemini AI" />
-    <img src="https://img.shields.io/badge/Security-SHA--256_Immutable-0ea5e9?style=flat-square&logo=lock&logoColor=white" alt="SHA-256" />
-    <img src="https://img.shields.io/badge/Tests-43%2F43_Passing-10B981?style=flat-square&logo=pytest&logoColor=white" alt="Pytest" />
+    <img src="https://img.shields.io/badge/Security-SHA--256_Immutable-0ea5e9?style=flat-square&logo=shield&logoColor=white" alt="SHA-256" />
+    <img src="https://img.shields.io/badge/Tests-44%2F44_Passing-10B981?style=flat-square&logo=pytest&logoColor=white" alt="Pytest" />
   </p>
 
 </div>
@@ -103,6 +105,31 @@ Enforces financial data integrity according to strict mortgage diligence standar
   5. `MANUAL_OVERRIDE`
   6. `RECORD_APPROVED` / `RECORD_REJECTED`
   7. `VERIFIED_RECORD_SEALED`
+
+---
+
+## 🌐 Primary REST API Endpoints (Cloud & Local)
+
+Interactive OpenAPI / Swagger documentation is available at [`https://veriloan-production-dc36.up.railway.app/docs`](https://veriloan-production-dc36.up.railway.app/docs) or locally at `http://localhost:8000/docs`.
+
+| Method | Endpoint | Description | Role Clearance |
+| :---: | :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Authenticate user credentials & issue scoped JWT bearer token | Public |
+| `POST` | `/api/ingest/upload` | Stream-ingest raw loan tape, servicer update, or document manifest CSV | `OPERATOR`, `ADMIN` |
+| `GET` | `/api/summary` | Real-time system telemetry, health score, pass rates, and batch metrics | All Roles |
+| `GET` | `/api/loans` | Filterable portfolio loan records with pagination and borrower search | All Roles |
+| `GET` | `/api/loans/{id}` | Detailed loan record with cross-source servicer updates & document hashes | All Roles |
+| `PUT` | `/api/loans/{id}` | Reviewer manual field correction with audit logging and previous-state capture | `REVIEWER`, `ADMIN` |
+| `GET` | `/api/exceptions` | Exception triage matrix filtered by severity (`CRITICAL`, `HIGH`), status, or rule | `REVIEWER`, `ADMIN` |
+| `POST` | `/api/exceptions/{id}/resolve` | Execute exception resolution (`ACCEPT_AI`, `MANUAL_OVERRIDE`, `DISMISS`, `REJECT`) | `REVIEWER`, `ADMIN` |
+| `POST` | `/api/exceptions/{id}/comment` | Add reviewer diligence notes and audit commentary to exception record | `REVIEWER`, `ADMIN` |
+| `POST` | `/api/ai/explain` | Dual-engine AI root-cause diagnosis & suggested data patch with confidence score | `REVIEWER`, `ADMIN` |
+| `GET` | `/api/verified-loans` | Paginated list of cryptographically sealed records with canonical SHA-256 hashes | All Roles |
+| `GET` | `/api/verified-loans/{id}` | Sealed record details with live recalculation of hash and tamper detection | All Roles |
+| `POST` | `/api/verified-loans/verify-all-clean` | Batch seal and cryptographically hash all clean loans passing 15 rules | `REVIEWER`, `ADMIN` |
+| `GET` | `/api/verified-loans/export/csv` | Download sealed verified records as an institutional compliance CSV manifest | `CONSUMER`, `REVIEWER`, `ADMIN` |
+| `GET` | `/api/audit/{loan_id}` | Chronological lifecycle provenance timeline for a specific loan record | All Roles |
+| `GET` | `/api/audit` | System-wide append-only audit ledger with actor and state transitions | `ADMIN` |
 
 ---
 
