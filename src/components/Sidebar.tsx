@@ -218,6 +218,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               )}
 
+              {/* Active Scoped JWT Badge (Blends with website style) */}
+              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800/90 text-[11px] font-mono text-slate-400">
+                <span className="flex items-center gap-1.5 text-slate-400">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500/80" />
+                  <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Active JWT:</span>
+                </span>
+                <span className="text-slate-300 font-medium font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700/60">
+                  {currentRole}
+                </span>
+              </div>
+
               {/* Simple Switch Role Dropdown */}
               <div className="space-y-1">
                 <label className="block text-[10px] font-mono uppercase text-slate-400 flex items-center gap-1">
@@ -262,6 +273,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </>
           ) : (
             <div className="flex flex-col items-center gap-2">
+              <div 
+                className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400/80" 
+                title={`Active JWT: ${currentRole}`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+              </div>
               {isDemoBypass && (
                 <div
                   className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 cursor-pointer"

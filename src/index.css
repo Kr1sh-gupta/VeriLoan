@@ -130,6 +130,21 @@ h1, h2, h3, h4, h5, h6 {
   animation: floatDebris3 7.5s ease-in-out infinite;
 }
 
+@keyframes slideInRight {
+  0% {
+    transform: translateX(120%) scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Metallic Embossed Badge */
 .embossed-metallic {
   background: linear-gradient(180deg, #E2E8F0 0%, #94A3B8 50%, #475569 100%);

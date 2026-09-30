@@ -13,6 +13,7 @@ import { LoginModal } from './components/LoginModal';
 import { CommandPalette } from './components/CommandPalette';
 import { NotificationCenter } from './components/NotificationCenter';
 import { Footer } from './components/Footer';
+import { JwtRotationToast, type JwtToastData, ROLE_PERMISSIONS_MAP } from './components/JwtRotationToast';
 import type { SystemSummary, UserRole, User, NotificationItem } from './types';
 import { fetchSummary, STATIC_USERS, INITIAL_NOTIFICATIONS, isDemoBypassActive, setDemoBypassActive, getBackendRootUrl } from './lib/api';
 
@@ -20,6 +21,24 @@ const AUTH_STORAGE_KEY = 'veriloan_auth_user';
 const TAB_STORAGE_KEY = 'veriloan_current_tab';
 const ROLE_STORAGE_KEY = 'veriloan_current_role';
 const NOTIFICATIONS_STORAGE_KEY = 'veriloan_notifications';
+
+const TAB_TO_ROLE: Record<string, UserRole> = {
+  ingest: 'OPERATOR',
+  operator: 'OPERATOR',
+  operator_records: 'OPERATOR',
+  reviewer: 'REVIEWER',
+  reviewer_conflicts: 'REVIEWER',
+  reviewer_copilot: 'REVIEWER',
+  consumer: 'CONSUMER',
+  consumer_quality: 'CONSUMER',
+  export: 'CONSUMER',
+  admin: 'ADMIN',
+  admin_rules: 'ADMIN',
+  admin_audit: 'ADMIN',
+  admin_connectors: 'ADMIN',
+  admin_users: 'ADMIN',
+  api: 'ADMIN',
+};
 
 export function App() {
   // Initialize user from localStorage if present
@@ -77,6 +96,7 @@ export function App() {
   const [loginInitialRole, setLoginInitialRole] = useState<UserRole>('REVIEWER');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [notificationCenterOpen, setNotificationCenterOpen] = useState<boolean>(false);
+  const [jwtToastData, setJwtToastData] = useState<JwtToastData | null>(null);
 
   // Notifications State with localStorage persistence
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
@@ -96,24 +116,56 @@ export function App() {
 
   const isLanding = currentTab === 'landing';
 
-  // Persist currentTab in localStorage whenever it changes
-  const handleSetCurrentTab = (tab: string) => {
-    setCurrentTab(tab);
-    try {
-      localStorage.setItem(TAB_STORAGE_KEY, tab);
-    } catch {
-      // ignore
+  // Trigger JWT Rotation Toast & Activity Log (Only when role actually shifts)
+  const triggerJwtRotationToast = (
+    newRole: UserRole,
+    previousRole?: UserRole,
+    previousUser?: User | null,
+    newUser?: User,
+    token?: string,
+    customReason?: string
+  ) => {
+    // Strictly require previousRole !== newRole to avoid showing toast on same role
+    if (!previousRole || previousRole === newRole) {
+      return;
     }
+
+    const targetUser = newUser || STATIC_USERS.find((u) => u.role === newRole);
+    if (!targetUser) return;
+    const activeToken = token || localStorage.getItem('veriloan_auth_token') || `jwt-mock-token-${targetUser.id}-${targetUser.role.toLowerCase()}`;
+    const nowTime = new Date().toLocaleTimeString();
+
+    const reason = customReason || `Shifted clearance: ${previousRole} ➔ ${newRole}. Scoped JWT credentials re-issued.`;
+
+    setJwtToastData({
+      previousRole: previousRole,
+      newRole: newRole,
+      previousUser: previousUser,
+      newUser: targetUser,
+      token: activeToken,
+      timestamp: nowTime,
+      reason: reason,
+      permissions: ROLE_PERMISSIONS_MAP[newRole]?.scopes || [],
+    });
   };
 
   // Persist currentRole and sync currentUser and auth token in localStorage whenever it changes
-  const handleSetCurrentRole = (role: UserRole) => {
+  const handleSetCurrentRole = (role: UserRole, customReason?: string) => {
+    // Guard: If user is already in this role, do NOT perform rotation or show toast!
+    if (role === currentRole && currentUser?.role === role) {
+      return;
+    }
+
+    const previousRole = currentRole;
+    const previousUser = currentUser;
+
     setCurrentRole(role);
     try {
       localStorage.setItem(ROLE_STORAGE_KEY, role);
     } catch {
       // ignore
     }
+
     const matchedUser = STATIC_USERS.find((u) => u.role === role);
     if (matchedUser) {
       const { password: _, ...u } = matchedUser;
@@ -125,6 +177,43 @@ export function App() {
       } catch {
         // ignore
       }
+
+      // ONLY display the JWT Rotation Toast if role actually changed!
+      if (previousRole && previousRole !== role) {
+        triggerJwtRotationToast(role, previousRole, previousUser, u, token, customReason);
+
+        // Log to NotificationCenter
+        const newNotif: NotificationItem = {
+          id: `notif-jwt-${Date.now()}`,
+          title: `RBAC Token Rotated: ${role}`,
+          message: `Shifted from ${previousRole} to ${role}. Re-issued scoped JWT for ${u.full_name} (${u.id}).`,
+          category: 'SECURITY',
+          timestamp: 'Just now',
+          severity: 'SUCCESS',
+          read: false,
+          actionUrl: role === 'OPERATOR' ? 'ingest' : role === 'REVIEWER' ? 'reviewer' : role === 'CONSUMER' ? 'consumer' : 'admin',
+        };
+        setNotifications((prev) => [newNotif, ...prev.slice(0, 19)]);
+      }
+    }
+  };
+
+  // Persist currentTab in localStorage whenever it changes, auto-syncing role if tab implies different persona
+  const handleSetCurrentTab = (tab: string, triggerReason?: string) => {
+    const targetRole = TAB_TO_ROLE[tab];
+
+    // If shifting to a tab that belongs to a different persona (e.g. Ingest -> Reviewer), rotate JWT!
+    if (targetRole && targetRole !== currentRole) {
+      const tabName = tab.charAt(0).toUpperCase() + tab.slice(1);
+      const defaultReason = triggerReason || `Shifted to ${tabName} — automatically rotated JWT to ${targetRole} clearance.`;
+      handleSetCurrentRole(targetRole, defaultReason);
+    }
+
+    setCurrentTab(tab);
+    try {
+      localStorage.setItem(TAB_STORAGE_KEY, tab);
+    } catch {
+      // ignore
     }
   };
 
@@ -227,19 +316,7 @@ export function App() {
         currentTab={currentTab}
         setCurrentTab={handleSetCurrentTab}
         currentRole={currentRole}
-        setCurrentRole={(role) => {
-          handleSetCurrentRole(role);
-          const matchedUser = STATIC_USERS.find((u) => u.role === role);
-          if (matchedUser) {
-            const { password: _, ...u } = matchedUser;
-            setCurrentUser(u);
-            try {
-              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
-            } catch {
-              // ignore
-            }
-          }
-        }}
+        setCurrentRole={(role) => handleSetCurrentRole(role)}
         currentUser={currentUser}
         onOpenLogin={handleOpenLogin}
         onLogout={handleLogout}
@@ -325,19 +402,7 @@ export function App() {
             isOpen={sidebarOpen}
             onToggle={() => setSidebarOpen(!sidebarOpen)}
             currentRole={currentRole}
-            setCurrentRole={(role) => {
-              handleSetCurrentRole(role);
-              const matchedUser = STATIC_USERS.find((u) => u.role === role);
-              if (matchedUser) {
-                const { password: _, ...u } = matchedUser;
-                setCurrentUser(u);
-                try {
-                  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
-                } catch {
-                  // ignore
-                }
-              }
-            }}
+            setCurrentRole={(role) => handleSetCurrentRole(role)}
             currentTab={currentTab}
             setCurrentTab={handleSetCurrentTab}
             currentUser={currentUser}
@@ -355,11 +420,11 @@ export function App() {
                 <IngestionHub
                   onRefreshSummary={loadSummary}
                   onNavigateToReviewer={() => {
-                    handleSetCurrentRole('REVIEWER');
+                    handleSetCurrentRole('REVIEWER', 'Transitioned from Ingest Hub to Reviewer Workbench — re-anchored scoped JWT credentials.');
                     handleSetCurrentTab('reviewer');
                   }}
                   onNavigateToOperator={() => {
-                    handleSetCurrentRole('OPERATOR');
+                    handleSetCurrentRole('OPERATOR', 'Returned to Ingestion Operations — re-issued Operator JWT credentials.');
                     handleSetCurrentTab('operator');
                   }}
                 />
@@ -370,11 +435,11 @@ export function App() {
                   summary={summary}
                   onRefreshSummary={loadSummary}
                   onNavigateToReviewer={() => {
-                    handleSetCurrentRole('REVIEWER');
+                    handleSetCurrentRole('REVIEWER', 'Shifted from Batch Lineage to Reviewer Workbench — re-anchored scoped JWT credentials.');
                     handleSetCurrentTab('reviewer');
                   }}
                   onNavigateToIngest={() => {
-                    handleSetCurrentRole('OPERATOR');
+                    handleSetCurrentRole('OPERATOR', 'Returned to Ingest Hub — re-issued Operator JWT credentials.');
                     handleSetCurrentTab('ingest');
                   }}
                 />
@@ -384,7 +449,7 @@ export function App() {
                 <ReviewerWorkbench
                   onRefreshSummary={loadSummary}
                   onNavigateToConsumer={() => {
-                    handleSetCurrentRole('CONSUMER');
+                    handleSetCurrentRole('CONSUMER', 'Shifted from Reviewer Workbench to Consumer Explorer — re-anchored scoped JWT credentials.');
                     handleSetCurrentTab('consumer');
                   }}
                 />
@@ -481,6 +546,13 @@ export function App() {
           if (role) handleSetCurrentRole(role);
           handleSetCurrentTab(tab);
         }}
+      />
+
+      {/* Real-time RBAC JWT Rotation Security Toast (Small, clean, 1.2s duration) */}
+      <JwtRotationToast
+        toastData={jwtToastData}
+        onClose={() => setJwtToastData(null)}
+        durationMs={1200}
       />
 
     </div>
