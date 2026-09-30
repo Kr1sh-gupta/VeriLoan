@@ -173,7 +173,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             key={mod.id}
             onClick={() => {
-              setCurrentRole(mod.role);
+              if (mod.role !== currentRole) {
+                setCurrentRole(mod.role);
+              }
               setCurrentTab(mod.id);
             }}
             className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${currentTab === mod.id
